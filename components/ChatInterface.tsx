@@ -39,6 +39,10 @@ export default function ChatInterface() {
   const [cachedTypes, setCachedTypes] = useState<DynamicSuggestion[]>([]);
   const [cachedTags, setCachedTags] = useState<DynamicSuggestion[]>([]);
 
+  // Multi-select state for tags
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+
   useEffect(() => {
     // Show autocomplete when focused and input is empty or just "/"
     if (isFocused && (input === '' || input === '/')) {
@@ -501,11 +505,30 @@ export default function ChatInterface() {
     const parts = input.slice(1).split(' ');
     const commandName = parts[0];
 
+    // For tag command, support multi-select
+    if (commandName === 'tag' && isMultiSelectMode) {
+      handleToggleTag(value);
+      return;
+    }
+
     // Replace with the selected value
     setInput(`/${commandName} ${value}`);
     setDynamicSuggestions([]);
     setShowAutocomplete(false);
     inputRef.current?.focus();
+  };
+
+  const handleToggleTag = (tag: string) => {
+    setSelectedTags(prev => {
+      const newTags = prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag];
+
+      // Update input field with selected tags
+      setInput(`/tag ${newTags.join(', ')}`);
+
+      return newTags;
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -530,11 +553,33 @@ export default function ChatInterface() {
         e.preventDefault();
         setShowAutocomplete(false);
         setSelectedIndex(0);
+        setIsMultiSelectMode(false);
+        setSelectedTags([]);
+        return;
+      }
+
+      if (e.key === ' ' && isMultiSelectMode && showAutocomplete) {
+        e.preventDefault();
+        // Toggle the currently selected tag
+        if (selectedIndex >= filteredCommands.length) {
+          const suggestionIndex = selectedIndex - filteredCommands.length;
+          if (suggestionIndex < dynamicSuggestions.length) {
+            handleToggleTag(dynamicSuggestions[suggestionIndex].value);
+          }
+        }
         return;
       }
 
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+
+        // If in multi-select mode with tags selected, send the search
+        if (isMultiSelectMode && selectedTags.length > 0) {
+          setShowAutocomplete(false);
+          setIsMultiSelectMode(false);
+          handleSend();
+          return;
+        }
 
         // Only select from autocomplete if there are actual items to select
         const hasValidSelection = (selectedIndex < filteredCommands.length) ||
@@ -589,6 +634,9 @@ export default function ChatInterface() {
               break;
             case 'tag':
               cachedData = cachedTags;
+              // Enable multi-select mode for tags
+              setIsMultiSelectMode(true);
+              setSelectedTags([]);
               break;
           }
 
@@ -637,6 +685,8 @@ export default function ChatInterface() {
             onSelect={handleCommandSelect}
             onSelectDynamic={handleDynamicSelect}
             selectedIndex={selectedIndex}
+            isMultiSelectMode={isMultiSelectMode}
+            selectedTags={selectedTags}
           />
         )}
 

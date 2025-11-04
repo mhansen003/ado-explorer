@@ -8,6 +8,8 @@ interface CommandAutocompleteProps {
   onSelect: (command: Command) => void;
   onSelectDynamic?: (value: string) => void;
   selectedIndex?: number;
+  isMultiSelectMode?: boolean;
+  selectedTags?: string[];
 }
 
 export default function CommandAutocomplete({
@@ -16,7 +18,9 @@ export default function CommandAutocomplete({
   isLoadingDynamic = false,
   onSelect,
   onSelectDynamic,
-  selectedIndex = 0
+  selectedIndex = 0,
+  isMultiSelectMode = false,
+  selectedTags = []
 }: CommandAutocompleteProps) {
   const hasCommands = commands.length > 0;
   const hasSuggestions = dynamicSuggestions.length > 0;
@@ -72,16 +76,26 @@ export default function CommandAutocomplete({
               <span className="flex items-center gap-2">
                 <span className="text-rh-green">✓</span>
                 <span>{dynamicSuggestions.length} option{dynamicSuggestions.length !== 1 ? 's' : ''} available</span>
+                {isMultiSelectMode && selectedTags.length > 0 && (
+                  <span className="text-rh-green font-medium">({selectedTags.length} selected)</span>
+                )}
               </span>
               <span className="flex items-center gap-1">
                 <span className="px-1.5 py-0.5 bg-rh-dark rounded border border-rh-border font-mono text-xs">↑</span>
                 <span className="px-1.5 py-0.5 bg-rh-dark rounded border border-rh-border font-mono text-xs">↓</span>
-                <span className="ml-1">to navigate</span>
+                {isMultiSelectMode && (
+                  <>
+                    <span className="px-1.5 py-0.5 bg-rh-dark rounded border border-rh-border font-mono text-xs ml-1">Space</span>
+                    <span>to select</span>
+                  </>
+                )}
+                {!isMultiSelectMode && <span className="ml-1">to navigate</span>}
               </span>
             </div>
           )}
           {dynamicSuggestions.map((suggestion, index) => {
             const itemIndex = commands.length + index;
+            const isSelected = isMultiSelectMode && selectedTags.includes(suggestion.value);
             return (
               <button
                 key={`${suggestion.value}-${index}`}
@@ -90,9 +104,15 @@ export default function CommandAutocomplete({
                   selectedIndex === itemIndex ? 'bg-rh-border' : ''
                 }`}
               >
-
-
-                <span className="text-2xl">✨</span>
+                {isMultiSelectMode ? (
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center mt-0.5 ${
+                    isSelected ? 'bg-rh-green border-rh-green' : 'border-rh-text-secondary'
+                  }`}>
+                    {isSelected && <span className="text-rh-dark text-sm">✓</span>}
+                  </div>
+                ) : (
+                  <span className="text-2xl">✨</span>
+                )}
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-rh-text font-medium">{suggestion.value}</span>

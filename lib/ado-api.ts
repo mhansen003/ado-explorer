@@ -107,6 +107,12 @@ export class ADOService {
     }
 
     if (command.startsWith('/tag') && param) {
+      // Support multiple tags separated by commas (AND logic)
+      const tags = param.split(',').map(t => t.trim()).filter(t => t);
+      if (tags.length > 1) {
+        const tagConditions = tags.map(tag => `[System.Tags] CONTAINS '${tag}'`).join(' AND ');
+        return `${baseQuery} WHERE ${tagConditions} ORDER BY [System.ChangedDate] DESC`;
+      }
       return `${baseQuery} WHERE [System.Tags] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`;
     }
 
@@ -348,9 +354,15 @@ export class ADOService {
    */
   async getTags(): Promise<string[]> {
     try {
+      // WIQL queries must be scoped to a project in Azure DevOps
+      if (!this.project) {
+        console.warn('Project required for getTags, returning empty array');
+        return [];
+      }
+
       // Query for work items with tags - must include System.Id in SELECT
       const query = `SELECT [System.Id], [System.Tags] FROM WorkItems WHERE [System.Tags] <> ''`;
-      const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
+      const response = await this.client.post('/wit/wiql', {
         query: query,
       });
 
