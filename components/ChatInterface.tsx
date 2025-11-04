@@ -103,10 +103,11 @@ export default function ChatInterface() {
       }
 
       // Show results or use mock data as fallback
+      const searchScope = data.searchScope ? ` (${data.searchScope})` : '';
       const resultMessage: Message = {
         id: Date.now().toString(),
         type: 'results',
-        content: `Results for: ${command}`,
+        content: `Results for: ${command}${searchScope}`,
         timestamp: new Date(),
         workItems: data.workItems && data.workItems.length > 0 ? data.workItems : generateMockWorkItems(command),
       };

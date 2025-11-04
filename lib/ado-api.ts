@@ -3,18 +3,32 @@ import { WorkItem } from '@/types';
 
 export class ADOService {
   private client: AxiosInstance;
+  private orgClient: AxiosInstance;
   private organization: string;
-  private project: string;
+  private project?: string;
 
-  constructor(organization: string, project: string, personalAccessToken: string) {
+  constructor(organization: string, personalAccessToken: string, project?: string) {
     this.organization = organization;
     this.project = project;
 
     // Create base64 encoded PAT for Basic Auth
     const auth = Buffer.from(`:${personalAccessToken}`).toString('base64');
 
+    // Organization-level client (searches across all projects)
+    this.orgClient = axios.create({
+      baseURL: `https://dev.azure.com/${organization}/_apis`,
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+      params: {
+        'api-version': '7.1',
+      },
+    });
+
+    // Project-level client (for single project searches)
     this.client = axios.create({
-      baseURL: `https://dev.azure.com/${organization}/${project}/_apis`,
+      baseURL: `https://dev.azure.com/${organization}${project ? `/${project}` : ''}/_apis`,
       headers: {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
@@ -27,11 +41,15 @@ export class ADOService {
 
   /**
    * Search work items using WIQL (Work Item Query Language)
+   * Searches across all projects if no project specified
    */
   async searchWorkItems(query: string): Promise<WorkItem[]> {
     try {
+      // Use org-level client for cross-project search, project-level for single project
+      const apiClient = this.project ? this.client : this.orgClient;
+
       // First, execute the query to get work item IDs
-      const queryResponse = await this.client.post('/wit/wiql', {
+      const queryResponse = await apiClient.post('/wit/wiql', {
         query: query,
       });
 
@@ -41,11 +59,11 @@ export class ADOService {
         return [];
       }
 
-      // Then, get the full details of each work item
-      const detailsResponse = await this.client.get('/wit/workitems', {
+      // Then, get the full details of each work item (use org client to get all fields including project)
+      const detailsResponse = await this.orgClient.get('/wit/workitems', {
         params: {
           ids: workItemIds.join(','),
-          fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,Microsoft.VSTS.Common.Priority,System.Description,System.Tags',
+          fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject',
         },
       });
 
@@ -108,7 +126,7 @@ export class ADOService {
       priority: fields['Microsoft.VSTS.Common.Priority'] || 3,
       description: fields['System.Description'] || '',
       tags: fields['System.Tags'] ? fields['System.Tags'].split(';').map((t: string) => t.trim()) : [],
-      project: this.project,
+      project: fields['System.TeamProject'] || this.project || 'Unknown',
     };
   }
 
