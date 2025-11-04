@@ -188,39 +188,64 @@ export class ADOService {
     try {
       const targetProject = projectName || this.project;
 
+      console.log('[ADO getTeams] Fetching teams for project:', targetProject || 'all projects');
+      console.log('[ADO getTeams] OrgClient baseURL:', this.orgClient.defaults.baseURL);
+
       if (!targetProject) {
         // If no project specified, get teams from all projects
         const projects = await this.getProjects();
+        console.log('[ADO getTeams] Fetching teams from', projects.length, 'projects');
         const allTeams = [];
 
         for (const project of projects) {
           try {
-            const response = await this.orgClient.get(`/projects/${encodeURIComponent(project.name)}/teams`);
+            const url = `/projects/${encodeURIComponent(project.name)}/teams`;
+            console.log('[ADO getTeams] Fetching teams for project:', project.name, 'URL:', url);
+            const response = await this.orgClient.get(url);
             const teams = response.data.value.map((team: any) => ({
               id: team.id,
               name: team.name,
               projectName: project.name,
             }));
+            console.log('[ADO getTeams] Found', teams.length, 'teams for project:', project.name);
             allTeams.push(...teams);
-          } catch (error) {
-            console.warn(`Could not fetch teams for project ${project.name}`);
+          } catch (error: any) {
+            console.warn('[ADO getTeams] Could not fetch teams for project', project.name, ':', {
+              status: error.response?.status,
+              statusText: error.response?.statusText,
+              url: error.config?.url,
+              message: error.message,
+            });
           }
         }
 
+        console.log('[ADO getTeams] Total teams found:', allTeams.length);
         return allTeams;
       }
 
       // Get teams for specific project
-      const response = await this.orgClient.get(`/projects/${encodeURIComponent(targetProject)}/teams`);
+      const url = `/projects/${encodeURIComponent(targetProject)}/teams`;
+      console.log('[ADO getTeams] Fetching teams for single project:', targetProject, 'URL:', url);
+      const response = await this.orgClient.get(url);
 
-      return response.data.value.map((team: any) => ({
+      const teams = response.data.value.map((team: any) => ({
         id: team.id,
         name: team.name,
         projectName: targetProject,
       }));
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-      throw error;
+      console.log('[ADO getTeams] Found', teams.length, 'teams');
+
+      return teams;
+    } catch (error: any) {
+      console.error('[ADO getTeams] Error fetching teams:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        message: error.message,
+      });
+      // Return empty array instead of throwing
+      return [];
     }
   }
 
@@ -231,6 +256,8 @@ export class ADOService {
     try {
       // Use the Graph API to get users - requires vssps subdomain
       const url = `https://vssps.dev.azure.com/${this.organization}/_apis/graph/users?api-version=7.1-preview.1`;
+      console.log('[ADO getUsers] Fetching users from Graph API:', url);
+
       const response = await axios.get(url, {
         headers: {
           Authorization: this.orgClient.defaults.headers.Authorization as string,
@@ -241,13 +268,22 @@ export class ADOService {
         },
       });
 
-      return response.data.value.map((user: any) => ({
+      const users = response.data.value.map((user: any) => ({
         displayName: user.displayName || user.principalName,
         uniqueName: user.mailAddress || user.principalName,
       }));
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      throw error;
+
+      console.log('[ADO getUsers] Found', users.length, 'users');
+      return users;
+    } catch (error: any) {
+      console.error('[ADO getUsers] Error fetching users:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        message: error.message,
+      });
+      // Return empty array instead of throwing
+      return [];
     }
   }
 

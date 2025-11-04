@@ -27,9 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ users });
   } catch (error: any) {
     console.error('[ADO Users API] Error:', error.message);
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch users' },
-      { status: 500 }
-    );
+    // Return empty array instead of error to prevent blocking the UI
+    return NextResponse.json({ users: [] });
   }
 }
