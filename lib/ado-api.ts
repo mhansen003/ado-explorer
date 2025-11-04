@@ -356,47 +356,68 @@ export class ADOService {
     try {
       // WIQL queries must be scoped to a project in Azure DevOps
       if (!this.project) {
-        console.warn('Project required for getTags, returning empty array');
+        console.warn('[ADO getTags] Project required for getTags, returning empty array');
         return [];
       }
+
+      console.log('[ADO getTags] Fetching tags for project:', this.project);
+      console.log('[ADO getTags] Client baseURL:', this.client.defaults.baseURL);
 
       // Query for work items with tags - must include System.Id in SELECT
       const query = `SELECT [System.Id], [System.Tags] FROM WorkItems WHERE [System.Tags] <> ''`;
-      const response = await this.client.post('/wit/wiql', {
-        query: query,
-      });
 
-      const workItemIds = response.data.workItems.map((item: any) => item.id);
+      try {
+        const response = await this.client.post('/wit/wiql', {
+          query: query,
+        });
 
-      if (workItemIds.length === 0) {
+        console.log('[ADO getTags] WIQL query returned', response.data.workItems?.length || 0, 'work items');
+
+        const workItemIds = response.data.workItems?.map((item: any) => item.id) || [];
+
+        if (workItemIds.length === 0) {
+          console.log('[ADO getTags] No work items with tags found');
+          return [];
+        }
+
+        // Get work items
+        const detailsResponse = await this.orgClient.get('/wit/workitems', {
+          params: {
+            ids: workItemIds.slice(0, 100).join(','),
+            fields: 'System.Tags',
+          },
+        });
+
+        // Extract unique tags
+        const tags = new Set<string>();
+        detailsResponse.data.value.forEach((item: any) => {
+          if (item.fields['System.Tags']) {
+            const itemTags = item.fields['System.Tags'].split(';');
+            itemTags.forEach((tag: string) => {
+              const trimmed = tag.trim();
+              if (trimmed) {
+                tags.add(trimmed);
+              }
+            });
+          }
+        });
+
+        const tagArray = Array.from(tags).sort();
+        console.log('[ADO getTags] Found', tagArray.length, 'unique tags');
+        return tagArray;
+      } catch (wiqlError: any) {
+        console.error('[ADO getTags] WIQL query failed:', {
+          status: wiqlError.response?.status,
+          statusText: wiqlError.response?.statusText,
+          url: wiqlError.config?.url,
+          baseURL: wiqlError.config?.baseURL,
+          message: wiqlError.message,
+        });
+        // Return empty array on WIQL error so the app continues to work
         return [];
       }
-
-      // Get work items
-      const detailsResponse = await this.orgClient.get('/wit/workitems', {
-        params: {
-          ids: workItemIds.slice(0, 100).join(','),
-          fields: 'System.Tags',
-        },
-      });
-
-      // Extract unique tags
-      const tags = new Set<string>();
-      detailsResponse.data.value.forEach((item: any) => {
-        if (item.fields['System.Tags']) {
-          const itemTags = item.fields['System.Tags'].split(';');
-          itemTags.forEach((tag: string) => {
-            const trimmed = tag.trim();
-            if (trimmed) {
-              tags.add(trimmed);
-            }
-          });
-        }
-      });
-
-      return Array.from(tags).sort();
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      console.error('[ADO getTags] Error fetching tags:', error);
       return [];
     }
   }
