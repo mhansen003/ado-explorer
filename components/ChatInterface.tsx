@@ -128,6 +128,8 @@ export default function ChatInterface() {
   // Pre-load all autocomplete data on mount
   useEffect(() => {
     const preloadData = async () => {
+      console.log('[ChatInterface] Starting pre-load of autocomplete data...');
+
       // Pre-load projects
       try {
         const response = await fetch('/api/projects');
@@ -137,9 +139,12 @@ export default function ChatInterface() {
             value: p.name,
             description: p.description || undefined,
           })));
+          console.log('[ChatInterface] Pre-loaded projects:', data.projects.length);
+        } else {
+          console.warn('[ChatInterface] Projects API returned error:', data);
         }
       } catch (err) {
-        console.warn('Could not pre-load projects');
+        console.warn('[ChatInterface] Could not pre-load projects:', err);
       }
 
       // Pre-load boards
@@ -611,6 +616,19 @@ export default function ChatInterface() {
         const commandName = parts[0].toLowerCase();
         const hasSpace = input.endsWith(' ');
 
+        console.log('[Tab Handler]', {
+          input,
+          commandName,
+          hasSpace,
+          parts,
+          cachedProjectsLength: cachedProjects.length,
+          cachedBoardsLength: cachedBoards.length,
+          cachedUsersLength: cachedUsers.length,
+          cachedStatesLength: cachedStates.length,
+          cachedTypesLength: cachedTypes.length,
+          cachedTagsLength: cachedTags.length,
+        });
+
         // If command has a space after it, show all cached options for that command
         if (hasSpace && parts.length === 2 && parts[1] === '') {
           let cachedData: DynamicSuggestion[] = [];
@@ -640,12 +658,16 @@ export default function ChatInterface() {
               break;
           }
 
+          console.log('[Tab Handler] Showing cached data for', commandName, ':', cachedData.length, 'items');
+
           if (cachedData.length > 0) {
             setDynamicSuggestions(cachedData);
             setFilteredCommands([]);
             setShowAutocomplete(true);
             setSelectedIndex(0);
             return;
+          } else {
+            console.warn('[Tab Handler] No cached data available for', commandName);
           }
         }
 
@@ -711,6 +733,7 @@ export default function ChatInterface() {
             }}
             placeholder="Click here or type / to see all commands..."
             className="flex-1 px-4 py-3 bg-rh-card border border-rh-border rounded-lg text-rh-text placeholder-rh-text-secondary focus:outline-none focus:border-rh-green"
+            autoFocus
           />
           <button
             onClick={handleSend}
