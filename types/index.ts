@@ -4,6 +4,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   workItems?: WorkItem[];
+  listItems?: Array<{value: string; description?: string; commandName?: string}>;
 }
 
 export interface WorkItem {

@@ -5,9 +5,10 @@ import { useEffect, useRef } from 'react';
 
 interface MessageListProps {
   messages: Message[];
+  onListItemClick?: (value: string, commandName: string) => void;
 }
 
-export default function MessageList({ messages }: MessageListProps) {
+export default function MessageList({ messages, onListItemClick }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -47,6 +48,30 @@ export default function MessageList({ messages }: MessageListProps) {
                 {message.workItems.map((item) => (
                   <WorkItemCard key={item.id} workItem={item} />
                 ))}
+              </div>
+            ) : message.listItems && message.listItems.length > 0 ? (
+              <div className="mt-3">
+                <div className="text-rh-text whitespace-pre-wrap text-sm mb-3">
+                  {message.content}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                  {message.listItems.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={() => onListItemClick?.(item.value, item.commandName || '')}
+                      className="flex flex-col items-start p-3 bg-rh-card border border-rh-border rounded-lg hover:border-rh-green hover:bg-rh-border transition-colors text-left"
+                    >
+                      <span className="text-rh-text font-medium text-sm">
+                        {item.value}
+                      </span>
+                      {item.description && (
+                        <span className="text-rh-text-secondary text-xs mt-1">
+                          {item.description}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="text-rh-text whitespace-pre-wrap text-sm">

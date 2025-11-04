@@ -27,6 +27,7 @@ export default function ChatInterface() {
   const [dynamicSuggestions, setDynamicSuggestions] = useState<DynamicSuggestion[]>([]);
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isShowingTabAutocomplete, setIsShowingTabAutocomplete] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isClient, setIsClient] = useState(false);
@@ -44,6 +45,11 @@ export default function ChatInterface() {
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
 
   useEffect(() => {
+    // Don't override if Tab autocomplete is showing
+    if (isShowingTabAutocomplete) {
+      return;
+    }
+
     // Show autocomplete when focused and input is empty or just "/"
     if (isFocused && (input === '' || input === '/')) {
       setFilteredCommands(COMMANDS);
@@ -100,7 +106,7 @@ export default function ChatInterface() {
       setDynamicSuggestions([]);
       setSelectedIndex(0);
     }
-  }, [input, dynamicSuggestions.length, isFocused]);
+  }, [input, dynamicSuggestions.length, isFocused, isShowingTabAutocomplete]);
 
   // Initialize messages only on client side to avoid hydration errors
   useEffect(() => {
@@ -428,6 +434,73 @@ export default function ChatInterface() {
       return;
     }
 
+    // Check if command is a base command without parameters (e.g., "/project", "/board", "/tag")
+    const commandMatch = command.match(/^\/(\w+)$/);
+    if (commandMatch) {
+      const commandName = commandMatch[1].toLowerCase();
+
+      // Commands that should show lists
+      const listCommands = ['project', 'board', 'tag', 'state', 'type', 'created_by', 'assigned_to'];
+
+      if (listCommands.includes(commandName)) {
+        const loadingMessage: Message = {
+          id: Date.now().toString(),
+          type: 'system',
+          content: `Loading ${commandName} list...`,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, loadingMessage]);
+
+        // Fetch the appropriate list
+        try {
+          let listData: Array<{value: string; description?: string}> = [];
+
+          switch (commandName) {
+            case 'project':
+              listData = cachedProjects.length > 0 ? cachedProjects : [];
+              break;
+            case 'board':
+              listData = cachedBoards.length > 0 ? cachedBoards : [];
+              break;
+            case 'tag':
+              listData = cachedTags.length > 0 ? cachedTags : [];
+              break;
+            case 'state':
+              listData = cachedStates.length > 0 ? cachedStates : [];
+              break;
+            case 'type':
+              listData = cachedTypes.length > 0 ? cachedTypes : [];
+              break;
+            case 'created_by':
+            case 'assigned_to':
+              listData = cachedUsers.length > 0 ? cachedUsers : [];
+              break;
+          }
+
+          const listMessage: Message = {
+            id: Date.now().toString(),
+            type: 'system',
+            content: `📋 Available ${commandName}s (${listData.length} items):\n\n💡 Click on an item to view details`,
+            timestamp: new Date(),
+            listItems: listData.map(item => ({
+              ...item,
+              commandName,
+            })),
+          };
+          setMessages(prev => [...prev.slice(0, -1), listMessage]);
+        } catch (error: any) {
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            type: 'system',
+            content: `❌ Error loading ${commandName} list: ${error.message}`,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+        }
+        return;
+      }
+    }
+
     // Show loading message
     const loadingMessage: Message = {
       id: Date.now().toString(),
@@ -502,6 +575,7 @@ export default function ChatInterface() {
     setInput(`/${command.name}${command.hasParam ? ' ' : ''}`);
     setDynamicSuggestions([]);
     setShowAutocomplete(false);
+    setIsShowingTabAutocomplete(false);
     inputRef.current?.focus();
   };
 
@@ -520,6 +594,7 @@ export default function ChatInterface() {
     setInput(`/${commandName} ${value}`);
     setDynamicSuggestions([]);
     setShowAutocomplete(false);
+    setIsShowingTabAutocomplete(false);
     inputRef.current?.focus();
   };
 
@@ -534,6 +609,31 @@ export default function ChatInterface() {
 
       return newTags;
     });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    // Reset Tab autocomplete flag when user types
+    if (isShowingTabAutocomplete) {
+      setIsShowingTabAutocomplete(false);
+    }
+  };
+
+  const handleListItemClick = async (value: string, commandName: string) => {
+    // Execute the command with the selected value
+    const command = `/${commandName} ${value}`;
+
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: command,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Process the command
+    await processCommand(command);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -663,6 +763,7 @@ export default function ChatInterface() {
           if (cachedData.length > 0) {
             setDynamicSuggestions(cachedData);
             setFilteredCommands([]);
+            setIsShowingTabAutocomplete(true);
             setShowAutocomplete(true);
             setSelectedIndex(0);
             return;
@@ -696,7 +797,7 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <MessageList messages={messages} />
+      <MessageList messages={messages} onListItemClick={handleListItemClick} />
 
       <div className="relative p-4 border-t border-rh-border bg-rh-dark">
         {showAutocomplete && (
@@ -724,7 +825,7 @@ export default function ChatInterface() {
             ref={inputRef}
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => {
