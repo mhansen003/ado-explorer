@@ -239,39 +239,48 @@ export class ADOService {
   }
 
   /**
-   * Get all unique states from work items
+   * Get all unique states from work item types
    */
   async getStates(): Promise<string[]> {
     try {
-      // Query for unique states - must include System.Id in SELECT
-      const query = `SELECT [System.Id], [System.State] FROM WorkItems`;
-      const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
-        query: query,
-      });
+      // Use the work item types API to get all states
+      // If project is specified, get states for that project only
+      if (this.project) {
+        const response = await this.client.get('/wit/workitemtypes');
+        const states = new Set<string>();
 
-      const workItemIds = response.data.workItems.map((item: any) => item.id);
+        response.data.value.forEach((workItemType: any) => {
+          // Each work item type has a states array
+          if (workItemType.states && Array.isArray(workItemType.states)) {
+            workItemType.states.forEach((state: any) => {
+              states.add(state.name);
+            });
+          }
+        });
 
-      if (workItemIds.length === 0) {
-        return [];
+        return Array.from(states).sort();
       }
 
-      // Get work items
-      const detailsResponse = await this.orgClient.get('/wit/workitems', {
-        params: {
-          ids: workItemIds.slice(0, 100).join(','), // Limit to 100 for performance
-          fields: 'System.State',
-        },
-      });
+      // For org-level, get states from all projects
+      const projects = await this.getProjects();
+      const allStates = new Set<string>();
 
-      // Extract unique states
-      const states = new Set<string>();
-      detailsResponse.data.value.forEach((item: any) => {
-        if (item.fields['System.State']) {
-          states.add(item.fields['System.State']);
+      for (const project of projects.slice(0, 10)) { // Limit to first 10 projects
+        try {
+          const response = await this.orgClient.get(`/projects/${encodeURIComponent(project.name)}/_apis/wit/workitemtypes`);
+          response.data.value.forEach((workItemType: any) => {
+            if (workItemType.states && Array.isArray(workItemType.states)) {
+              workItemType.states.forEach((state: any) => {
+                allStates.add(state.name);
+              });
+            }
+          });
+        } catch (err) {
+          console.warn(`Could not fetch states for project ${project.name}`);
         }
-      });
+      }
 
-      return Array.from(states).sort();
+      return Array.from(allStates).sort();
     } catch (error) {
       console.error('Error fetching states:', error);
       // Return default states if API fails
@@ -284,35 +293,28 @@ export class ADOService {
    */
   async getTypes(): Promise<string[]> {
     try {
-      // Query for unique types - must include System.Id in SELECT
-      const query = `SELECT [System.Id], [System.WorkItemType] FROM WorkItems`;
-      const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
-        query: query,
-      });
-
-      const workItemIds = response.data.workItems.map((item: any) => item.id);
-
-      if (workItemIds.length === 0) {
-        return [];
+      // Use the work item types API to get all types
+      if (this.project) {
+        const response = await this.client.get('/wit/workitemtypes');
+        return response.data.value.map((type: any) => type.name).sort();
       }
 
-      // Get work items
-      const detailsResponse = await this.orgClient.get('/wit/workitems', {
-        params: {
-          ids: workItemIds.slice(0, 100).join(','),
-          fields: 'System.WorkItemType',
-        },
-      });
+      // For org-level, get types from all projects
+      const projects = await this.getProjects();
+      const allTypes = new Set<string>();
 
-      // Extract unique types
-      const types = new Set<string>();
-      detailsResponse.data.value.forEach((item: any) => {
-        if (item.fields['System.WorkItemType']) {
-          types.add(item.fields['System.WorkItemType']);
+      for (const project of projects.slice(0, 10)) { // Limit to first 10 projects
+        try {
+          const response = await this.orgClient.get(`/projects/${encodeURIComponent(project.name)}/_apis/wit/workitemtypes`);
+          response.data.value.forEach((type: any) => {
+            allTypes.add(type.name);
+          });
+        } catch (err) {
+          console.warn(`Could not fetch types for project ${project.name}`);
         }
-      });
+      }
 
-      return Array.from(types).sort();
+      return Array.from(allTypes).sort();
     } catch (error) {
       console.error('Error fetching types:', error);
       // Return default types if API fails
