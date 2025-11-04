@@ -267,7 +267,14 @@ export class ADOService {
 
       for (const project of projects.slice(0, 10)) { // Limit to first 10 projects
         try {
-          const response = await this.orgClient.get(`/projects/${encodeURIComponent(project.name)}/_apis/wit/workitemtypes`);
+          // Use axios directly with correct URL structure (no double _apis)
+          const url = `https://dev.azure.com/${this.organization}/${encodeURIComponent(project.name)}/_apis/wit/workitemtypes?api-version=7.1`;
+          const response = await axios.get(url, {
+            headers: {
+              Authorization: this.orgClient.defaults.headers.Authorization as string,
+              'Content-Type': 'application/json',
+            },
+          });
           response.data.value.forEach((workItemType: any) => {
             if (workItemType.states && Array.isArray(workItemType.states)) {
               workItemType.states.forEach((state: any) => {
@@ -305,7 +312,14 @@ export class ADOService {
 
       for (const project of projects.slice(0, 10)) { // Limit to first 10 projects
         try {
-          const response = await this.orgClient.get(`/projects/${encodeURIComponent(project.name)}/_apis/wit/workitemtypes`);
+          // Use axios directly with correct URL structure (no double _apis)
+          const url = `https://dev.azure.com/${this.organization}/${encodeURIComponent(project.name)}/_apis/wit/workitemtypes?api-version=7.1`;
+          const response = await axios.get(url, {
+            headers: {
+              Authorization: this.orgClient.defaults.headers.Authorization as string,
+              'Content-Type': 'application/json',
+            },
+          });
           response.data.value.forEach((type: any) => {
             allTypes.add(type.name);
           });
