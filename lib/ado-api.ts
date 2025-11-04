@@ -215,4 +215,154 @@ export class ADOService {
       throw error;
     }
   }
+
+  /**
+   * Get all users from the organization
+   */
+  async getUsers(): Promise<{ displayName: string; uniqueName: string }[]> {
+    try {
+      // Use the Graph API to get users
+      const response = await this.orgClient.get(`/graph/users`, {
+        params: {
+          '$top': 100,
+        },
+      });
+
+      return response.data.value.map((user: any) => ({
+        displayName: user.displayName || user.principalName,
+        uniqueName: user.mailAddress || user.principalName,
+      }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all unique states from work items
+   */
+  async getStates(): Promise<string[]> {
+    try {
+      // Query for unique states
+      const query = `SELECT [System.State] FROM WorkItems`;
+      const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
+        query: query,
+      });
+
+      const workItemIds = response.data.workItems.map((item: any) => item.id);
+
+      if (workItemIds.length === 0) {
+        return [];
+      }
+
+      // Get work items
+      const detailsResponse = await this.orgClient.get('/wit/workitems', {
+        params: {
+          ids: workItemIds.slice(0, 100).join(','), // Limit to 100 for performance
+          fields: 'System.State',
+        },
+      });
+
+      // Extract unique states
+      const states = new Set<string>();
+      detailsResponse.data.value.forEach((item: any) => {
+        if (item.fields['System.State']) {
+          states.add(item.fields['System.State']);
+        }
+      });
+
+      return Array.from(states).sort();
+    } catch (error) {
+      console.error('Error fetching states:', error);
+      // Return default states if API fails
+      return ['New', 'Active', 'Resolved', 'Closed', 'Removed'];
+    }
+  }
+
+  /**
+   * Get all work item types
+   */
+  async getTypes(): Promise<string[]> {
+    try {
+      // Query for unique types
+      const query = `SELECT [System.WorkItemType] FROM WorkItems`;
+      const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
+        query: query,
+      });
+
+      const workItemIds = response.data.workItems.map((item: any) => item.id);
+
+      if (workItemIds.length === 0) {
+        return [];
+      }
+
+      // Get work items
+      const detailsResponse = await this.orgClient.get('/wit/workitems', {
+        params: {
+          ids: workItemIds.slice(0, 100).join(','),
+          fields: 'System.WorkItemType',
+        },
+      });
+
+      // Extract unique types
+      const types = new Set<string>();
+      detailsResponse.data.value.forEach((item: any) => {
+        if (item.fields['System.WorkItemType']) {
+          types.add(item.fields['System.WorkItemType']);
+        }
+      });
+
+      return Array.from(types).sort();
+    } catch (error) {
+      console.error('Error fetching types:', error);
+      // Return default types if API fails
+      return ['Bug', 'Task', 'User Story', 'Epic', 'Feature', 'Issue'];
+    }
+  }
+
+  /**
+   * Get all unique tags
+   */
+  async getTags(): Promise<string[]> {
+    try {
+      // Query for work items with tags
+      const query = `SELECT [System.Tags] FROM WorkItems WHERE [System.Tags] <> ''`;
+      const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
+        query: query,
+      });
+
+      const workItemIds = response.data.workItems.map((item: any) => item.id);
+
+      if (workItemIds.length === 0) {
+        return [];
+      }
+
+      // Get work items
+      const detailsResponse = await this.orgClient.get('/wit/workitems', {
+        params: {
+          ids: workItemIds.slice(0, 100).join(','),
+          fields: 'System.Tags',
+        },
+      });
+
+      // Extract unique tags
+      const tags = new Set<string>();
+      detailsResponse.data.value.forEach((item: any) => {
+        if (item.fields['System.Tags']) {
+          const itemTags = item.fields['System.Tags'].split(';');
+          itemTags.forEach((tag: string) => {
+            const trimmed = tag.trim();
+            if (trimmed) {
+              tags.add(trimmed);
+            }
+          });
+        }
+      });
+
+      return Array.from(tags).sort();
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      return [];
+    }
+  }
 }

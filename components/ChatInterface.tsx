@@ -7,13 +7,14 @@ import CommandAutocomplete from './CommandAutocomplete';
 import { Message, Command, DynamicSuggestion } from '@/types';
 
 const COMMANDS: Command[] = [
+  { name: 'prompt', description: 'Ask a natural language question (AI-powered)', icon: '🤖', hasParam: true },
   { name: 'project', description: 'Filter by project (auto-completes from your ADO)', icon: '📁', hasParam: true, isDynamic: true },
   { name: 'board', description: 'Filter by board/team (auto-completes from your ADO)', icon: '📋', hasParam: true, isDynamic: true },
-  { name: 'created_by', description: 'Filter by creator (e.g., /created_by ericka)', icon: '👤', hasParam: true },
-  { name: 'assigned_to', description: 'Filter by assignee', icon: '📌', hasParam: true },
-  { name: 'state', description: 'Filter by state (e.g., /state active)', icon: '📊', hasParam: true },
-  { name: 'type', description: 'Filter by work item type (Bug, Task, Story)', icon: '🏷️', hasParam: true },
-  { name: 'tag', description: 'Filter by tag', icon: '🔖', hasParam: true },
+  { name: 'created_by', description: 'Filter by creator (auto-completes)', icon: '👤', hasParam: true, isDynamic: true },
+  { name: 'assigned_to', description: 'Filter by assignee (auto-completes)', icon: '📌', hasParam: true, isDynamic: true },
+  { name: 'state', description: 'Filter by state (auto-completes)', icon: '📊', hasParam: true, isDynamic: true },
+  { name: 'type', description: 'Filter by work item type (auto-completes)', icon: '🏷️', hasParam: true, isDynamic: true },
+  { name: 'tag', description: 'Filter by tag (auto-completes)', icon: '🔖', hasParam: true, isDynamic: true },
   { name: 'recent', description: 'Show recently updated items', icon: '⏰' },
   { name: 'help', description: 'Show available commands', icon: '❓' },
 ];
@@ -55,10 +56,30 @@ export default function ChatInterface() {
       );
 
       // Check if we need to fetch dynamic suggestions
-      if (commandName === 'project' && param) {
-        fetchProjects(param);
-      } else if (commandName === 'board' && param) {
-        fetchBoards(param);
+      if (param) {
+        switch (commandName) {
+          case 'project':
+            fetchProjects(param);
+            break;
+          case 'board':
+            fetchBoards(param);
+            break;
+          case 'created_by':
+          case 'assigned_to':
+            fetchUsers(param);
+            break;
+          case 'state':
+            fetchStates(param);
+            break;
+          case 'type':
+            fetchTypes(param);
+            break;
+          case 'tag':
+            fetchTags(param);
+            break;
+          default:
+            setDynamicSuggestions([]);
+        }
       } else {
         setDynamicSuggestions([]);
       }
@@ -70,6 +91,22 @@ export default function ChatInterface() {
       setDynamicSuggestions([]);
     }
   }, [input, dynamicSuggestions.length, isFocused]);
+
+  // Auto-run /help on first load
+  useEffect(() => {
+    const runHelp = async () => {
+      const helpMessage: Message = {
+        id: Date.now().toString(),
+        type: 'system',
+        content: 'Available commands:\n\n' + COMMANDS.map(cmd =>
+          `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
+        ).join('\n') + '\n\n💡 Click any command above to get started!',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, helpMessage]);
+    };
+    runHelp();
+  }, []); // Empty dependency array = run once on mount
 
   const fetchProjects = async (searchTerm: string) => {
     try {
@@ -115,6 +152,91 @@ export default function ChatInterface() {
     }
   };
 
+  const fetchUsers = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/users');
+      const data = await response.json();
+
+      if (response.ok && data.users) {
+        const filtered = data.users
+          .filter((u: any) => u.displayName.toLowerCase().includes(searchTerm))
+          .map((u: any) => ({
+            value: u.displayName,
+            description: u.uniqueName || undefined,
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
+  const fetchStates = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/states');
+      const data = await response.json();
+
+      if (response.ok && data.states) {
+        const filtered = data.states
+          .filter((s: string) => s.toLowerCase().includes(searchTerm))
+          .map((s: string) => ({
+            value: s,
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching states:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
+  const fetchTypes = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/types');
+      const data = await response.json();
+
+      if (response.ok && data.types) {
+        const filtered = data.types
+          .filter((t: string) => t.toLowerCase().includes(searchTerm))
+          .map((t: string) => ({
+            value: t,
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching types:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
+  const fetchTags = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/tags');
+      const data = await response.json();
+
+      if (response.ok && data.tags) {
+        const filtered = data.tags
+          .filter((t: string) => t.toLowerCase().includes(searchTerm))
+          .map((t: string) => ({
+            value: t,
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -144,6 +266,55 @@ export default function ChatInterface() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, helpMessage]);
+      return;
+    }
+
+    // Handle /prompt command with OpenAI
+    if (command.startsWith('/prompt ')) {
+      const prompt = command.replace('/prompt ', '').trim();
+
+      const loadingMessage: Message = {
+        id: Date.now().toString(),
+        type: 'system',
+        content: '🤖 Analyzing your question with AI...',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+
+      try {
+        const response = await fetch('/api/prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to process prompt');
+        }
+
+        const aiNote = data.aiGenerated ? `\n\n🤖 AI-Generated Query: ${data.generatedQuery}` : '';
+        const searchScope = data.searchScope ? ` (${data.searchScope})` : '';
+        const resultMessage: Message = {
+          id: Date.now().toString(),
+          type: 'results',
+          content: `Results for: "${prompt}"${searchScope}${aiNote}`,
+          timestamp: new Date(),
+          workItems: data.workItems || [],
+        };
+        setMessages(prev => [...prev.slice(0, -1), resultMessage]);
+      } catch (error: any) {
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          type: 'system',
+          content: `❌ Error: ${error.message}\n\nMake sure OPENAI_API_KEY is set in Vercel environment variables.`,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+      }
       return;
     }
 
