@@ -243,8 +243,8 @@ export class ADOService {
    */
   async getStates(): Promise<string[]> {
     try {
-      // Query for unique states
-      const query = `SELECT [System.State] FROM WorkItems`;
+      // Query for unique states - must include System.Id in SELECT
+      const query = `SELECT [System.Id], [System.State] FROM WorkItems`;
       const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
         query: query,
       });
@@ -284,8 +284,8 @@ export class ADOService {
    */
   async getTypes(): Promise<string[]> {
     try {
-      // Query for unique types
-      const query = `SELECT [System.WorkItemType] FROM WorkItems`;
+      // Query for unique types - must include System.Id in SELECT
+      const query = `SELECT [System.Id], [System.WorkItemType] FROM WorkItems`;
       const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
         query: query,
       });
@@ -325,8 +325,8 @@ export class ADOService {
    */
   async getTags(): Promise<string[]> {
     try {
-      // Query for work items with tags
-      const query = `SELECT [System.Tags] FROM WorkItems WHERE [System.Tags] <> ''`;
+      // Query for work items with tags - must include System.Id in SELECT
+      const query = `SELECT [System.Id], [System.Tags] FROM WorkItems WHERE [System.Tags] <> ''`;
       const response = await (this.project ? this.client : this.orgClient).post('/wit/wiql', {
         query: query,
       });
