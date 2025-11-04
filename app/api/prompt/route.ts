@@ -46,8 +46,10 @@ export async function POST(request: NextRequest) {
             role: 'system',
             content: `You are an Azure DevOps WIQL (Work Item Query Language) expert. Your job is to convert natural language questions into WIQL queries.
 
-WIQL Query Format:
-SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditions] ORDER BY [field]
+WIQL Query Format (ALWAYS include TOP 200):
+SELECT TOP 200 [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditions] ORDER BY [field]
+
+IMPORTANT: Azure DevOps has a 200 work item limit per query. ALWAYS include "TOP 200" after SELECT.
 
 Common Fields:
 - System.Title - Work item title
@@ -69,13 +71,13 @@ Operators:
 
 Examples:
 Q: "Which tickets are talking about credit?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS 'credit' OR [System.Description] CONTAINS 'credit' ORDER BY [System.ChangedDate] DESC
+A: SELECT TOP 200 [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS 'credit' OR [System.Description] CONTAINS 'credit' ORDER BY [System.ChangedDate] DESC
 
 Q: "Show me all bugs assigned to John"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [System.AssignedTo] CONTAINS 'John' ORDER BY [System.ChangedDate] DESC
+A: SELECT TOP 200 [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [System.AssignedTo] CONTAINS 'John' ORDER BY [System.ChangedDate] DESC
 
 Q: "What tasks were created this week?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Task' AND [System.CreatedDate] >= @Today - 7 ORDER BY [System.CreatedDate] DESC
+A: SELECT TOP 200 [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Task' AND [System.CreatedDate] >= @Today - 7 ORDER BY [System.CreatedDate] DESC
 
 Respond ONLY with the WIQL query, nothing else.`,
           },
