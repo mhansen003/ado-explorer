@@ -23,7 +23,7 @@ export default function ChatInterface() {
     {
       id: '1',
       type: 'system',
-      content: 'Welcome to ADO Explorer! Type a slash command to get started. Try /help to see available commands.',
+      content: 'Welcome to ADO Explorer! 👋\n\n✨ Click the input box below to see all available commands\n💡 Or type / to start exploring\n🔍 Try /project or /board to see your ADO data with autocomplete!',
       timestamp: new Date(),
     }
   ]);
@@ -32,9 +32,18 @@ export default function ChatInterface() {
   const [filteredCommands, setFilteredCommands] = useState<Command[]>([]);
   const [dynamicSuggestions, setDynamicSuggestions] = useState<DynamicSuggestion[]>([]);
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Show autocomplete when focused and input is empty or just "/"
+    if (isFocused && (input === '' || input === '/')) {
+      setFilteredCommands(COMMANDS);
+      setDynamicSuggestions([]);
+      setShowAutocomplete(true);
+      return;
+    }
+
     if (input.startsWith('/')) {
       const parts = input.slice(1).split(' ');
       const commandName = parts[0].toLowerCase();
@@ -60,7 +69,7 @@ export default function ChatInterface() {
       setShowAutocomplete(false);
       setDynamicSuggestions([]);
     }
-  }, [input, dynamicSuggestions.length]);
+  }, [input, dynamicSuggestions.length, isFocused]);
 
   const fetchProjects = async (searchTerm: string) => {
     try {
@@ -256,7 +265,12 @@ export default function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type / for commands or enter a search query..."
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => {
+              // Delay hiding to allow clicking on autocomplete items
+              setTimeout(() => setIsFocused(false), 200);
+            }}
+            placeholder="Click here or type / to see all commands..."
             className="flex-1 px-4 py-3 bg-rh-card border border-rh-border rounded-lg text-rh-text placeholder-rh-text-secondary focus:outline-none focus:border-rh-green"
           />
           <button
