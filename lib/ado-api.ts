@@ -189,7 +189,7 @@ export class ADOService {
 
         for (const project of projects) {
           try {
-            const response = await this.orgClient.get(`/projects/${project.id}/teams`);
+            const response = await this.orgClient.get(`/projects/${encodeURIComponent(project.name)}/teams`);
             const teams = response.data.value.map((team: any) => ({
               id: team.id,
               name: team.name,
@@ -223,8 +223,13 @@ export class ADOService {
    */
   async getUsers(): Promise<{ displayName: string; uniqueName: string }[]> {
     try {
-      // Use the Graph API to get users
-      const response = await this.orgClient.get(`/graph/users`, {
+      // Use the Graph API to get users - requires vssps subdomain
+      const url = `https://vssps.dev.azure.com/${this.organization}/_apis/graph/users?api-version=7.1-preview.1`;
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: this.orgClient.defaults.headers.Authorization as string,
+          'Content-Type': 'application/json',
+        },
         params: {
           '$top': 100,
         },
