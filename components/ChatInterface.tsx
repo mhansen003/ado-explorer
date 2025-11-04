@@ -31,6 +31,14 @@ export default function ChatInterface() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isClient, setIsClient] = useState(false);
 
+  // Pre-loaded autocomplete data
+  const [cachedProjects, setCachedProjects] = useState<DynamicSuggestion[]>([]);
+  const [cachedBoards, setCachedBoards] = useState<DynamicSuggestion[]>([]);
+  const [cachedUsers, setCachedUsers] = useState<DynamicSuggestion[]>([]);
+  const [cachedStates, setCachedStates] = useState<DynamicSuggestion[]>([]);
+  const [cachedTypes, setCachedTypes] = useState<DynamicSuggestion[]>([]);
+  const [cachedTags, setCachedTags] = useState<DynamicSuggestion[]>([]);
+
   useEffect(() => {
     // Show autocomplete when focused and input is empty or just "/"
     if (isFocused && (input === '' || input === '/')) {
@@ -97,7 +105,7 @@ export default function ChatInterface() {
     const welcomeMessage: Message = {
       id: '1',
       type: 'system',
-      content: 'Welcome to ADO Explorer! 👋\n\n✨ Click the input box below to see all available commands\n💡 Or type / to start exploring\n🔍 Try /project or /board to see your ADO data with autocomplete!',
+      content: 'Welcome to ADO Explorer! 👋\n\n✨ Click the input box below to see all available commands\n💡 Or type / to start exploring\n🔍 Try /project or /board to see your ADO data with autocomplete!\n⌨️  Press Tab after a command to see all available options',
       timestamp: new Date(),
     };
 
@@ -106,12 +114,94 @@ export default function ChatInterface() {
       type: 'system',
       content: 'Available commands:\n\n' + COMMANDS.map(cmd =>
         `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
-      ).join('\n') + '\n\n💡 Click the input box or type / to get started!',
+      ).join('\n') + '\n\n💡 Click the input box or type / to get started!\n⌨️  Press Tab after any command to see all options',
       timestamp: new Date(),
     };
 
     setMessages([welcomeMessage, helpMessage]);
   }, []); // Empty dependency array = run once on mount
+
+  // Pre-load all autocomplete data on mount
+  useEffect(() => {
+    const preloadData = async () => {
+      // Pre-load projects
+      try {
+        const response = await fetch('/api/projects');
+        const data = await response.json();
+        if (response.ok && data.projects) {
+          setCachedProjects(data.projects.map((p: any) => ({
+            value: p.name,
+            description: p.description || undefined,
+          })));
+        }
+      } catch (err) {
+        console.warn('Could not pre-load projects');
+      }
+
+      // Pre-load boards
+      try {
+        const response = await fetch('/api/boards');
+        const data = await response.json();
+        if (response.ok && data.teams) {
+          setCachedBoards(data.teams.map((t: any) => ({
+            value: t.name,
+            description: t.projectName ? `Project: ${t.projectName}` : undefined,
+          })));
+        }
+      } catch (err) {
+        console.warn('Could not pre-load boards');
+      }
+
+      // Pre-load users
+      try {
+        const response = await fetch('/api/users');
+        const data = await response.json();
+        if (response.ok && data.users) {
+          setCachedUsers(data.users.map((u: any) => ({
+            value: u.displayName,
+            description: u.uniqueName || undefined,
+          })));
+        }
+      } catch (err) {
+        console.warn('Could not pre-load users');
+      }
+
+      // Pre-load states
+      try {
+        const response = await fetch('/api/states');
+        const data = await response.json();
+        if (response.ok && data.states) {
+          setCachedStates(data.states.map((s: string) => ({ value: s })));
+        }
+      } catch (err) {
+        console.warn('Could not pre-load states');
+      }
+
+      // Pre-load types
+      try {
+        const response = await fetch('/api/types');
+        const data = await response.json();
+        if (response.ok && data.types) {
+          setCachedTypes(data.types.map((t: string) => ({ value: t })));
+        }
+      } catch (err) {
+        console.warn('Could not pre-load types');
+      }
+
+      // Pre-load tags
+      try {
+        const response = await fetch('/api/tags');
+        const data = await response.json();
+        if (response.ok && data.tags) {
+          setCachedTags(data.tags.map((t: string) => ({ value: t })));
+        }
+      } catch (err) {
+        console.warn('Could not pre-load tags');
+      }
+    };
+
+    preloadData();
+  }, []);
 
   const fetchProjects = async (searchTerm: string) => {
     try {
@@ -453,6 +543,47 @@ export default function ChatInterface() {
 
       if (e.key === 'Tab') {
         e.preventDefault();
+
+        // Check if user has typed a command and space (e.g., "/project ")
+        const parts = input.slice(1).split(' ');
+        const commandName = parts[0].toLowerCase();
+        const hasSpace = input.endsWith(' ');
+
+        // If command has a space after it, show all cached options for that command
+        if (hasSpace && parts.length === 2 && parts[1] === '') {
+          let cachedData: DynamicSuggestion[] = [];
+
+          switch (commandName) {
+            case 'project':
+              cachedData = cachedProjects;
+              break;
+            case 'board':
+              cachedData = cachedBoards;
+              break;
+            case 'created_by':
+            case 'assigned_to':
+              cachedData = cachedUsers;
+              break;
+            case 'state':
+              cachedData = cachedStates;
+              break;
+            case 'type':
+              cachedData = cachedTypes;
+              break;
+            case 'tag':
+              cachedData = cachedTags;
+              break;
+          }
+
+          if (cachedData.length > 0) {
+            setDynamicSuggestions(cachedData);
+            setFilteredCommands([]);
+            setShowAutocomplete(true);
+            setSelectedIndex(0);
+            return;
+          }
+        }
+
         // If typing a command, show the dropdown
         if (input.startsWith('/') && !showAutocomplete) {
           setShowAutocomplete(true);

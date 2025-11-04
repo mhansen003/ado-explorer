@@ -23,6 +23,14 @@ export default function CommandAutocomplete({
 
   return (
     <div className="absolute bottom-full left-0 right-0 mb-2 mx-4 bg-rh-card border border-rh-border rounded-lg shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+      {/* Tab hint for commands with parameters */}
+      {hasCommands && commands.some(cmd => cmd.hasParam) && !hasSuggestions && (
+        <div className="px-4 py-2 bg-rh-border/30 border-b border-rh-border text-xs text-rh-text-secondary flex items-center gap-2">
+          <span className="px-2 py-0.5 bg-rh-dark rounded border border-rh-border font-mono">Tab</span>
+          <span>Press Tab after typing a command to see all options</span>
+        </div>
+      )}
+
       {/* Static Commands */}
       {hasCommands && commands.map((command, index) => (
         <button
@@ -57,29 +65,47 @@ export default function CommandAutocomplete({
       )}
 
       {/* Dynamic Suggestions */}
-      {hasSuggestions && dynamicSuggestions.map((suggestion, index) => {
-        const itemIndex = commands.length + index;
-        return (
-          <button
-            key={`${suggestion.value}-${index}`}
-            onClick={() => onSelectDynamic?.(suggestion.value)}
-            className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left border-t border-rh-border/50 ${
-              selectedIndex === itemIndex ? 'bg-rh-border' : ''
-            }`}
-          >
-
-            <span className="text-2xl">✨</span>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-rh-text font-medium">{suggestion.value}</span>
-              </div>
-              {suggestion.description && (
-                <p className="text-xs text-rh-text-secondary mt-0.5">{suggestion.description}</p>
-              )}
+      {hasSuggestions && (
+        <>
+          {!hasCommands && (
+            <div className="px-4 py-2 bg-rh-border/30 border-b border-rh-border text-xs text-rh-text-secondary flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="text-rh-green">✓</span>
+                <span>{dynamicSuggestions.length} option{dynamicSuggestions.length !== 1 ? 's' : ''} available</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="px-1.5 py-0.5 bg-rh-dark rounded border border-rh-border font-mono text-xs">↑</span>
+                <span className="px-1.5 py-0.5 bg-rh-dark rounded border border-rh-border font-mono text-xs">↓</span>
+                <span className="ml-1">to navigate</span>
+              </span>
             </div>
-          </button>
-        );
-      })}
+          )}
+          {dynamicSuggestions.map((suggestion, index) => {
+            const itemIndex = commands.length + index;
+            return (
+              <button
+                key={`${suggestion.value}-${index}`}
+                onClick={() => onSelectDynamic?.(suggestion.value)}
+                className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left border-t border-rh-border/50 ${
+                  selectedIndex === itemIndex ? 'bg-rh-border' : ''
+                }`}
+              >
+
+
+                <span className="text-2xl">✨</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-rh-text font-medium">{suggestion.value}</span>
+                  </div>
+                  {suggestion.description && (
+                    <p className="text-xs text-rh-text-secondary mt-0.5">{suggestion.description}</p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </>
+      )}
 
       {/* No Results */}
       {!hasCommands && !hasSuggestions && !isLoadingDynamic && (
