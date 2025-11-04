@@ -7,7 +7,6 @@ import CommandAutocomplete from './CommandAutocomplete';
 import { Message, Command, DynamicSuggestion } from '@/types';
 
 const COMMANDS: Command[] = [
-  { name: 'prompt', description: 'Ask a natural language question (AI-powered)', icon: '🤖', hasParam: true },
   { name: 'project', description: 'Filter by project (auto-completes from your ADO)', icon: '📁', hasParam: true, isDynamic: true },
   { name: 'board', description: 'Filter by board/team (auto-completes from your ADO)', icon: '📋', hasParam: true, isDynamic: true },
   { name: 'created_by', description: 'Filter by creator (auto-completes)', icon: '👤', hasParam: true, isDynamic: true },
@@ -115,16 +114,16 @@ export default function ChatInterface() {
     const welcomeMessage: Message = {
       id: '1',
       type: 'system',
-      content: 'Welcome to ADO Explorer! 👋\n\n✨ Click the input box below to see all available commands\n💡 Or type / to start exploring\n🔍 Try /project or /board to see your ADO data with autocomplete!\n⌨️  Press Tab after a command to see all available options',
+      content: 'Welcome to ADO Explorer! 👋\n\n🤖 Just type naturally to search with AI (e.g., "show me all active bugs")\n💡 Or type / to see slash commands\n🔍 Try /project or /board to see your ADO data with autocomplete!\n⌨️  Press Tab after a command to see all available options',
       timestamp: new Date(),
     };
 
     const helpMessage: Message = {
       id: '2',
       type: 'system',
-      content: 'Available commands:\n\n' + COMMANDS.map(cmd =>
+      content: '🤖 AI-Powered Search:\nJust type naturally without any slash! Examples:\n• "show me all active user stories"\n• "find bugs assigned to john"\n• "what tasks were created this week?"\n\nSlash Commands:\n\n' + COMMANDS.map(cmd =>
         `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
-      ).join('\n') + '\n\n💡 Click the input box or type / to get started!\n⌨️  Press Tab after any command to see all options',
+      ).join('\n') + '\n\n💡 Start typing to get started!\n⌨️  Press Tab after any slash command to see all options',
       timestamp: new Date(),
     };
 
@@ -372,23 +371,8 @@ export default function ChatInterface() {
   };
 
   const processCommand = async (command: string) => {
-    if (command.startsWith('/help')) {
-      const helpMessage: Message = {
-        id: Date.now().toString(),
-        type: 'system',
-        content: 'Available commands:\n\n' + COMMANDS.map(cmd =>
-          `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
-        ).join('\n'),
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, helpMessage]);
-      return;
-    }
-
-    // Handle /prompt command with OpenAI
-    if (command.startsWith('/prompt ')) {
-      const prompt = command.replace('/prompt ', '').trim();
-
+    // If input doesn't start with '/', treat it as an AI prompt
+    if (!command.startsWith('/')) {
       const loadingMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
@@ -403,7 +387,7 @@ export default function ChatInterface() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt: command }),
         });
 
         const data = await response.json();
@@ -417,7 +401,7 @@ export default function ChatInterface() {
         const resultMessage: Message = {
           id: Date.now().toString(),
           type: 'results',
-          content: `Results for: "${prompt}"${searchScope}${aiNote}`,
+          content: `Results for: "${command}"${searchScope}${aiNote}`,
           timestamp: new Date(),
           workItems: data.workItems || [],
         };
@@ -426,11 +410,24 @@ export default function ChatInterface() {
         const errorMessage: Message = {
           id: Date.now().toString(),
           type: 'system',
-          content: `❌ Error: ${error.message}\n\nMake sure OPENAI_API_KEY is set in Vercel environment variables.`,
+          content: `❌ Error: ${error.message}`,
           timestamp: new Date(),
         };
         setMessages(prev => [...prev.slice(0, -1), errorMessage]);
       }
+      return;
+    }
+
+    if (command.startsWith('/help')) {
+      const helpMessage: Message = {
+        id: Date.now().toString(),
+        type: 'system',
+        content: '🤖 AI-Powered Search:\nJust type naturally without any slash! Examples:\n• "show me all active user stories"\n• "find bugs assigned to john"\n• "what tasks were created this week?"\n\nSlash Commands:\n\n' + COMMANDS.map(cmd =>
+          `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
+        ).join('\n') + '\n\n💡 Start typing to get started!\n⌨️  Press Tab after any slash command to see all options',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, helpMessage]);
       return;
     }
 
@@ -678,8 +675,8 @@ export default function ChatInterface() {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
 
-        // If /prompt command, close autocomplete and send directly (no dropdown selection needed)
-        if (input.startsWith('/prompt ')) {
+        // If input doesn't start with '/', it's an AI prompt - send directly
+        if (!input.startsWith('/')) {
           setShowAutocomplete(false);
           handleSend();
           return;
@@ -839,7 +836,7 @@ export default function ChatInterface() {
               // Delay hiding to allow clicking on autocomplete items
               setTimeout(() => setIsFocused(false), 200);
             }}
-            placeholder="Click here or type / to see all commands..."
+            placeholder="Ask anything naturally, or type / for commands..."
             className="flex-1 px-4 py-3 bg-rh-card border border-rh-border rounded-lg text-rh-text placeholder-rh-text-secondary focus:outline-none focus:border-rh-green"
             autoFocus
           />
