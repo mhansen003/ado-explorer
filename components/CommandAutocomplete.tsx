@@ -7,6 +7,7 @@ interface CommandAutocompleteProps {
   isLoadingDynamic?: boolean;
   onSelect: (command: Command) => void;
   onSelectDynamic?: (value: string) => void;
+  selectedIndex?: number;
 }
 
 export default function CommandAutocomplete({
@@ -14,7 +15,8 @@ export default function CommandAutocomplete({
   dynamicSuggestions = [],
   isLoadingDynamic = false,
   onSelect,
-  onSelectDynamic
+  onSelectDynamic,
+  selectedIndex = 0
 }: CommandAutocompleteProps) {
   const hasCommands = commands.length > 0;
   const hasSuggestions = dynamicSuggestions.length > 0;
@@ -22,11 +24,13 @@ export default function CommandAutocomplete({
   return (
     <div className="absolute bottom-full left-0 right-0 mb-2 mx-4 bg-rh-card border border-rh-border rounded-lg shadow-xl overflow-hidden max-h-64 overflow-y-auto">
       {/* Static Commands */}
-      {hasCommands && commands.map((command) => (
+      {hasCommands && commands.map((command, index) => (
         <button
           key={command.name}
           onClick={() => onSelect(command)}
-          className="w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left"
+          className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left ${
+            selectedIndex === index ? 'bg-rh-border' : ''
+          }`}
         >
           <span className="text-2xl">{command.icon}</span>
           <div className="flex-1">
@@ -53,23 +57,29 @@ export default function CommandAutocomplete({
       )}
 
       {/* Dynamic Suggestions */}
-      {hasSuggestions && dynamicSuggestions.map((suggestion, index) => (
-        <button
-          key={`${suggestion.value}-${index}`}
-          onClick={() => onSelectDynamic?.(suggestion.value)}
-          className="w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left border-t border-rh-border/50"
-        >
-          <span className="text-2xl">✨</span>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-rh-text font-medium">{suggestion.value}</span>
+      {hasSuggestions && dynamicSuggestions.map((suggestion, index) => {
+        const itemIndex = commands.length + index;
+        return (
+          <button
+            key={`${suggestion.value}-${index}`}
+            onClick={() => onSelectDynamic?.(suggestion.value)}
+            className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left border-t border-rh-border/50 ${
+              selectedIndex === itemIndex ? 'bg-rh-border' : ''
+            }`}
+          >
+
+            <span className="text-2xl">✨</span>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-rh-text font-medium">{suggestion.value}</span>
+              </div>
+              {suggestion.description && (
+                <p className="text-xs text-rh-text-secondary mt-0.5">{suggestion.description}</p>
+              )}
             </div>
-            {suggestion.description && (
-              <p className="text-xs text-rh-text-secondary mt-0.5">{suggestion.description}</p>
-            )}
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
 
       {/* No Results */}
       {!hasCommands && !hasSuggestions && !isLoadingDynamic && (

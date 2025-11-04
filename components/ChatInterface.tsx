@@ -20,21 +20,16 @@ const COMMANDS: Command[] = [
 ];
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'system',
-      content: 'Welcome to ADO Explorer! 👋\n\n✨ Click the input box below to see all available commands\n💡 Or type / to start exploring\n🔍 Try /project or /board to see your ADO data with autocomplete!',
-      timestamp: new Date(),
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [filteredCommands, setFilteredCommands] = useState<Command[]>([]);
   const [dynamicSuggestions, setDynamicSuggestions] = useState<DynamicSuggestion[]>([]);
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     // Show autocomplete when focused and input is empty or just "/"
@@ -42,6 +37,7 @@ export default function ChatInterface() {
       setFilteredCommands(COMMANDS);
       setDynamicSuggestions([]);
       setShowAutocomplete(true);
+      setSelectedIndex(0);
       return;
     }
 
@@ -86,26 +82,35 @@ export default function ChatInterface() {
 
       setFilteredCommands(filtered);
       setShowAutocomplete(filtered.length > 0 || dynamicSuggestions.length > 0);
+      setSelectedIndex(0); // Reset selection when items change
     } else {
       setShowAutocomplete(false);
       setDynamicSuggestions([]);
+      setSelectedIndex(0);
     }
   }, [input, dynamicSuggestions.length, isFocused]);
 
-  // Auto-run /help on first load
+  // Initialize messages only on client side to avoid hydration errors
   useEffect(() => {
-    const runHelp = async () => {
-      const helpMessage: Message = {
-        id: Date.now().toString(),
-        type: 'system',
-        content: 'Available commands:\n\n' + COMMANDS.map(cmd =>
-          `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
-        ).join('\n') + '\n\n💡 Click any command above to get started!',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, helpMessage]);
+    setIsClient(true);
+
+    const welcomeMessage: Message = {
+      id: '1',
+      type: 'system',
+      content: 'Welcome to ADO Explorer! 👋\n\n✨ Click the input box below to see all available commands\n💡 Or type / to start exploring\n🔍 Try /project or /board to see your ADO data with autocomplete!',
+      timestamp: new Date(),
     };
-    runHelp();
+
+    const helpMessage: Message = {
+      id: '2',
+      type: 'system',
+      content: 'Available commands:\n\n' + COMMANDS.map(cmd =>
+        `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
+      ).join('\n') + '\n\n💡 Click the input box or type / to get started!',
+      timestamp: new Date(),
+    };
+
+    setMessages([welcomeMessage, helpMessage]);
   }, []); // Empty dependency array = run once on mount
 
   const fetchProjects = async (searchTerm: string) => {
@@ -408,6 +413,63 @@ export default function ChatInterface() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Calculate total items in autocomplete
+    const totalItems = filteredCommands.length + dynamicSuggestions.length;
+
+    // Handle autocomplete navigation
+    if (showAutocomplete && totalItems > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % totalItems);
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowAutocomplete(false);
+        setSelectedIndex(0);
+        return;
+      }
+
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        // Select the highlighted item
+        if (selectedIndex < filteredCommands.length) {
+          handleCommandSelect(filteredCommands[selectedIndex]);
+        } else {
+          const suggestionIndex = selectedIndex - filteredCommands.length;
+          if (suggestionIndex < dynamicSuggestions.length) {
+            handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
+          }
+        }
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        // If typing a command, show the dropdown
+        if (input.startsWith('/') && !showAutocomplete) {
+          setShowAutocomplete(true);
+        } else if (selectedIndex < filteredCommands.length) {
+          // Select the highlighted command
+          handleCommandSelect(filteredCommands[selectedIndex]);
+        } else {
+          const suggestionIndex = selectedIndex - filteredCommands.length;
+          if (suggestionIndex < dynamicSuggestions.length) {
+            handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
+          }
+        }
+        return;
+      }
+    }
+
+    // Normal enter to send
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -426,6 +488,7 @@ export default function ChatInterface() {
             isLoadingDynamic={isLoadingDynamic}
             onSelect={handleCommandSelect}
             onSelectDynamic={handleDynamicSelect}
+            selectedIndex={selectedIndex}
           />
         )}
 
