@@ -350,6 +350,12 @@ export default function ChatInterface() {
     await processCommand(input);
   };
 
+  const handleClearChat = () => {
+    setMessages([]);
+    setInput('');
+    setShowAutocomplete(false);
+  };
+
   const processCommand = async (command: string) => {
     if (command.startsWith('/help')) {
       const helpMessage: Message = {
@@ -529,14 +535,25 @@ export default function ChatInterface() {
 
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        // Select the highlighted item
-        if (selectedIndex < filteredCommands.length) {
-          handleCommandSelect(filteredCommands[selectedIndex]);
-        } else {
-          const suggestionIndex = selectedIndex - filteredCommands.length;
-          if (suggestionIndex < dynamicSuggestions.length) {
-            handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
+
+        // Only select from autocomplete if there are actual items to select
+        const hasValidSelection = (selectedIndex < filteredCommands.length) ||
+                                 (selectedIndex >= filteredCommands.length &&
+                                  (selectedIndex - filteredCommands.length) < dynamicSuggestions.length);
+
+        if (hasValidSelection && (filteredCommands.length > 0 || dynamicSuggestions.length > 0)) {
+          // Select the highlighted item
+          if (selectedIndex < filteredCommands.length) {
+            handleCommandSelect(filteredCommands[selectedIndex]);
+          } else {
+            const suggestionIndex = selectedIndex - filteredCommands.length;
+            if (suggestionIndex < dynamicSuggestions.length) {
+              handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
+            }
           }
+        } else {
+          // No valid selection or autocomplete is empty - just send the command
+          handleSend();
         }
         return;
       }
@@ -624,6 +641,13 @@ export default function ChatInterface() {
         )}
 
         <div className="flex gap-2">
+          <button
+            onClick={handleClearChat}
+            className="px-4 py-3 bg-rh-card border border-rh-border text-rh-text-secondary rounded-lg font-medium hover:bg-rh-border hover:text-rh-text focus:outline-none focus:ring-2 focus:ring-rh-border"
+            title="Clear chat history"
+          >
+            <span className="text-sm">Clear</span>
+          </button>
           <input
             ref={inputRef}
             type="text"
