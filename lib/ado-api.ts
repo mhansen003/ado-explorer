@@ -61,10 +61,14 @@ export class ADOService {
         return [];
       }
 
+      // Limit to 200 items to respect Azure DevOps limits and prevent URL length issues
+      const limitedIds = workItemIds.slice(0, 200);
+      console.log(`[ADO API] Query returned ${workItemIds.length} items, limiting to ${limitedIds.length}`);
+
       // Then, get the full details of each work item (use org client to get all fields including project)
       const detailsResponse = await this.orgClient.get('/wit/workitems', {
         params: {
-          ids: workItemIds.join(','),
+          ids: limitedIds.join(','),
           fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject',
         },
       });
