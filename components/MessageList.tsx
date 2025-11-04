@@ -1,12 +1,20 @@
 import { Message } from '@/types';
 import WorkItemCard from './WorkItemCard';
 import { Bot, User } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface MessageListProps {
   messages: Message[];
 }
 
 export default function MessageList({ messages }: MessageListProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-4">
       {messages.map((message) => (
@@ -48,6 +56,7 @@ export default function MessageList({ messages }: MessageListProps) {
           </div>
         </div>
       ))}
+      <div ref={messagesEndRef} />
     </div>
   );
 }
