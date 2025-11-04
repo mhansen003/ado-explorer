@@ -25,6 +25,12 @@ export interface Command {
   description: string;
   icon: string;
   hasParam?: boolean;
+  isDynamic?: boolean;
+}
+
+export interface DynamicSuggestion {
+  value: string;
+  description?: string;
 }
 
 export interface ADOConfig {

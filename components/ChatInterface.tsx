@@ -4,15 +4,15 @@ import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import MessageList from './MessageList';
 import CommandAutocomplete from './CommandAutocomplete';
-import { Message, Command } from '@/types';
+import { Message, Command, DynamicSuggestion } from '@/types';
 
 const COMMANDS: Command[] = [
-  { name: 'clear', description: 'Search for work items containing "clear"', icon: '🔍' },
+  { name: 'project', description: 'Filter by project (auto-completes from your ADO)', icon: '📁', hasParam: true, isDynamic: true },
+  { name: 'board', description: 'Filter by board/team (auto-completes from your ADO)', icon: '📋', hasParam: true, isDynamic: true },
   { name: 'created_by', description: 'Filter by creator (e.g., /created_by ericka)', icon: '👤', hasParam: true },
   { name: 'assigned_to', description: 'Filter by assignee', icon: '📌', hasParam: true },
   { name: 'state', description: 'Filter by state (e.g., /state active)', icon: '📊', hasParam: true },
   { name: 'type', description: 'Filter by work item type (Bug, Task, Story)', icon: '🏷️', hasParam: true },
-  { name: 'project', description: 'Filter by project name', icon: '📁', hasParam: true },
   { name: 'tag', description: 'Filter by tag', icon: '🔖', hasParam: true },
   { name: 'recent', description: 'Show recently updated items', icon: '⏰' },
   { name: 'help', description: 'Show available commands', icon: '❓' },
@@ -30,20 +30,81 @@ export default function ChatInterface() {
   const [input, setInput] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [filteredCommands, setFilteredCommands] = useState<Command[]>([]);
+  const [dynamicSuggestions, setDynamicSuggestions] = useState<DynamicSuggestion[]>([]);
+  const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (input.startsWith('/')) {
-      const commandText = input.slice(1).toLowerCase();
+      const parts = input.slice(1).split(' ');
+      const commandName = parts[0].toLowerCase();
+      const param = parts.slice(1).join(' ').toLowerCase();
+
+      // Filter static commands
       const filtered = COMMANDS.filter(cmd =>
-        cmd.name.toLowerCase().includes(commandText.split(' ')[0])
+        cmd.name.toLowerCase().includes(commandName)
       );
+
+      // Check if we need to fetch dynamic suggestions
+      if (commandName === 'project' && param) {
+        fetchProjects(param);
+      } else if (commandName === 'board' && param) {
+        fetchBoards(param);
+      } else {
+        setDynamicSuggestions([]);
+      }
+
       setFilteredCommands(filtered);
-      setShowAutocomplete(filtered.length > 0);
+      setShowAutocomplete(filtered.length > 0 || dynamicSuggestions.length > 0);
     } else {
       setShowAutocomplete(false);
+      setDynamicSuggestions([]);
     }
-  }, [input]);
+  }, [input, dynamicSuggestions.length]);
+
+  const fetchProjects = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/projects');
+      const data = await response.json();
+
+      if (response.ok && data.projects) {
+        const filtered = data.projects
+          .filter((p: any) => p.name.toLowerCase().includes(searchTerm))
+          .map((p: any) => ({
+            value: p.name,
+            description: p.description || undefined,
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
+  const fetchBoards = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/boards');
+      const data = await response.json();
+
+      if (response.ok && data.teams) {
+        const filtered = data.teams
+          .filter((t: any) => t.name.toLowerCase().includes(searchTerm))
+          .map((t: any) => ({
+            value: t.name,
+            description: t.projectName ? `Project: ${t.projectName}` : undefined,
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching boards:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -149,6 +210,19 @@ export default function ChatInterface() {
 
   const handleCommandSelect = (command: Command) => {
     setInput(`/${command.name}${command.hasParam ? ' ' : ''}`);
+    setDynamicSuggestions([]);
+    setShowAutocomplete(false);
+    inputRef.current?.focus();
+  };
+
+  const handleDynamicSelect = (value: string) => {
+    // Get the current command name
+    const parts = input.slice(1).split(' ');
+    const commandName = parts[0];
+
+    // Replace with the selected value
+    setInput(`/${commandName} ${value}`);
+    setDynamicSuggestions([]);
     setShowAutocomplete(false);
     inputRef.current?.focus();
   };
@@ -168,7 +242,10 @@ export default function ChatInterface() {
         {showAutocomplete && (
           <CommandAutocomplete
             commands={filteredCommands}
+            dynamicSuggestions={dynamicSuggestions}
+            isLoadingDynamic={isLoadingDynamic}
             onSelect={handleCommandSelect}
+            onSelectDynamic={handleDynamicSelect}
           />
         )}
 

@@ -80,6 +80,14 @@ export class ADOService {
   buildQuery(command: string, param?: string): string {
     const baseQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems`;
 
+    if (command.startsWith('/project') && param) {
+      return `${baseQuery} WHERE [System.TeamProject] = '${param}' ORDER BY [System.ChangedDate] DESC`;
+    }
+
+    if (command.startsWith('/board') && param) {
+      return `${baseQuery} WHERE [System.AreaPath] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`;
+    }
+
     if (command.startsWith('/created_by') && param) {
       return `${baseQuery} WHERE [System.CreatedBy] CONTAINS '${param}' ORDER BY [System.CreatedDate] DESC`;
     }
@@ -140,6 +148,71 @@ export class ADOService {
     } catch (error) {
       console.error(`Error fetching work item ${id}:`, error);
       return null;
+    }
+  }
+
+  /**
+   * Get all projects in the organization
+   */
+  async getProjects(): Promise<{ id: string; name: string; description?: string }[]> {
+    try {
+      const response = await this.orgClient.get('/projects', {
+        params: {
+          '$top': 100, // Get up to 100 projects
+        },
+      });
+
+      return response.data.value.map((project: any) => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+      }));
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all teams/boards for a specific project
+   */
+  async getTeams(projectName?: string): Promise<{ id: string; name: string; projectName: string }[]> {
+    try {
+      const targetProject = projectName || this.project;
+
+      if (!targetProject) {
+        // If no project specified, get teams from all projects
+        const projects = await this.getProjects();
+        const allTeams = [];
+
+        for (const project of projects) {
+          try {
+            const response = await this.orgClient.get(`/projects/${project.id}/teams`);
+            const teams = response.data.value.map((team: any) => ({
+              id: team.id,
+              name: team.name,
+              projectName: project.name,
+            }));
+            allTeams.push(...teams);
+          } catch (error) {
+            console.warn(`Could not fetch teams for project ${project.name}`);
+          }
+        }
+
+        return allTeams;
+      }
+
+      // Get teams for specific project
+      const response = await this.orgClient.get(`/projects/${encodeURIComponent(targetProject)}/teams`);
+
+      return response.data.value.map((team: any) => ({
+        id: team.id,
+        name: team.name,
+        projectName: targetProject,
+      }));
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      throw error;
     }
   }
 }
