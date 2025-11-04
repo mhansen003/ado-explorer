@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -99,14 +99,26 @@ Respond ONLY with the WIQL query, nothing else.`,
     const wiqlQuery = openaiData.choices[0].message.content.trim();
     console.log('[ADO Prompt API] Generated WIQL:', wiqlQuery);
 
+    // If no project specified, get the first available project
+    let targetProject = project;
+    if (!targetProject) {
+      const tempService = new ADOService(organization, pat);
+      const projects = await tempService.getProjects();
+      if (projects.length === 0) {
+        throw new Error('No projects found in the organization');
+      }
+      targetProject = projects[0].name;
+      console.log('[ADO Prompt API] No project specified, using first project:', targetProject);
+    }
+
     // Execute the WIQL query
-    const adoService = new ADOService(organization, pat, project);
+    const adoService = new ADOService(organization, pat, targetProject);
     const workItems = await adoService.searchWorkItems(wiqlQuery);
     console.log('[ADO Prompt API] Found work items:', workItems.length);
 
     return NextResponse.json({
       workItems,
-      searchScope: project ? `Project: ${project}` : 'All Projects',
+      searchScope: `Project: ${targetProject}`,
       aiGenerated: true,
       originalPrompt: prompt,
       generatedQuery: wiqlQuery,

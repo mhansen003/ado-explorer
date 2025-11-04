@@ -678,6 +678,13 @@ export default function ChatInterface() {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
 
+        // If /prompt command, close autocomplete and send directly (no dropdown selection needed)
+        if (input.startsWith('/prompt ')) {
+          setShowAutocomplete(false);
+          handleSend();
+          return;
+        }
+
         // If in multi-select mode with tags selected, send the search
         if (isMultiSelectMode && selectedTags.length > 0) {
           setShowAutocomplete(false);
