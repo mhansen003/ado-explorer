@@ -45,11 +45,13 @@ export class ADOService {
    */
   async searchWorkItems(query: string): Promise<WorkItem[]> {
     try {
-      // Use org-level client for cross-project search, project-level for single project
-      const apiClient = this.project ? this.client : this.orgClient;
+      // WIQL queries must be scoped to a project in Azure DevOps
+      if (!this.project) {
+        throw new Error('A project must be specified for WIQL queries. Please set NEXT_PUBLIC_ADO_PROJECT environment variable.');
+      }
 
       // First, execute the query to get work item IDs
-      const queryResponse = await apiClient.post('/wit/wiql', {
+      const queryResponse = await this.client.post('/wit/wiql', {
         query: query,
       });
 
