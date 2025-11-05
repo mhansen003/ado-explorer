@@ -102,7 +102,19 @@ export async function POST(request: NextRequest) {
 
       // Return ALL related work items - no limit on actual ADO relationships
       // Only suggested items (tag/title based) are limited to maxSuggestedResults
-      console.log('[AI Actions] Returning total of', relatedItems.length, 'related items');
+      const breakdown = {
+        linked: relatedItems.filter(i => i.relationSource === 'linked').length,
+        tag: relatedItems.filter(i => i.relationSource === 'tag').length,
+        title: relatedItems.filter(i => i.relationSource === 'title').length,
+        total: relatedItems.length,
+      };
+      console.log('[AI Actions] ✅ RETURNING RESULTS - Breakdown:', breakdown);
+      console.log('[AI Actions] ✅ TOTAL ITEMS BEING RETURNED:', relatedItems.length);
+      console.log('[AI Actions] ✅ Items by type:', relatedItems.reduce((acc, item) => {
+        acc[item.relationType || 'Unknown'] = (acc[item.relationType || 'Unknown'] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>));
+
       return NextResponse.json({
         result: null,
         relatedWorkItems: relatedItems, // Return all items, no slice

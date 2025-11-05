@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
     const users = await adoService.getUsers();
     console.log('[ADO Users API] Found users:', users.length);
 
-    return NextResponse.json({ users });
+    return NextResponse.json(users);
   } catch (error: any) {
     console.error('[ADO Users API] Error:', error.message);
     // Return empty array instead of error to prevent blocking the UI
-    return NextResponse.json({ users: [] });
+    return NextResponse.json([]);
   }
 }

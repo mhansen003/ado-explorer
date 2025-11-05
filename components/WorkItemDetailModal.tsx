@@ -175,12 +175,17 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
       // Handle related items specially
       if (action === 'relatedItems' && data.relatedWorkItems) {
-        console.log('[WorkItemDetailModal] Received related items:', data.relatedWorkItems.map((item: WorkItem) => ({
+        console.log('[WorkItemDetailModal] 🔍 RECEIVED RELATED ITEMS - TOTAL COUNT:', data.relatedWorkItems.length);
+        console.log('[WorkItemDetailModal] Items breakdown:', data.relatedWorkItems.map((item: WorkItem) => ({
           id: item.id,
           title: item.title,
           relationType: item.relationType,
           relationSource: item.relationSource,
         })));
+        console.log('[WorkItemDetailModal] By relation type:', data.relatedWorkItems.reduce((acc: Record<string, number>, item: WorkItem) => {
+          acc[item.relationType || 'Unknown'] = (acc[item.relationType || 'Unknown'] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>));
         setRelatedWorkItems(data.relatedWorkItems);
         setAiResult(data.relatedWorkItems.length > 0
           ? `Found ${data.relatedWorkItems.length} related work items. Click on any item below to view details.`
