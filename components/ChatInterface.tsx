@@ -523,27 +523,26 @@ export default function ChatInterface() {
         throw new Error(data.error || 'Failed to search work items');
       }
 
-      // Show results or use mock data as fallback
+      // Show results
       const searchScope = data.searchScope ? ` (${data.searchScope})` : '';
       const resultMessage: Message = {
         id: Date.now().toString(),
         type: 'results',
         content: `Results for: ${command}${searchScope}`,
         timestamp: new Date(),
-        workItems: data.workItems && data.workItems.length > 0 ? data.workItems : generateMockWorkItems(command),
+        workItems: data.workItems || [],
       };
       setMessages(prev => [...prev.slice(0, -1), resultMessage]);
     } catch (error: any) {
-      // Show error message and fall back to mock data for demo purposes
-      console.warn('API error, using mock data:', error.message);
-      const resultMessage: Message = {
+      // Show error message
+      console.error('API error:', error.message);
+      const errorMessage: Message = {
         id: Date.now().toString(),
-        type: 'results',
-        content: `Results for: ${command} (Demo Mode - Configure ADO credentials to see real data)`,
+        type: 'system',
+        content: `❌ Error: ${error.message}`,
         timestamp: new Date(),
-        workItems: generateMockWorkItems(command),
       };
-      setMessages(prev => [...prev.slice(0, -1), resultMessage]);
+      setMessages(prev => [...prev.slice(0, -1), errorMessage]);
     }
   };
 

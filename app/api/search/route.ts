@@ -29,9 +29,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create ADO service instance (project is optional)
-    // If project is not provided, searches across ALL projects in the organization
-    const adoService = new ADOService(organization, pat, project);
+    // If no project specified, get the first available project
+    let targetProject = project;
+    if (!targetProject) {
+      const tempService = new ADOService(organization, pat);
+      const projects = await tempService.getProjects();
+      if (projects.length === 0) {
+        throw new Error('No projects found in the organization');
+      }
+      targetProject = projects[0].name;
+      console.log('[ADO API] No project specified, using first project:', targetProject);
+    }
+
+    // Create ADO service instance with project
+    const adoService = new ADOService(organization, pat, targetProject);
 
     // Parse command and parameter
     const parts = command.trim().split(' ');
@@ -49,10 +60,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       workItems,
-      searchScope: project ? `Project: ${project}` : 'All Projects',
+      searchScope: `Project: ${targetProject}`,
       debug: {
         organization,
-        project: project || 'ALL',
+        project: targetProject,
         query,
         count: workItems.length,
       }
