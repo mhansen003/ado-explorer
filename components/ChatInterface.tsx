@@ -415,6 +415,14 @@ export default function ChatInterface() {
   };
 
   const processCommand = async (command: string) => {
+    // Auto-detect ticket numbers (e.g., "86230" or "#86230")
+    const ticketNumberMatch = command.trim().match(/^#?(\d+)$/);
+    if (ticketNumberMatch) {
+      const ticketId = ticketNumberMatch[1];
+      // Convert to ID search command
+      command = `/id ${ticketId}`;
+    }
+
     // If input doesn't start with '/', treat it as an AI prompt
     if (!command.startsWith('/')) {
       const loadingMessage: Message = {

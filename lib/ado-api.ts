@@ -141,6 +141,11 @@ export class ADOService {
       return applyFilters(`${baseQuery} WHERE [System.TeamProject] = '${param}' ORDER BY [System.ChangedDate] DESC`);
     }
 
+    if (command.startsWith('/id') && param) {
+      // Direct ID lookup - search for specific work item by ID
+      return applyFilters(`${baseQuery} WHERE [System.Id] = ${param} ORDER BY [System.ChangedDate] DESC`);
+    }
+
     if (command.startsWith('/board') && param) {
       // Use UNDER operator for AreaPath - Azure DevOps doesn't support CONTAINS with area path fields
       // UNDER matches the area and all child areas hierarchically
