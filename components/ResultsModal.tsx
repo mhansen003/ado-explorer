@@ -481,21 +481,21 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
                       index % 2 === 0 ? 'bg-rh-card' : 'bg-rh-dark'
                     }`}
                   >
-                    <td className="px-4 py-3 text-sm font-mono text-rh-green">{item.id}</td>
-                    <td className="px-4 py-3 text-sm text-rh-text max-w-md truncate">{item.title}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(item.type)}`}>
+                    <td className="px-4 py-3 text-sm font-mono text-rh-green w-24">{item.id}</td>
+                    <td className="px-4 py-3 text-sm text-rh-text max-w-sm truncate">{item.title}</td>
+                    <td className="px-4 py-3 w-36">
+                      <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getTypeColor(item.type)}`}>
                         {item.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs ${getStateColor(item.state)}`}>
+                    <td className="px-4 py-3 w-32">
+                      <span className={`text-xs whitespace-nowrap ${getStateColor(item.state)}`}>
                         {item.state}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-rh-text">P{item.priority}</td>
+                    <td className="px-4 py-3 text-sm text-rh-text w-20">P{item.priority}</td>
                     <td className="px-4 py-3 text-sm text-rh-text truncate max-w-xs">{item.assignedTo}</td>
-                    <td className="px-4 py-3 text-sm text-rh-text-secondary truncate max-w-xs">{item.project || 'N/A'}</td>
+                    <td className="px-4 py-3 text-sm text-rh-text-secondary truncate max-w-sm">{item.project || 'N/A'}</td>
                     <td className="px-4 py-3 text-sm text-rh-text-secondary">
                       {new Date(item.createdDate).toLocaleDateString()}
                     </td>

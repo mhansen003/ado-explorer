@@ -9,6 +9,14 @@ import {
   analyzeVelocityTrends,
   calculateCycleTime,
 } from '@/lib/analytics-utils';
+import {
+  WIQL_GENERATION_SYSTEM_PROMPT,
+  CONVERSATIONAL_ANSWER_SYSTEM_PROMPT,
+  ANALYTICS_SYSTEM_PROMPT,
+  buildEnhancedContext,
+  generateFriendlyError,
+  generateFollowUpSuggestions,
+} from '@/lib/enhanced-ai-prompts';
 
 export async function POST(request: NextRequest) {
   // Get environment variables outside try block so they're available in catch
@@ -98,92 +106,11 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
 
     console.log('[ADO Prompt API] Query type detected:', queryType);
 
-    // Call OpenAI to interpret the prompt
+    // Call OpenAI to interpret the prompt with enhanced prompting
     const messages = [
       {
         role: 'system',
-        content: `You are an Azure DevOps WIQL (Work Item Query Language) expert. Your job is to convert natural language questions into WIQL queries.
-
-WIQL Query Format:
-SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditions] ORDER BY [field]
-
-IMPORTANT RULES:
-- Do NOT use TOP clause in SELECT statement (not supported in WIQL syntax)
-- Do NOT filter by System.TeamProject - queries are already scoped to a single project
-- When users mention "projects" in their query, search System.Title or System.Description instead
-
-Common Fields (in order of usefulness):
-- System.Title - Work item title (use CONTAINS for text search)
-- System.Description - Work item description (use CONTAINS for text search)
-- System.State - State (use = for exact match: New, Active, Resolved, Closed)
-- System.WorkItemType - Type (use = for exact match: Bug, Task, User Story, Epic, Feature)
-- System.Tags - Tags (use CONTAINS)
-- System.AssignedTo - Assigned person (use CONTAINS for name search)
-- System.CreatedBy - Creator (use CONTAINS for name search)
-- System.ChangedDate - Last modified date (use >=, <=, or = with @Today)
-- System.CreatedDate - Creation date (use >=, <=, or = with @Today)
-- Microsoft.VSTS.Common.Priority - Priority (1=highest, 4=lowest) (use = or < or >)
-- System.IterationPath - Sprint/Iteration (use CONTAINS or UNDER for hierarchical search)
-- System.AreaPath - Team/Area (use CONTAINS or UNDER for hierarchical search)
-
-CRITICAL - Sprint/Iteration Queries:
-⚠️ SPRINTS = ITERATIONS in Azure DevOps! Always use System.IterationPath for sprint queries.
-- When users ask about "sprint", "iteration", "sprint velocity", or "current sprint", use System.IterationPath
-- Sprint queries MUST filter by [System.IterationPath] field - this is how tickets are assigned to sprints
-- For "current sprint" or "latest sprint": [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed'
-- For specific sprint (e.g., "Sprint 2025.11.12"): [System.IterationPath] CONTAINS '2025.11.12'
-- For sprint with number (e.g., "Sprint 23"): [System.IterationPath] CONTAINS '(23)' OR [System.IterationPath] CONTAINS 'Sprint 23'
-- Sprint paths follow format: ProjectName\\Sprint Name or ProjectName\\Area\\Sprint Name
-- Example path: Marketing Experience\\MX Sprint 2025.11.12 (23)
-
-Operators:
-- CONTAINS - For text search in Title, Description, AssignedTo, CreatedBy, Tags
-- = - Exact match for State, WorkItemType, Priority
-- >= / <= / < / > - Date/number comparison
-- @Today - Current date
-- UNDER - Hierarchical path matching for AreaPath and IterationPath
-
-Examples:
-Q: "Which tickets are talking about credit?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS 'credit' OR [System.Description] CONTAINS 'credit' ORDER BY [System.ChangedDate] DESC
-
-Q: "Show me all bugs assigned to John"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [System.AssignedTo] CONTAINS 'John' ORDER BY [System.ChangedDate] DESC
-
-Q: "What tasks were created this week?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Task' AND [System.CreatedDate] >= @Today - 7 ORDER BY [System.CreatedDate] DESC
-
-Q: "Show me all bob builder projects"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS 'bob builder' OR [System.Description] CONTAINS 'bob builder' ORDER BY [System.ChangedDate] DESC
-
-Q: "What are the most urgent issues?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Q: "Show me all P1 bugs"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [Microsoft.VSTS.Common.Priority] = 1 ORDER BY [System.ChangedDate] DESC
-
-Q: "What are we working on this sprint?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' AND [System.State] <> 'Removed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Q: "Show me items in the current sprint"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Q: "What's in Sprint 5?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Sprint 5' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Q: "Show bugs in the latest sprint"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Q: "Show me iteration MX Sprint 2025.11.12"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS '2025.11.12' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Q: "What tickets are in sprint 23?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS '(23)' OR [System.IterationPath] CONTAINS 'Sprint 23' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Q: "Show me Marketing Experience sprint items"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Marketing Experience' AND [System.IterationPath] CONTAINS 'Sprint' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
-
-Respond ONLY with the WIQL query, nothing else.`,
+        content: WIQL_GENERATION_SYSTEM_PROMPT,
       },
     ];
 
@@ -253,7 +180,7 @@ Respond ONLY with the WIQL query, nothing else.`,
       const velocityTrends = analyzeVelocityTrends(velocities);
       const cycleTime = calculateCycleTime(workItems);
 
-      // Have AI analyze the metrics and answer the user's question
+      // Have AI analyze the metrics and answer the user's question with enhanced prompting
       const analyticsResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -265,22 +192,7 @@ Respond ONLY with the WIQL query, nothing else.`,
           messages: [
             {
               role: 'system',
-              content: `You are an expert Agile/Scrum analytics consultant. Analyze Azure DevOps metrics and provide actionable insights.
-
-IMPORTANT CONTEXT:
-• In Azure DevOps, Sprints = Iterations (same thing, different names)
-• Tickets are assigned to sprints via the Iteration Path field
-• Sprint velocity = story points completed in an iteration
-
-When answering:
-1. Directly address the user's question
-2. Cite specific numbers from the data (use iteration names from the data)
-3. Identify trends and patterns across sprints/iterations
-4. Provide 2-3 actionable recommendations
-5. Use clear, business-friendly language
-6. Format with markdown for readability (use **bold** for numbers, bullet points for lists)
-
-Keep your response focused and concise (3-5 paragraphs maximum).`,
+              content: ANALYTICS_SYSTEM_PROMPT,
             },
             {
               role: 'user',
@@ -401,29 +313,20 @@ Please analyze this data and answer the user's question with specific insights a
         `- #${item.id}: ${item.title} (${item.type}, ${item.state}, P${item.priority}${item.assignedTo ? `, assigned to ${item.assignedTo}` : ''}${item.tags && item.tags.length > 0 ? `, tags: ${item.tags.join(', ')}` : ''})`
       ).join('\n');
 
-      // Build messages array for conversational answer
+      // Build messages array for conversational answer with enhanced context
+      const enhancedContext = buildEnhancedContext(allNonClosedItems, workItems, filters);
+
       const answerMessages = [
         {
           role: 'system',
-          content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational, insightful, and helpful. When discussing priority, remember P1 is highest priority and P4 is lowest.',
+          content: CONVERSATIONAL_ANSWER_SYSTEM_PROMPT,
         },
       ];
 
-      // Add current question with context
+      // Add current question with enhanced context
       answerMessages.push({
         role: 'user',
-        content: `Question: "${prompt}"
-
-CONTEXT: Overall Project Status (all non-closed items)
-- Total non-closed items: ${contextSummary.totalNonClosed}
-- By Priority: P1=${contextSummary.byPriority.p1}, P2=${contextSummary.byPriority.p2}, P3=${contextSummary.byPriority.p3}, P4=${contextSummary.byPriority.p4}
-- By Type: ${Object.entries(contextSummary.byType).map(([type, count]) => `${type}=${count}`).join(', ')}
-- By State: ${Object.entries(contextSummary.byState).map(([state, count]) => `${state}=${count}`).join(', ')}
-
-SEARCH RESULTS: Found ${contextSummary.searchResults} matching items
-${itemsList}
-
-Based on this context, provide a helpful, conversational answer to the user's question. If asked about priorities or urgency, focus on P1 and P2 items. Be specific and reference actual work item IDs when relevant.`,
+        content: `Question: "${prompt}"\n\n${enhancedContext}`,
       });
 
       const answerResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
@@ -525,12 +428,14 @@ Based on this context, provide a helpful, conversational answer to the user's qu
       }
     }
 
-    // Fallback to generic error if AI fails or unavailable
+    // Fallback to enhanced friendly error if AI fails or unavailable
+    const friendlyError = generateFriendlyError(error.message || 'Unknown error', prompt);
+
     return NextResponse.json(
       {
         error: error.message || 'Failed to process prompt',
         details: error.response?.data,
-        conversationalAnswer: `I encountered an error while trying to search Azure DevOps: "${error.message}". This might be due to:\n\n• Invalid query syntax\n• Network connectivity issues\n• Insufficient permissions\n\nPlease try rephrasing your question or check your connection.`,
+        conversationalAnswer: friendlyError,
       },
       { status: 500 }
     );

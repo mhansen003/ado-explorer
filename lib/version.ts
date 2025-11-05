@@ -1,4 +1,4 @@
-export const VERSION = 'v1.3';
+export const VERSION = 'v1.4';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,44 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.4',
+    date: '2025-01-11',
+    changes: [
+      {
+        category: 'Feature',
+        description: '🔐 Email MFA Authentication - Secure login with one-time passwords sent to @cmgfi.com email addresses (5-day sessions)',
+      },
+      {
+        category: 'Feature',
+        description: '👤 User Profile Menu - User avatar with initials in top-right corner showing email and sign-out option',
+      },
+      {
+        category: 'Feature',
+        description: '💾 User Settings Persistence - Filter preferences automatically saved to Redis and restored across sessions (90-day retention)',
+      },
+      {
+        category: 'Feature',
+        description: '📧 Email Me Reports - Send search results and charts to your email with one click, includes HTML summary and CSV attachment',
+      },
+      {
+        category: 'Feature',
+        description: '📊 Email Chart Images - Charts can be emailed as high-resolution PNG images along with underlying data',
+      },
+      {
+        category: 'Enhancement',
+        description: '🎨 Smart Error Styling - AI responses now show in red when queries fail (needs better prompting) vs green for successful answers',
+      },
+      {
+        category: 'Enhancement',
+        description: '📏 Improved Column Widths - Results modal table now has better proportioned columns with more space for Type, State, and other metadata',
+      },
+      {
+        category: 'Enhancement',
+        description: '✉️ OTP Email Redesign - Login verification emails now match landing page styling with sleek black background',
+      },
+    ],
+  },
   {
     version: 'v1.3',
     date: '2025-01-06',
