@@ -34,6 +34,16 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [copiedDescription, setCopiedDescription] = useState(false);
   const [copiedCriteria, setCopiedCriteria] = useState(false);
 
+  // Relationship type filters
+  const [relationshipFilters, setRelationshipFilters] = useState({
+    Parent: true,
+    Child: true,
+    Related: true,
+    'Similar Title': true,
+    Predecessor: true,
+    Successor: true,
+  });
+
   // Current trail includes all previous items plus this one
   const currentTrail = [...breadcrumbTrail, workItem];
 
@@ -632,11 +642,66 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           )}
 
           {/* Related Work Items */}
-          {relatedWorkItems && relatedWorkItems.length > 0 && (
+          {relatedWorkItems && relatedWorkItems.length > 0 && (() => {
+            const filteredItems = relatedWorkItems.filter(item =>
+              relationshipFilters[item.relationType as keyof typeof relationshipFilters]
+            );
+
+            // Get unique relationship types present in the data
+            const presentTypes = Array.from(new Set(relatedWorkItems.map(item => item.relationType).filter(Boolean)));
+
+            return (
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-rh-text mb-3">Related Work Items ({relatedWorkItems.length})</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-rh-text">
+                  Related Work Items ({filteredItems.length}/{relatedWorkItems.length})
+                </h3>
+              </div>
+
+              {/* Filter Checkboxes */}
+              {presentTypes.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-rh-dark/50 rounded-lg border border-rh-border">
+                  {presentTypes.map(type => {
+                    const count = relatedWorkItems.filter(item => item.relationType === type).length;
+                    return (
+                      <label
+                        key={type}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rh-card border border-rh-border hover:bg-rh-border cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={relationshipFilters[type as keyof typeof relationshipFilters]}
+                          onChange={(e) => {
+                            setRelationshipFilters(prev => ({
+                              ...prev,
+                              [type]: e.target.checked,
+                            }));
+                          }}
+                          className="w-4 h-4 text-rh-green bg-rh-dark border-rh-border rounded focus:ring-rh-green focus:ring-2"
+                        />
+                        <span className={`text-xs font-medium ${
+                          type === 'Parent'
+                            ? 'text-emerald-400'
+                            : type === 'Child'
+                            ? 'text-amber-400'
+                            : type === 'Related'
+                            ? 'text-cyan-400'
+                            : type === 'Predecessor'
+                            ? 'text-orange-400'
+                            : type === 'Successor'
+                            ? 'text-violet-400'
+                            : 'text-blue-400'
+                        }`}>
+                          {type} ({count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-                {relatedWorkItems.map((item) => (
+                {filteredItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setSelectedRelatedItem(item)}

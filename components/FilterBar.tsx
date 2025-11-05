@@ -117,16 +117,16 @@ export default function FilterBar({
 
   return (
     <>
-      {/* Edge Tab Button - Visible when drawer is closed */}
+      {/* Edge Tab Button - Positioned near bottom */}
       {!isExpanded && (
         <button
           onClick={() => setIsExpanded(true)}
-          className="fixed top-1/2 right-0 -translate-y-1/2 bg-rh-card border-l border-t border-b border-rh-border rounded-l-lg shadow-lg z-40 py-4 px-2 hover:bg-rh-border transition-colors group"
+          className="fixed bottom-24 right-0 bg-rh-card border-l border-t border-b border-rh-border rounded-l-lg shadow-lg z-40 py-3 px-2 hover:bg-rh-border transition-colors group"
         >
-          <div className="flex flex-col items-center gap-2">
-            <Filter className="w-5 h-5 text-rh-green" />
+          <div className="flex flex-col items-center gap-1">
+            <Filter className="w-4 h-4 text-rh-green" />
             {activeFilterCount > 0 && (
-              <span className="w-6 h-6 bg-rh-green text-rh-dark rounded-full text-xs flex items-center justify-center font-bold">
+              <span className="w-5 h-5 bg-rh-green text-rh-dark rounded-full text-xs flex items-center justify-center font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -169,27 +169,29 @@ export default function FilterBar({
 
         {/* Filter content */}
         <div className="px-4 py-3 space-y-4">
-            {/* Ignore States - Checkbox List */}
+            {/* Ignore States - Tag Style */}
             <div>
-              <div className="text-sm font-medium text-rh-text mb-3">Ignore States:</div>
+              <div className="text-sm font-medium text-rh-text mb-2">Hide States:</div>
               {loadingStates ? (
                 <div className="text-xs text-rh-text-secondary">Loading states...</div>
               ) : (
-                <div className="space-y-2">
-                  {states.map(state => (
-                    <label
-                      key={state}
-                      className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/30 p-2 rounded transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filters.ignoreStates?.includes(state) || false}
-                        onChange={() => toggleState(state)}
-                        className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
-                      />
-                      <span className="text-sm text-rh-text">{state}</span>
-                    </label>
-                  ))}
+                <div className="flex flex-wrap gap-2">
+                  {states.map(state => {
+                    const isActive = filters.ignoreStates?.includes(state) || false;
+                    return (
+                      <button
+                        key={state}
+                        onClick={() => toggleState(state)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-rh-green text-rh-dark shadow-lg'
+                            : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
+                        }`}
+                      >
+                        {state}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -197,30 +199,32 @@ export default function FilterBar({
             {/* Divider */}
             <div className="border-t border-rh-border"></div>
 
-            {/* Only Show Tickets I Created */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/30 p-2 rounded transition-colors">
-                <input
-                  type="checkbox"
-                  checked={filters.onlyMyTickets}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    const newFilters = { ...filters, onlyMyTickets: checked };
-                    // If unchecking, we keep the username but just disable the filter
+            {/* Quick Filters */}
+            <div>
+              <div className="text-sm font-medium text-rh-text mb-2">Quick Filters:</div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    const newFilters = { ...filters, onlyMyTickets: !filters.onlyMyTickets };
                     onFiltersChange(newFilters);
                     localStorage.setItem('ado-explorer-filters', JSON.stringify(newFilters));
                   }}
-                  className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
-                />
-                <span className="text-sm text-rh-text">Only show tickets I created</span>
-              </label>
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    filters.onlyMyTickets
+                      ? 'bg-rh-green text-rh-dark shadow-lg'
+                      : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
+                  }`}
+                >
+                  My Tickets Only
+                </button>
+              </div>
 
               {filters.onlyMyTickets && (
-                <div className="pl-6 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2">
                   <span className="text-xs text-rh-text-secondary">Username:</span>
                   <input
                     type="text"
-                    placeholder="Enter your name"
+                    placeholder="Your name"
                     value={usernameInput}
                     onChange={(e) => {
                       setUsernameInput(e.target.value);
@@ -228,61 +232,80 @@ export default function FilterBar({
                       onFiltersChange(newFilters);
                       localStorage.setItem('ado-explorer-filters', JSON.stringify(newFilters));
                     }}
-                    className="flex-1 px-2 py-1 bg-rh-dark border border-rh-border rounded text-sm text-rh-text focus:outline-none focus:border-rh-green"
+                    className="flex-1 px-2 py-1 bg-rh-dark border border-rh-border rounded text-xs text-rh-text focus:outline-none focus:border-rh-green"
                   />
                 </div>
               )}
             </div>
 
-            {/* Ignore Older Than */}
-            <div className="flex items-center gap-2 p-2 hover:bg-rh-border/50 rounded transition-colors">
-              <input
-                type="checkbox"
-                checked={filters.ignoreOlderThanDays !== null}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    const days = parseInt(daysInput) || 30;
-                    handleFilterChange('ignoreOlderThanDays', days);
-                  } else {
-                    handleFilterChange('ignoreOlderThanDays', null);
-                  }
-                }}
-                className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
-              />
-              <span className="text-sm text-rh-text">Ignore older than</span>
-              <input
-                type="number"
-                min="1"
-                value={daysInput}
-                onChange={(e) => handleDaysChange(e.target.value)}
-                disabled={filters.ignoreOlderThanDays === null}
-                className="w-16 px-2 py-1 bg-rh-dark border border-rh-border rounded text-sm text-rh-text focus:outline-none focus:border-rh-green disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <span className="text-sm text-rh-text-secondary">days</span>
+            {/* Date Filter */}
+            <div>
+              <div className="text-sm font-medium text-rh-text mb-2">Date Range:</div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (filters.ignoreOlderThanDays === null) {
+                      const days = parseInt(daysInput) || 30;
+                      handleFilterChange('ignoreOlderThanDays', days);
+                    } else {
+                      handleFilterChange('ignoreOlderThanDays', null);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    filters.ignoreOlderThanDays !== null
+                      ? 'bg-rh-green text-rh-dark shadow-lg'
+                      : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
+                  }`}
+                >
+                  Last {daysInput} Days
+                </button>
+                {filters.ignoreOlderThanDays !== null && (
+                  <input
+                    type="number"
+                    min="1"
+                    value={daysInput}
+                    onChange={(e) => handleDaysChange(e.target.value)}
+                    className="w-16 px-2 py-1 bg-rh-dark border border-rh-border rounded text-xs text-rh-text focus:outline-none focus:border-rh-green"
+                  />
+                )}
+              </div>
             </div>
 
-            {/* Grid View Toggle */}
-            <div className="pt-2 mt-2 border-t border-rh-border">
-              <label className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/50 p-2 rounded transition-colors">
-                <input
-                  type="checkbox"
-                  checked={viewPreferences.useGridView}
-                  onChange={(e) => {
-                    const newPrefs = { useGridView: e.target.checked };
+            {/* View Options */}
+            <div className="pt-2 border-t border-rh-border">
+              <div className="text-sm font-medium text-rh-text mb-2">View:</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const newPrefs = { useGridView: false };
                     onViewPreferencesChange(newPrefs);
                     localStorage.setItem('ado-explorer-view-preferences', JSON.stringify(newPrefs));
                   }}
-                  className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
-                />
-                <div className="flex items-center gap-2">
-                  {viewPreferences.useGridView ? (
-                    <LayoutGrid className="w-4 h-4 text-rh-green" />
-                  ) : (
-                    <LayoutList className="w-4 h-4 text-rh-text-secondary" />
-                  )}
-                  <span className="text-sm text-rh-text">Use grid view (compact table)</span>
-                </div>
-              </label>
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    !viewPreferences.useGridView
+                      ? 'bg-rh-green text-rh-dark shadow-lg'
+                      : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
+                  }`}
+                >
+                  <LayoutList className="w-3 h-3" />
+                  Cards
+                </button>
+                <button
+                  onClick={() => {
+                    const newPrefs = { useGridView: true };
+                    onViewPreferencesChange(newPrefs);
+                    localStorage.setItem('ado-explorer-view-preferences', JSON.stringify(newPrefs));
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    viewPreferences.useGridView
+                      ? 'bg-rh-green text-rh-dark shadow-lg'
+                      : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
+                  }`}
+                >
+                  <LayoutGrid className="w-3 h-3" />
+                  Grid
+                </button>
+              </div>
             </div>
 
             {/* Clear All Filters */}
