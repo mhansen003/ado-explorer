@@ -1,4 +1,4 @@
-export const VERSION = 'v1.2';
+export const VERSION = 'v1.3';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,52 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.3',
+    date: '2025-01-06',
+    changes: [
+      {
+        category: 'Feature',
+        description: '🧠 AI-Powered Analytics Engine - Ask analytical questions and get consultant-level insights with trends, recommendations, and automatic visualizations',
+      },
+      {
+        category: 'Feature',
+        description: '📈 Sprint Velocity Analysis - Calculate velocity trends, completion rates, and consistency scores across sprints with interactive line charts',
+      },
+      {
+        category: 'Feature',
+        description: '👥 Team Performance Metrics - Analyze team productivity, story point distribution, and top contributors with bar charts',
+      },
+      {
+        category: 'Feature',
+        description: '⏱️ Cycle Time Analysis - Track average and median time-to-completion by work item type to identify bottlenecks',
+      },
+      {
+        category: 'Feature',
+        description: '🔍 Trend Detection - AI automatically identifies increasing, decreasing, stable, or volatile patterns with actionable recommendations',
+      },
+      {
+        category: 'Feature',
+        description: '💡 Intelligent Query Classification - System automatically detects analytical vs search intent to provide appropriate responses',
+      },
+      {
+        category: 'Enhancement',
+        description: '🔄 Automatic Rate Limit Retry - OpenAI API calls now retry automatically with exponential backoff when rate limits are hit (up to 3 attempts)',
+      },
+      {
+        category: 'Enhancement',
+        description: '⚡ Hybrid Model Optimization - Simple tasks now use gpt-4o-mini for 6.7x higher rate limits and 60x lower cost, while complex analysis uses gpt-4o',
+      },
+      {
+        category: 'Enhancement',
+        description: '📊 Analytics Dashboard - Beautiful metric cards showing velocity, trends, cycle time, and team size at a glance',
+      },
+      {
+        category: 'Enhancement',
+        description: '🎯 Smart Recommendations - AI provides 2-3 specific action items based on velocity trends and team performance data',
+      },
+    ],
+  },
   {
     version: 'v1.2',
     date: '2025-01-06',
