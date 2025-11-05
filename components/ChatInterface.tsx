@@ -151,16 +151,51 @@ export default function ChatInterface() {
     const welcomeMessage: Message = {
       id: '1',
       type: 'system',
-      content: 'Welcome to ADO Explorer! 👋\n\n🤖 Just type naturally to search with AI (e.g., "show me all active bugs")\n💡 Or type / to see slash commands\n🔍 Try /project or /board to see your ADO data with autocomplete!\n⌨️  Press Tab after a command to see all available options',
+      content: `🤖 Welcome to ADO Explorer!
+
+💬 Natural Language Search (Recommended):
+Just type naturally! The AI will understand. Examples:
+• "show me all active bugs"
+• "find tasks assigned to john"
+• "what was updated this week?"
+• "show me ticket #12345"
+
+/ Guided Search Commands:
+Type / to see interactive search options with fill-in-the-blank style:
+
+👤 Show me all tickets created by [user dropdown]
+📌 Show me all tickets assigned to [user dropdown]
+📊 Show me all tickets with status [status dropdown]
+🏷️  Show me all [Bug/Task/Story dropdown] tickets
+📁 Show me all tickets for project [project dropdown]
+📋 Show me all tickets on board [board dropdown]
+🔖 Show me all tickets tagged with [tag multi-select]
+⏰ Show me recent tickets
+🎯 Show me ticket #[enter ID]
+
+🎯 How It Works:
+1. Type / to see all search options
+2. Click any option to fill in the blanks
+3. Select from dropdowns (use arrow keys ↑↓)
+4. Press Enter to search!
+
+💡 Pro Tips:
+• Use natural language for best results (no / needed!)
+• Type / for guided searches with dropdown help
+• Click "Discussion" tab in any work item to see all comments
+• Use filters at the top to refine results`,
       timestamp: new Date(),
     };
 
     const helpMessage: Message = {
       id: '2',
       type: 'system',
-      content: '🤖 AI-Powered Search:\nJust type naturally without any slash! Examples:\n• "show me all active user stories"\n• "find bugs assigned to john"\n• "what tasks were created this week?"\n\nSlash Commands:\n\n' + COMMANDS.map(cmd =>
-        `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
-      ).join('\n') + '\n\n💡 Start typing to get started!\n⌨️  Press Tab after any slash command to see all options',
+      content: `⚡ Quick Actions:
+• Type just a number (e.g., "12345") to open that ticket
+• Type / to explore all search options
+• Use ↑↓ arrows to recall previous searches
+
+Type /help anytime to see this guide again!`,
       timestamp: new Date(),
     };
 
@@ -468,16 +503,51 @@ export default function ChatInterface() {
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       type: 'system',
-      content: 'Welcome to ADO Explorer! 👋\n\n🤖 Just type naturally to search with AI (e.g., "show me all active bugs")\n💡 Or type / to see slash commands\n🔍 Try /project or /board to see your ADO data with autocomplete!\n⌨️  Press Tab after a command to see all available options',
+      content: `🤖 Welcome to ADO Explorer!
+
+💬 Natural Language Search (Recommended):
+Just type naturally! The AI will understand. Examples:
+• "show me all active bugs"
+• "find tasks assigned to john"
+• "what was updated this week?"
+• "show me ticket #12345"
+
+/ Guided Search Commands:
+Type / to see interactive search options with fill-in-the-blank style:
+
+👤 Show me all tickets created by [user dropdown]
+📌 Show me all tickets assigned to [user dropdown]
+📊 Show me all tickets with status [status dropdown]
+🏷️  Show me all [Bug/Task/Story dropdown] tickets
+📁 Show me all tickets for project [project dropdown]
+📋 Show me all tickets on board [board dropdown]
+🔖 Show me all tickets tagged with [tag multi-select]
+⏰ Show me recent tickets
+🎯 Show me ticket #[enter ID]
+
+🎯 How It Works:
+1. Type / to see all search options
+2. Click any option to fill in the blanks
+3. Select from dropdowns (use arrow keys ↑↓)
+4. Press Enter to search!
+
+💡 Pro Tips:
+• Use natural language for best results (no / needed!)
+• Type / for guided searches with dropdown help
+• Click "Discussion" tab in any work item to see all comments
+• Use filters at the top to refine results`,
       timestamp: new Date(),
     };
 
     const helpMessage: Message = {
       id: (Date.now() + 1).toString(),
       type: 'system',
-      content: '🤖 AI-Powered Search:\nJust type naturally without any slash! Examples:\n• "show me all active user stories"\n• "find bugs assigned to john"\n• "what tasks were created this week?"\n\nSlash Commands:\n\n' + COMMANDS.map(cmd =>
-        `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
-      ).join('\n') + '\n\n💡 Start typing to get started!\n⌨️  Press Tab after any slash command to see all options',
+      content: `⚡ Quick Actions:
+• Type just a number (e.g., "12345") to open that ticket
+• Type / to explore all search options
+• Use ↑↓ arrows to recall previous searches
+
+Type /help anytime to see this guide again!`,
       timestamp: new Date(),
     };
 
