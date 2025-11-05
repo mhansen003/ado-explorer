@@ -57,7 +57,28 @@ export class ADOService {
         query: query,
       });
 
-      const workItemIds = queryResponse.data.workItems.map((item: any) => item.id);
+      // Handle both flat queries (workItems) and tree queries (workItemRelations)
+      let workItemIds: number[] = [];
+
+      if (queryResponse.data.workItemRelations) {
+        // Tree/hierarchical query - extract IDs from relations
+        console.log('[ADO API] Detected tree query with workItemRelations');
+        const ids = new Set<number>();
+
+        queryResponse.data.workItemRelations.forEach((relation: any) => {
+          // Add both source and target IDs
+          if (relation.source?.id) ids.add(relation.source.id);
+          if (relation.target?.id) ids.add(relation.target.id);
+        });
+
+        workItemIds = Array.from(ids);
+      } else if (queryResponse.data.workItems) {
+        // Flat query - standard approach
+        console.log('[ADO API] Detected flat query with workItems');
+        workItemIds = queryResponse.data.workItems.map((item: any) => item.id);
+      } else {
+        console.warn('[ADO API] Query returned unexpected response structure:', queryResponse.data);
+      }
 
       if (workItemIds.length === 0) {
         return [];
