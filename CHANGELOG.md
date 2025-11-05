@@ -5,6 +5,54 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-01-05
+
+### ✨ Added - Hierarchical Display in Grid View
+- **Hierarchical grid/table view** - Grid view now shows parent/child relationships just like card view
+  - Automatically detects hierarchical relationships in grid view
+  - Parent rows with expand/collapse chevron buttons (ChevronDown/ChevronRight)
+  - Child rows indented with connection symbols (└─)
+  - Relation type badges displayed under work item type
+  - Recursive rendering for multi-level hierarchies
+
+### 🎨 Visual Enhancements - Grid View
+- **Indentation in ID column** - 16px padding per hierarchy level
+  - Level 0 (Parents): Chevron button + ID
+  - Level 1+ (Children): Connection symbol (└─) + ID
+- **Relation type badges** - Small badges under type showing "Parent", "Child", "Related", etc.
+- **Color-coded badges** - Consistent with relationship colors throughout the app
+- **Collapsible rows** - Click chevron to expand/collapse child items
+
+### 🔧 Technical Implementation
+- **New component**: `HierarchicalWorkItemGrid.tsx`
+  - Recursive `HierarchicalGridRow` component
+  - Maintains all table columns (ID, Type, State, Title, Priority, Assigned, Project, Area, Changed, SP)
+  - Click-to-stop-propagation on expand/collapse buttons
+  - Uses same hierarchy utilities as card view
+- **Updated**: `MessageList.tsx` - Grid view checks for hierarchy and uses hierarchical component when detected
+- **Graceful fallback** - Falls back to flat table when no relationships exist
+
+### 🎯 Impact
+- **Consistent experience** - Grid view and card view both show hierarchical relationships
+- **Better data visualization** - See parent/child structures in compact table format
+- **No breaking changes** - Flat tables still work when no relationships exist
+- **User choice** - Works in both view modes (Card and Grid)
+
+### 💡 Example - Grid View with Hierarchy
+```
+ID          Type         State    Title
+🔽 5318     Epic         Active   Marketing Campaign
+            Parent
+└─ 5319     User Story   Active   Landing page design
+            Child
+└─ 5320     User Story   Active   Email templates
+            Child
+└─ 5321     Task         Active   Copy writing
+            Child
+```
+
+---
+
 ## [0.1.7] - 2025-01-05
 
 ### 🎨 Enhanced - Button Consistency
