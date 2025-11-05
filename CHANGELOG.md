@@ -5,6 +5,63 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2025-01-05
+
+### 🎨 Enhanced - AI Output Formatting
+- **Improved readability for AI-generated content** - Test cases, release notes, and other AI outputs are now much easier to read
+  - Increased padding from 12px to 24px for more breathing room
+  - Larger text size (prose-base instead of prose-sm)
+  - Increased max height from 320px to 600px for more visible content
+  - Enhanced line spacing with `leading-relaxed` throughout
+
+### 📝 Typography Improvements
+- **Better heading hierarchy** - Clear visual distinction between heading levels
+  - H1: 2xl size, H2: xl, H3: lg, H4: base
+  - Proper spacing with mt-6, mb-4 (first heading has no top margin)
+  - Semibold font weight for emphasis
+
+- **Enhanced lists** - Lists are now properly spaced and indented
+  - Vertical spacing: my-4 between list and content, space-y-2 between items
+  - Proper indentation: pl-6 for list container, pl-2 for items
+  - Leading-relaxed for better line height in multi-line items
+  - Disc bullets for unordered lists, decimal numbers for ordered lists
+
+- **Better inline elements**
+  - Strong text: Green color with semibold weight for emphasis
+  - Code: Cyan text on dark background with padding and rounded corners
+  - Links: Green underlined text with hover effects
+  - Blockquotes: Border-left accent, italic text, proper padding
+
+- **Code blocks** - Improved presentation
+  - Rounded borders with proper padding (p-4)
+  - Clear border separation
+  - Better vertical spacing (my-4)
+
+- **Tables** - Professional formatting
+  - Bordered cells with proper padding (px-4 py-2)
+  - Header rows with background color
+  - Full width layout
+
+### ✨ Visual Polish
+- **Container improvements**
+  - Rounded corners upgraded to rounded-xl
+  - Shadow-inner effect for depth
+  - Better copy button with icon
+
+- **Spacing refinements**
+  - Removed margins from first/last children for cleaner edges
+  - Horizontal rules with consistent spacing (my-6)
+  - Paragraph spacing increased (mb-4)
+
+### 🎯 Impact
+- **Test cases** are now easy to scan with clear numbered steps
+- **Release notes** format cleanly with proper heading hierarchy
+- **Code snippets** stand out with cyan highlighting
+- **Lists** have clear visual separation making them easier to follow
+- **Overall more professional** appearance matching the app design
+
+---
+
 ## [0.1.8] - 2025-01-05
 
 ### ✨ Added - Hierarchical Display in Grid View
