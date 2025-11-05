@@ -55,8 +55,11 @@ export async function POST(request: NextRequest) {
     // Handle special /current-sprint command
     if (mainCommand === '/current-sprint' || mainCommand === '/current_sprint') {
       console.log('[ADO API] Handling current sprint query');
-      const workItems = await adoService.getCurrentSprintWorkItems(targetProject, undefined, filters);
+      let workItems = await adoService.getCurrentSprintWorkItems(targetProject, undefined, filters);
       console.log('[ADO API] Found work items in current sprint:', workItems.length);
+
+      // Enrich work items with relationship information
+      workItems = await adoService.enrichWorkItemsWithRelationships(workItems);
 
       return NextResponse.json({
         workItems,
@@ -74,8 +77,11 @@ export async function POST(request: NextRequest) {
     const query = adoService.buildQuery(mainCommand, param, filters);
     console.log('[ADO API] WIQL Query:', query);
 
-    const workItems = await adoService.searchWorkItems(query);
+    let workItems = await adoService.searchWorkItems(query);
     console.log('[ADO API] Found work items:', workItems.length);
+
+    // Enrich work items with relationship information
+    workItems = await adoService.enrichWorkItemsWithRelationships(workItems);
 
     return NextResponse.json({
       workItems,

@@ -770,6 +770,89 @@ export class ADOService {
   }
 
   /**
+   * Enrich work items with relationship information for items in the result set
+   * This detects parent/child relationships between work items in the search results
+   */
+  async enrichWorkItemsWithRelationships(workItems: WorkItem[]): Promise<WorkItem[]> {
+    try {
+      console.log('[ADO API] 🔗 Enriching', workItems.length, 'work items with relationships...');
+
+      if (workItems.length === 0) {
+        return workItems;
+      }
+
+      // Create a map of work item IDs in the result set for quick lookup
+      const resultIdSet = new Set(workItems.map(item => parseInt(item.id)));
+      const workItemMap = new Map(workItems.map(item => [item.id, item]));
+
+      // Fetch relations for all work items in parallel
+      const relationPromises = workItems.map(async (item) => {
+        try {
+          const response = await this.orgClient.get(`/wit/workitems/${item.id}`, {
+            params: { '$expand': 'Relations' },
+          });
+          return { id: item.id, relations: response.data.relations || [] };
+        } catch (error) {
+          console.warn(`[ADO API] Failed to fetch relations for ${item.id}:`, error);
+          return { id: item.id, relations: [] };
+        }
+      });
+
+      const allRelations = await Promise.all(relationPromises);
+
+      // Process relations and populate relationType for items in the result set
+      let relationshipsFound = 0;
+      for (const { id, relations } of allRelations) {
+        const currentItem = workItemMap.get(id);
+        if (!currentItem) continue;
+
+        for (const relation of relations) {
+          if (!relation.url || !relation.url.toLowerCase().includes('/workitems/')) continue;
+
+          const match = relation.url.match(/\/workitems\/(\d+)$/i);
+          if (!match) continue;
+
+          const relatedId = parseInt(match[1]);
+
+          // Check if this related item is in our result set
+          if (resultIdSet.has(relatedId)) {
+            const relatedItem = workItemMap.get(relatedId.toString());
+            if (relatedItem) {
+              // Determine relation type
+              let relationType = 'Related';
+              if (relation.rel) {
+                if (relation.rel.includes('Hierarchy-Reverse')) {
+                  relationType = 'Parent';
+                } else if (relation.rel.includes('Hierarchy-Forward')) {
+                  relationType = 'Child';
+                } else if (relation.rel.includes('Dependency-Forward')) {
+                  relationType = 'Successor';
+                } else if (relation.rel.includes('Dependency-Reverse')) {
+                  relationType = 'Predecessor';
+                }
+              }
+
+              // Set relationType for the current item (it has a relation to relatedItem)
+              if (!currentItem.relationType) {
+                currentItem.relationType = relationType;
+                currentItem.relationSource = 'linked';
+                relationshipsFound++;
+              }
+            }
+          }
+        }
+      }
+
+      console.log('[ADO API] ✅ Found', relationshipsFound, 'relationships within result set');
+      return workItems;
+    } catch (error: any) {
+      console.error('[ADO API] Error enriching work items with relationships:', error.message);
+      // Return original work items if enrichment fails
+      return workItems;
+    }
+  }
+
+  /**
    * Get all unique tags
    */
   async getTags(): Promise<string[]> {

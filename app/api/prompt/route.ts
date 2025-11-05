@@ -214,8 +214,11 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
     console.log('[ADO Prompt API] WIQL with filters:', filteredQuery);
 
     // Execute the filtered WIQL query
-    const workItems = await adoService.searchWorkItems(filteredQuery);
+    let workItems = await adoService.searchWorkItems(filteredQuery);
     console.log('[ADO Prompt API] Found work items:', workItems.length);
+
+    // Enrich work items with relationship information
+    workItems = await adoService.enrichWorkItemsWithRelationships(workItems);
 
     // If this is an analytics query, perform analysis and return insights
     if (isAnalyticsQuery && workItems.length > 0) {
