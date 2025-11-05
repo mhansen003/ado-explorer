@@ -91,6 +91,20 @@ export default function FilterBar({
     }
   }, [filters]);
 
+  // Handle Escape key to close drawer
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isExpanded) {
+        setIsExpanded(false);
+      }
+    };
+
+    if (isExpanded) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isExpanded, setIsExpanded]);
+
   const handleFilterChange = (key: keyof GlobalFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     onFiltersChange(newFilters);
@@ -132,24 +146,42 @@ export default function FilterBar({
   ].filter(Boolean).length;
 
   return (
-    <div className="border-b border-rh-border bg-rh-card/50">
-      <div className="px-4 py-2">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 text-sm text-rh-text-secondary hover:text-rh-text transition-colors"
-        >
-          <Filter className="w-4 h-4" />
-          <span>Global Filters</span>
-          {activeFilterCount > 0 && (
-            <span className="px-2 py-0.5 bg-rh-green text-rh-dark rounded-full text-xs font-medium">
-              {activeFilterCount}
-            </span>
-          )}
-          <span className="text-xs ml-auto">{isExpanded ? '▲' : '▼'}</span>
-        </button>
+    <>
+      {/* Backdrop overlay */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
 
-        {isExpanded && (
-          <div className="mt-3 space-y-2 pb-1">
+      {/* Slide-out drawer */}
+      <div
+        className={`fixed top-0 right-0 h-full w-96 bg-rh-card border-l border-rh-border shadow-2xl z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto ${
+          isExpanded ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-rh-card border-b border-rh-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-rh-green" />
+            <h2 className="text-lg font-semibold text-rh-text">Global Filters</h2>
+            {activeFilterCount > 0 && (
+              <span className="px-2 py-0.5 bg-rh-green text-rh-dark rounded-full text-xs font-medium">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="p-1 hover:bg-rh-border rounded transition-colors"
+          >
+            <X className="w-5 h-5 text-rh-text-secondary" />
+          </button>
+        </div>
+
+        {/* Filter content */}
+        <div className="px-4 py-3 space-y-3">
             {/* Ignore States - Multi-select Dropdown */}
             <div className="p-2 hover:bg-rh-border/50 rounded transition-colors">
               <div className="flex items-center gap-2 mb-2">
@@ -378,9 +410,8 @@ export default function FilterBar({
                 Clear all filters
               </button>
             )}
-          </div>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

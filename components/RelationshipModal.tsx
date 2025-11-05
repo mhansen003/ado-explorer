@@ -18,8 +18,14 @@ export default function RelationshipModal({
   onNavigate,
 }: RelationshipModalProps) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="relative w-[98vw] h-[98vh] bg-rh-card border border-rh-border rounded-xl shadow-2xl overflow-hidden">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-[98vw] h-[98vh] bg-rh-card border border-rh-border rounded-xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-rh-dark/95 backdrop-blur border-b border-rh-border p-4 flex items-center justify-between">
           <div>

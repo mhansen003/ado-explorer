@@ -22,6 +22,8 @@ export default function RelationshipDiagram({
   onNavigate,
 }: RelationshipDiagramProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [tooltipItem, setTooltipItem] = useState<PositionedWorkItem | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Group work items by relationship type
   const parents = relatedWorkItems.filter(item => item.relationType === 'Parent');
