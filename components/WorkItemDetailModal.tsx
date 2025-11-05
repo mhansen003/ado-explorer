@@ -73,12 +73,84 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
   };
 
   const aiActions = [
-    { id: 'releaseNotes' as AIAction, label: 'Release Notes', icon: FileText, description: 'Generate release notes' },
-    { id: 'summary' as AIAction, label: 'Share Summary', icon: Share2, description: 'Create shareable summary' },
-    { id: 'testCases' as AIAction, label: 'Test Cases', icon: CheckSquare, description: 'Generate test scenarios' },
-    { id: 'acceptanceCriteria' as AIAction, label: 'Acceptance Criteria', icon: Target, description: 'Define acceptance criteria' },
-    { id: 'complexity' as AIAction, label: 'Analyze Complexity', icon: TrendingUp, description: 'Estimate effort' },
-    { id: 'relatedItems' as AIAction, label: 'Find Related', icon: Link2, description: 'Suggest related items' },
+    {
+      id: 'releaseNotes' as AIAction,
+      label: 'Release Notes',
+      icon: FileText,
+      description: 'Generate release notes',
+      colors: {
+        bg: 'bg-blue-500/10',
+        border: 'border-blue-500/30',
+        text: 'text-blue-400',
+        hover: 'hover:bg-blue-500/20 hover:border-blue-500',
+        active: 'bg-blue-500/20 border-blue-500',
+      }
+    },
+    {
+      id: 'summary' as AIAction,
+      label: 'Share Summary',
+      icon: Share2,
+      description: 'Create shareable summary',
+      colors: {
+        bg: 'bg-purple-500/10',
+        border: 'border-purple-500/30',
+        text: 'text-purple-400',
+        hover: 'hover:bg-purple-500/20 hover:border-purple-500',
+        active: 'bg-purple-500/20 border-purple-500',
+      }
+    },
+    {
+      id: 'testCases' as AIAction,
+      label: 'Test Cases',
+      icon: CheckSquare,
+      description: 'Generate test scenarios',
+      colors: {
+        bg: 'bg-green-500/10',
+        border: 'border-green-500/30',
+        text: 'text-green-400',
+        hover: 'hover:bg-green-500/20 hover:border-green-500',
+        active: 'bg-green-500/20 border-green-500',
+      }
+    },
+    {
+      id: 'acceptanceCriteria' as AIAction,
+      label: 'Acceptance Criteria',
+      icon: Target,
+      description: 'Define acceptance criteria',
+      colors: {
+        bg: 'bg-amber-500/10',
+        border: 'border-amber-500/30',
+        text: 'text-amber-400',
+        hover: 'hover:bg-amber-500/20 hover:border-amber-500',
+        active: 'bg-amber-500/20 border-amber-500',
+      }
+    },
+    {
+      id: 'complexity' as AIAction,
+      label: 'Analyze Complexity',
+      icon: TrendingUp,
+      description: 'Estimate effort',
+      colors: {
+        bg: 'bg-orange-500/10',
+        border: 'border-orange-500/30',
+        text: 'text-orange-400',
+        hover: 'hover:bg-orange-500/20 hover:border-orange-500',
+        active: 'bg-orange-500/20 border-orange-500',
+      }
+    },
+    {
+      id: 'relatedItems' as AIAction,
+      label: 'Find Related',
+      icon: Link2,
+      description: 'Suggest related items',
+      colors: {
+        bg: 'bg-cyan-500/10',
+        border: 'border-cyan-500/30',
+        text: 'text-cyan-400',
+        hover: 'hover:bg-cyan-500/20 hover:border-cyan-500',
+        active: 'bg-cyan-500/20 border-cyan-500',
+      }
+    },
   ];
 
   return (
@@ -190,15 +262,16 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {aiActions.map((action) => {
                 const Icon = action.icon;
+                const isActive = activeAction === action.id;
                 return (
                   <button
                     key={action.id}
                     onClick={() => handleAIAction(action.id)}
                     disabled={loading}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      activeAction === action.id
-                        ? 'bg-rh-green/20 text-rh-green border border-rh-green'
-                        : 'bg-rh-dark border border-rh-border text-rh-text hover:border-rh-green hover:bg-rh-border'
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${
+                      isActive
+                        ? `${action.colors.active} ${action.colors.text}`
+                        : `${action.colors.bg} ${action.colors.border} ${action.colors.text} ${action.colors.hover}`
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <Icon className="w-4 h-4" />
