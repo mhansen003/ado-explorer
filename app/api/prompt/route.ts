@@ -10,6 +10,12 @@ export async function POST(request: NextRequest) {
   const pat = process.env.ADO_PAT;
   const openaiKey = process.env.OPENAI_API_KEY;
 
+  // Model configuration: Use gpt-4o-mini for simple tasks (lower cost, higher rate limits)
+  // Set OPENAI_USE_MINI=false in .env to force gpt-4o for all calls
+  const useMiniForSimpleTasks = process.env.OPENAI_USE_MINI !== 'false';
+  const simpleTaskModel = useMiniForSimpleTasks ? 'gpt-4o-mini' : 'gpt-4o';
+  const complexTaskModel = 'gpt-4o';
+
   // Parse request outside try block so prompt is available in catch
   let prompt = '';
   let filters: GlobalFilters | undefined;
@@ -134,7 +140,7 @@ Respond ONLY with the WIQL query, nothing else.`,
         'Authorization': `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: simpleTaskModel, // Use gpt-4o-mini by default (6.7x higher rate limit, 60x cheaper)
         messages,
         temperature: 0.3,
         max_tokens: 200,
@@ -202,7 +208,7 @@ Respond ONLY with the WIQL query, nothing else.`,
         'Authorization': `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: simpleTaskModel, // Simple classification task - use gpt-4o-mini
         messages: [
           {
             role: 'system',
@@ -291,7 +297,7 @@ Based on this context, provide a helpful, conversational answer to the user's qu
           'Authorization': `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: complexTaskModel, // Keep gpt-4o for complex conversational answers
           messages: answerMessages,
           temperature: 0.7,
           max_tokens: 800,
@@ -349,7 +355,7 @@ Based on this context, provide a helpful, conversational answer to the user's qu
             'Authorization': `Bearer ${openaiKey}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4o',
+            model: simpleTaskModel, // Simple error explanation - use gpt-4o-mini
             messages: [
               {
                 role: 'system',

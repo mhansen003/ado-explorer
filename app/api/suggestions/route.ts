@@ -8,6 +8,9 @@ export async function POST(request: NextRequest) {
 
     const openaiKey = process.env.OPENAI_API_KEY;
 
+    // Use gpt-4o-mini for suggestions (6.7x higher rate limit, 60x cheaper)
+    const model = process.env.OPENAI_USE_MINI !== 'false' ? 'gpt-4o-mini' : 'gpt-4o';
+
     if (!openaiKey) {
       return NextResponse.json(
         { error: 'OpenAI API key not found.' },
@@ -58,7 +61,7 @@ Keep queries short (5-8 words) and actionable.`;
           'Authorization': `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model, // Use gpt-4o-mini by default for better rate limits
           messages: [
             {
               role: 'system',
