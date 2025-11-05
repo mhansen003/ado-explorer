@@ -143,6 +143,10 @@ export default function ChatInterface() {
             break;
         }
         setDynamicSuggestions(cachedData);
+        setFilteredCommands(filtered);
+        setShowAutocomplete(filtered.length > 0 || cachedData.length > 0);
+        setSelectedIndex(0);
+        return; // Early return to avoid the check below
       } else {
         setDynamicSuggestions([]);
       }
