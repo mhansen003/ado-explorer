@@ -161,11 +161,29 @@ export class ADOService {
 
     const conditionsString = conditionsToAdd.join(' AND ');
 
-    // If query has WHERE, append with AND, otherwise add WHERE
+    // If query has WHERE, we need to wrap existing conditions in parentheses if they contain OR
     let modifiedQuery: string;
     if (query.includes(' WHERE ')) {
-      modifiedQuery = query.replace(' ORDER BY ', ` AND ${conditionsString} ORDER BY `);
+      // Extract the WHERE clause
+      const whereMatch = query.match(/WHERE (.+?) ORDER BY/);
+      if (whereMatch && whereMatch[1]) {
+        const existingConditions = whereMatch[1].trim();
+        // If existing conditions contain OR, wrap in parentheses for proper precedence
+        if (existingConditions.includes(' OR ')) {
+          modifiedQuery = query.replace(
+            /WHERE (.+?) ORDER BY/,
+            `WHERE (${existingConditions}) AND ${conditionsString} ORDER BY`
+          );
+        } else {
+          // No OR operators, simple AND is fine
+          modifiedQuery = query.replace(' ORDER BY ', ` AND ${conditionsString} ORDER BY `);
+        }
+      } else {
+        // Fallback: simple append
+        modifiedQuery = query.replace(' ORDER BY ', ` AND ${conditionsString} ORDER BY `);
+      }
     } else {
+      // No WHERE clause, add one
       modifiedQuery = query.replace(' ORDER BY ', ` WHERE ${conditionsString} ORDER BY `);
     }
 
