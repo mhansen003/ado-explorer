@@ -10,15 +10,8 @@ import { Message, Command, DynamicSuggestion, GlobalFilters, ViewPreferences, Co
 import { COMMAND_TEMPLATES } from '@/lib/command-templates';
 
 const COMMANDS: Command[] = [
-  { name: 'project', description: 'Filter by project (auto-completes from your ADO)', icon: '📁', hasParam: true, isDynamic: true },
-  { name: 'board', description: 'Filter by board/team (auto-completes from your ADO)', icon: '📋', hasParam: true, isDynamic: true },
-  { name: 'created_by', description: 'Filter by creator (auto-completes)', icon: '👤', hasParam: true, isDynamic: true },
-  { name: 'assigned_to', description: 'Filter by assignee (auto-completes)', icon: '📌', hasParam: true, isDynamic: true },
-  { name: 'state', description: 'Filter by state (auto-completes)', icon: '📊', hasParam: true, isDynamic: true },
-  { name: 'type', description: 'Filter by work item type (auto-completes)', icon: '🏷️', hasParam: true, isDynamic: true },
-  { name: 'tag', description: 'Filter by tag (auto-completes)', icon: '🔖', hasParam: true, isDynamic: true },
-  { name: 'recent', description: 'Show recently updated items', icon: '⏰' },
   { name: 'help', description: 'Show available commands', icon: '❓' },
+  { name: 'clear', description: 'Clear conversation history', icon: '🗑️' },
 ];
 
 export default function ChatInterface() {
@@ -188,9 +181,7 @@ Just type naturally! Examples:
 • "show me all active bugs"
 • "find tasks assigned to john"
 • "ticket #12345"
-
-**/ Guided Search:**
-Type / for fill-in-the-blank searches with dropdowns
+• "what are the P1 items?"
 
 **Tip:** Press ↑ (up arrow) to recall previous commands
 
@@ -563,9 +554,7 @@ Just type naturally! Examples:
 • "show me all active bugs"
 • "find tasks assigned to john"
 • "ticket #12345"
-
-**/ Guided Search:**
-Type / for fill-in-the-blank searches with dropdowns
+• "what are the P1 items?"
 
 **Tip:** Press ↑ (up arrow) to recall previous commands
 
@@ -661,92 +650,22 @@ Type **/help** for more info`,
         content: `🤖 **ADO Explorer Help**
 
 💬 **Natural Language Search:**
-Just type naturally:
+Just type naturally - I understand questions like:
 • "show me all active bugs"
 • "find tasks assigned to john"
 • "ticket #12345"
-
-**/ Guided Search:**
-Type / for interactive fill-in-the-blank searches:
-👤 Created by • 📌 Assigned to • 📊 Status • 🏷️ Type
-📁 Project • 📋 Board • 🔖 Tags • ⏰ Recent • 🎯 By ID
+• "what are the P1 bugs?"
+• "show me closed items from last week"
 
 **Tips:**
 • Press ↑ (up arrow) to recall previous commands
 • Use global filters (right side) to refine results
-• Click "Discussion" tab for comments
+• Click work items to see details and discussion
 • Type /clear to start fresh`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, helpMessage]);
       return;
-    }
-
-    // Check if command is a base command without parameters (e.g., "/project", "/board", "/tag")
-    const commandMatch = command.match(/^\/(\w+)$/);
-    if (commandMatch) {
-      const commandName = commandMatch[1].toLowerCase();
-
-      // Commands that should show lists
-      const listCommands = ['project', 'board', 'tag', 'state', 'type', 'created_by', 'assigned_to'];
-
-      if (listCommands.includes(commandName)) {
-        const loadingMessage: Message = {
-          id: Date.now().toString(),
-          type: 'system',
-          content: `Loading ${commandName} list...`,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, loadingMessage]);
-
-        // Fetch the appropriate list
-        try {
-          let listData: Array<{value: string; description?: string}> = [];
-
-          switch (commandName) {
-            case 'project':
-              listData = cachedProjects.length > 0 ? cachedProjects : [];
-              break;
-            case 'board':
-              listData = cachedBoards.length > 0 ? cachedBoards : [];
-              break;
-            case 'tag':
-              listData = cachedTags.length > 0 ? cachedTags : [];
-              break;
-            case 'state':
-              listData = cachedStates.length > 0 ? cachedStates : [];
-              break;
-            case 'type':
-              listData = cachedTypes.length > 0 ? cachedTypes : [];
-              break;
-            case 'created_by':
-            case 'assigned_to':
-              listData = cachedUsers.length > 0 ? cachedUsers : [];
-              break;
-          }
-
-          const listMessage: Message = {
-            id: Date.now().toString(),
-            type: 'system',
-            content: `📋 Available ${commandName}s (${listData.length} items):\n\n💡 Click on an item to view details`,
-            timestamp: new Date(),
-            listItems: listData.map(item => ({
-              ...item,
-              commandName,
-            })),
-          };
-          setMessages(prev => [...prev.slice(0, -1), listMessage]);
-        } catch (error: any) {
-          const errorMessage: Message = {
-            id: Date.now().toString(),
-            type: 'system',
-            content: `❌ Error loading ${commandName} list: ${error.message}`,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev.slice(0, -1), errorMessage]);
-        }
-        return;
-      }
     }
 
     // Show loading message
