@@ -5,6 +5,34 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2025-01-05
+
+### 🎨 Enhanced
+- **Filter slidout tab visibility** - Made the filter button much more prominent and eye-catching
+  - Changed color scheme from subtle gray to vibrant orange gradient
+  - Added gentle pulse animation to draw attention (stops on hover)
+  - Increased button size with larger padding and icons
+  - Enhanced shadow effects with orange glow on hover
+  - White filter icon with drop shadow for better contrast
+  - Larger, more visible counter badge (white background with orange text)
+  - Smooth transitions for all interactions
+
+### 🔥 Visual Improvements
+- **Orange branding** - Filter button now uses orange gradient (orange-600 → orange-500)
+  - Border upgraded to orange-400 with increased width
+  - Hover state transitions to lighter orange gradient
+  - Shadow upgraded from shadow-lg to shadow-2xl
+  - Added orange glow effect on hover (shadow-orange-500/50)
+- **Animation polish** - Added `animate-pulse` class that disables on hover
+- **Better accessibility** - Larger click target and more visible to all users
+
+### 🎯 Impact
+- **Improved discoverability** - Users will immediately notice the filter button
+- **Enhanced user experience** - Clear visual hierarchy and smooth interactions
+- **Better mobile support** - Larger button easier to tap on touch devices
+
+---
+
 ## [0.1.4] - 2025-01-05
 
 ### ✨ Added
