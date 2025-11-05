@@ -66,6 +66,9 @@ export default function ChatInterface() {
     useGridView: true,
   });
 
+  // Filter bar expansion state
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+
   useEffect(() => {
     // Don't override if Tab autocomplete is showing
     if (isShowingTabAutocomplete) {
@@ -833,6 +836,10 @@ Type / to see interactive search options with fill-in-the-blank style:
     if (isShowingTabAutocomplete) {
       setIsShowingTabAutocomplete(false);
     }
+    // Collapse filter bar when user starts typing
+    if (isFilterExpanded && e.target.value.length > 0) {
+      setIsFilterExpanded(false);
+    }
   };
 
   const handleListItemClick = async (value: string, commandName: string) => {
@@ -1113,6 +1120,8 @@ Type / to see interactive search options with fill-in-the-blank style:
         onFiltersChange={setGlobalFilters}
         viewPreferences={viewPreferences}
         onViewPreferencesChange={setViewPreferences}
+        isExpanded={isFilterExpanded}
+        onExpandedChange={setIsFilterExpanded}
       />
 
       <div className="relative p-4 border-t border-rh-border bg-rh-dark">

@@ -9,10 +9,29 @@ interface FilterBarProps {
   onFiltersChange: (filters: GlobalFilters) => void;
   viewPreferences: ViewPreferences;
   onViewPreferencesChange: (preferences: ViewPreferences) => void;
+  isExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
-export default function FilterBar({ filters, onFiltersChange, viewPreferences, onViewPreferencesChange }: FilterBarProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function FilterBar({
+  filters,
+  onFiltersChange,
+  viewPreferences,
+  onViewPreferencesChange,
+  isExpanded: controlledIsExpanded,
+  onExpandedChange
+}: FilterBarProps) {
+  const [internalIsExpanded, setInternalIsExpanded] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : internalIsExpanded;
+  const setIsExpanded = (value: boolean) => {
+    if (onExpandedChange) {
+      onExpandedChange(value);
+    } else {
+      setInternalIsExpanded(value);
+    }
+  };
   const [daysInput, setDaysInput] = useState(filters.ignoreOlderThanDays?.toString() || '30');
   const [usernameInput, setUsernameInput] = useState(filters.currentUser || '');
 
