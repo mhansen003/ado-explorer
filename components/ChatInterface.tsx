@@ -53,7 +53,7 @@ export default function ChatInterface() {
 
   // View preferences
   const [viewPreferences, setViewPreferences] = useState<ViewPreferences>({
-    useGridView: false,
+    useGridView: true,
   });
 
   useEffect(() => {
