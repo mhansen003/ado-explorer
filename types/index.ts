@@ -5,6 +5,8 @@ export interface Message {
   timestamp: Date;
   workItems?: WorkItem[];
   listItems?: Array<{value: string; description?: string; commandName?: string}>;
+  conversationalAnswer?: string;
+  responseType?: 'TICKETS' | 'ANSWER';
 }
 
 export interface WorkItem {

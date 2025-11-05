@@ -123,12 +123,73 @@ Respond ONLY with the WIQL query, nothing else.`,
     const workItems = await adoService.searchWorkItems(wiqlQuery);
     console.log('[ADO Prompt API] Found work items:', workItems.length);
 
+    // Determine if we should provide a conversational answer
+    const shouldAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are analyzing user questions about Azure DevOps. Determine if the user wants:\n1. "TICKETS" - A list of work items\n2. "ANSWER" - A conversational answer to their question\n\nRespond with ONLY "TICKETS" or "ANSWER".',
+          },
+          {
+            role: 'user',
+            content: `Question: "${prompt}"\nFound ${workItems.length} work items.\nShould I show tickets or provide an answer?`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 10,
+      }),
+    });
+
+    const shouldAnswerData = await shouldAnswerResponse.json();
+    const responseType = shouldAnswerData.choices[0].message.content.trim().toUpperCase();
+    console.log('[ADO Prompt API] Response type:', responseType);
+
+    // If user wants an answer, generate it
+    let conversationalAnswer = null;
+    if (responseType === 'ANSWER') {
+      const answerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational and helpful.',
+            },
+            {
+              role: 'user',
+              content: `Question: "${prompt}"\n\nFound ${workItems.length} work items:\n${workItems.slice(0, 10).map(item => `- ${item.id}: ${item.title} (${item.type}, ${item.state})`).join('\n')}\n\nProvide a helpful answer to the question.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
+      });
+
+      const answerData = await answerResponse.json();
+      conversationalAnswer = answerData.choices[0].message.content.trim();
+      console.log('[ADO Prompt API] Generated conversational answer');
+    }
+
     return NextResponse.json({
       workItems,
       searchScope: `Project: ${targetProject}`,
       aiGenerated: true,
       originalPrompt: prompt,
       generatedQuery: wiqlQuery,
+      responseType,
+      conversationalAnswer,
     });
   } catch (error: any) {
     console.error('[ADO Prompt API] Error:', {

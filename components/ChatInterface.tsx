@@ -404,6 +404,8 @@ export default function ChatInterface() {
           content: `Results for: "${command}"${searchScope}${aiNote}`,
           timestamp: new Date(),
           workItems: data.workItems || [],
+          conversationalAnswer: data.conversationalAnswer,
+          responseType: data.responseType,
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
       } catch (error: any) {
