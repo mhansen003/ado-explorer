@@ -1,7 +1,7 @@
 'use client';
 
 import { WorkItem } from '@/types';
-import { ArrowUp, ArrowDown, Link2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ArrowUp, ArrowDown, Link2, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 interface RelationshipDiagramProps {
@@ -530,6 +530,7 @@ export default function RelationshipDiagram({
           { type: 'Related', icon: <Link2 className="w-4 h-4" />, color: '#22d3ee', count: related.length },
           { type: 'Predecessor', icon: <ArrowLeft className="w-4 h-4" />, color: '#fb923c', count: predecessors.length },
           { type: 'Successor', icon: <ArrowRight className="w-4 h-4" />, color: '#a78bfa', count: successors.length },
+          { type: 'Similar Title', icon: <Sparkles className="w-4 h-4" />, color: '#60a5fa', count: similarTitle.length },
         ];
 
         // Only show types that have items
