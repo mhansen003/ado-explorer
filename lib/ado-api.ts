@@ -598,7 +598,12 @@ export class ADOService {
    */
   async getRelatedWorkItems(workItemId: number): Promise<WorkItem[]> {
     try {
-      console.log('[ADO API] Fetching related items for work item:', workItemId);
+      console.log('[ADO API] 🔍 Fetching related items for work item:', workItemId);
+
+      // SPECIAL DEBUG FOR TICKET 17367
+      if (workItemId === 17367) {
+        console.log('[ADO API] 🎯 DEBUGGING TICKET 17367 - Expected: 1 Parent (5318), 19 Children');
+      }
 
       // Try org-level client first for cross-project relations support
       // Azure DevOps work items can have relations across projects
@@ -673,6 +678,20 @@ export class ADOService {
       }
 
       console.log('[ADO API] Found', relatedIdsWithTypes.length, 'related work item IDs:', relatedIdsWithTypes);
+
+      // Summary by relation type
+      const typeSummary = relatedIdsWithTypes.reduce((acc, item) => {
+        acc[item.relationType] = (acc[item.relationType] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('[ADO API] 📊 Relations by type:', typeSummary);
+
+      // SPECIAL DEBUG FOR TICKET 17367
+      if (workItemId === 17367) {
+        console.log('[ADO API] 🎯 TICKET 17367 Summary - Found:', typeSummary);
+        console.log('[ADO API] 🎯 Expected: {Parent: 1, Child: 19}');
+        console.log('[ADO API] 🎯 All relations:', relatedIdsWithTypes);
+      }
 
       // Fetch details for all related work items
       const detailsResponse = await this.orgClient.get('/wit/workitems', {

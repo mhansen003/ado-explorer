@@ -495,6 +495,12 @@ Type **/help** for more info`,
 
     setMessages(prev => [...prev, userMessage]);
 
+    // Get last 10 messages for conversation context (exclude current message)
+    const conversationHistory = messages.slice(-10).map(msg => ({
+      role: msg.type === 'user' ? 'user' : 'assistant',
+      content: msg.content,
+    }));
+
     // Add to command history (avoid duplicates at the end)
     const trimmedInput = input.trim();
     setCommandHistory(prev => {
@@ -571,7 +577,11 @@ Type **/help** for more info`,
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ prompt: command, filters: globalFilters }),
+          body: JSON.stringify({
+            prompt: command,
+            filters: globalFilters,
+            conversationHistory,
+          }),
         });
 
         const data = await response.json();
