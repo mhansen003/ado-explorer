@@ -49,16 +49,16 @@ export default function ChatInterface() {
       return;
     }
 
-    // Show autocomplete when focused and input is empty or just "/"
-    if (isFocused && (input === '' || input === '/')) {
-      setFilteredCommands(COMMANDS);
-      setDynamicSuggestions([]);
-      setShowAutocomplete(true);
-      setSelectedIndex(0);
-      return;
-    }
-
+    // Only show autocomplete for slash commands
     if (input.startsWith('/')) {
+      // Show autocomplete when typing "/" or a slash command
+      if (input === '/') {
+        setFilteredCommands(COMMANDS);
+        setDynamicSuggestions([]);
+        setShowAutocomplete(true);
+        setSelectedIndex(0);
+        return;
+      }
       const parts = input.slice(1).split(' ');
       const commandName = parts[0].toLowerCase();
       const param = parts.slice(1).join(' ').toLowerCase();
