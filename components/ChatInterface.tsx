@@ -576,7 +576,7 @@ export default function ChatInterface() {
     inputRef.current?.focus();
   };
 
-  const handleDynamicSelect = (value: string) => {
+  const handleDynamicSelect = async (value: string) => {
     // Get the current command name
     const parts = input.slice(1).split(' ');
     const commandName = parts[0];
@@ -587,12 +587,26 @@ export default function ChatInterface() {
       return;
     }
 
-    // Replace with the selected value
-    setInput(`/${commandName} ${value}`);
+    // Build the full command
+    const fullCommand = `/${commandName} ${value}`;
+
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: fullCommand,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Clear input and close dropdown
+    setInput('');
     setDynamicSuggestions([]);
     setShowAutocomplete(false);
     setIsShowingTabAutocomplete(false);
-    inputRef.current?.focus();
+
+    // Execute the command
+    await processCommand(fullCommand);
   };
 
   const handleToggleTag = (tag: string) => {
