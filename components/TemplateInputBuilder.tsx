@@ -34,7 +34,9 @@ export default function TemplateInputBuilder({
   );
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedDropdownIndex, setSelectedDropdownIndex] = useState(0);
+  const [filterText, setFilterText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const filterInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Get data source for a placeholder type
@@ -48,6 +50,16 @@ export default function TemplateInputBuilder({
       case 'tag': return tags;
       default: return [];
     }
+  };
+
+  // Get filtered data source based on filter text
+  const getFilteredDataSource = (type: string): DynamicSuggestion[] => {
+    const dataSource = getDataSource(type);
+    if (!filterText.trim()) return dataSource;
+
+    return dataSource.filter(item =>
+      item.value.toLowerCase().includes(filterText.toLowerCase())
+    );
   };
 
   // Check if all required placeholders are filled
@@ -74,6 +86,7 @@ export default function TemplateInputBuilder({
     } else {
       setValues(prev => ({ ...prev, [key]: value }));
       setDropdownOpen(false);
+      setFilterText('');
       // Move to next placeholder
       const currentIndex = template.placeholders.findIndex(p => p.key === key);
       if (currentIndex < template.placeholders.length - 1) {
@@ -86,22 +99,10 @@ export default function TemplateInputBuilder({
 
   // Handle arrow key navigation in dropdown
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!activePlaceholder) {
-      if (e.key === 'Enter' && isComplete()) {
-        const command = template.buildCommand(values);
-        onExecute(command);
-      } else if (e.key === 'Escape') {
-        onCancel();
-      }
-      return;
-    }
+    const placeholder = activePlaceholder ? template.placeholders.find(p => p.key === activePlaceholder) : null;
+    const dataSource = placeholder ? getFilteredDataSource(placeholder.type) : [];
 
-    const placeholder = template.placeholders.find(p => p.key === activePlaceholder);
-    if (!placeholder) return;
-
-    const dataSource = getDataSource(placeholder.type);
-
-    if (dropdownOpen && dataSource.length > 0) {
+    if (dropdownOpen && placeholder && dataSource.length > 0) {
       // Dropdown navigation
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -114,27 +115,28 @@ export default function TemplateInputBuilder({
       } else if (e.key === 'Enter') {
         e.preventDefault();
         const selectedItem = dataSource[selectedDropdownIndex];
-        if (selectedItem) {
+        if (selectedItem && activePlaceholder) {
           handleValueSelect(activePlaceholder, selectedItem.value, !!placeholder.multiSelect);
         }
       } else if (e.key === ' ' && placeholder.multiSelect) {
         e.preventDefault();
         const selectedItem = dataSource[selectedDropdownIndex];
-        if (selectedItem) {
+        if (selectedItem && activePlaceholder) {
           handleValueSelect(activePlaceholder, selectedItem.value, true);
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
         setDropdownOpen(false);
+        setFilterText('');
       }
-    } else {
-      // Global navigation when dropdown closed
-      if (e.key === 'Enter' && isComplete()) {
-        const command = template.buildCommand(values);
-        onExecute(command);
-      } else if (e.key === 'Escape') {
-        onCancel();
-      }
+    } else if (e.key === 'Enter' && isComplete()) {
+      // Execute when complete
+      e.preventDefault();
+      const command = template.buildCommand(values);
+      onExecute(command);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancel();
     }
   };
 
@@ -142,7 +144,7 @@ export default function TemplateInputBuilder({
   const renderPlaceholder = (placeholder: Placeholder) => {
     const value = values[placeholder.key];
     const isActive = activePlaceholder === placeholder.key;
-    const dataSource = getDataSource(placeholder.type);
+    const dataSource = getFilteredDataSource(placeholder.type);
     const displayValue = Array.isArray(value)
       ? value.length > 0
         ? value.length === 1
@@ -159,8 +161,9 @@ export default function TemplateInputBuilder({
             setActivePlaceholder(placeholder.key);
             setDropdownOpen(true);
             setSelectedDropdownIndex(0);
+            setFilterText('');
+            setTimeout(() => filterInputRef.current?.focus(), 50);
           }}
-          onKeyDown={handleKeyDown}
           className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium transition-all ${
             isActive
               ? 'bg-rh-green text-rh-dark'
@@ -173,14 +176,31 @@ export default function TemplateInputBuilder({
           <ChevronDown className="w-3 h-3" />
         </button>
 
-        {/* Dropdown */}
-        {isActive && dropdownOpen && dataSource.length > 0 && (
+        {/* Dropdown - positioned ABOVE */}
+        {isActive && dropdownOpen && (
           <div
             ref={dropdownRef}
-            className="absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50"
+            className="absolute bottom-full left-0 mb-1 w-64 max-h-64 bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50 flex flex-col"
           >
-            <div className="p-2 space-y-1">
-              {dataSource.map((item, itemIndex) => {
+            {/* Filter Input */}
+            <div className="p-2 border-b border-rh-border">
+              <input
+                ref={filterInputRef}
+                type="text"
+                value={filterText}
+                onChange={(e) => {
+                  setFilterText(e.target.value);
+                  setSelectedDropdownIndex(0);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Type to filter..."
+                className="w-full px-3 py-2 bg-rh-dark border border-rh-border rounded text-sm text-rh-text placeholder-rh-text-secondary focus:outline-none focus:border-rh-green"
+              />
+            </div>
+
+            {/* Options List */}
+            <div className="p-2 space-y-1 overflow-y-auto max-h-48">
+              {dataSource.length > 0 ? dataSource.map((item, itemIndex) => {
                 const isSelected = Array.isArray(value)
                   ? value.includes(item.value)
                   : value === item.value;
@@ -213,7 +233,11 @@ export default function TemplateInputBuilder({
                     )}
                   </button>
                 );
-              })}
+              }) : (
+                <div className="px-3 py-2 text-sm text-rh-text-secondary text-center">
+                  No matches found
+                </div>
+              )}
             </div>
           </div>
         )}

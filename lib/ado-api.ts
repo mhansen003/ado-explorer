@@ -141,12 +141,32 @@ export class ADOService {
       return query;
     }
 
+    // Split the filter conditions to check for duplicates
+    const newConditions = globalFilterConditions.split(' AND ').map(c => c.trim());
+    const conditionsToAdd: string[] = [];
+
+    // Only add conditions that don't already exist in the query
+    for (const condition of newConditions) {
+      if (!query.includes(condition)) {
+        conditionsToAdd.push(condition);
+      } else {
+        console.log('[ADO Service] Skipping duplicate condition:', condition);
+      }
+    }
+
+    if (conditionsToAdd.length === 0) {
+      console.log('[ADO Service] All conditions already in query, returning original');
+      return query;
+    }
+
+    const conditionsString = conditionsToAdd.join(' AND ');
+
     // If query has WHERE, append with AND, otherwise add WHERE
     let modifiedQuery: string;
     if (query.includes(' WHERE ')) {
-      modifiedQuery = query.replace(' ORDER BY ', ` AND ${globalFilterConditions} ORDER BY `);
+      modifiedQuery = query.replace(' ORDER BY ', ` AND ${conditionsString} ORDER BY `);
     } else {
-      modifiedQuery = query.replace(' ORDER BY ', ` WHERE ${globalFilterConditions} ORDER BY `);
+      modifiedQuery = query.replace(' ORDER BY ', ` WHERE ${conditionsString} ORDER BY `);
     }
 
     console.log('[ADO Service] Modified query:', modifiedQuery);
