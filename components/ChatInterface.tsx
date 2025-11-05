@@ -1576,6 +1576,11 @@ Just type naturally - I understand questions like:
           </button>
         </div>
       </div>
+
+      {/* Changelog Modal */}
+      {showChangelog && (
+        <ChangelogModal onClose={() => setShowChangelog(false)} />
+      )}
     </div>
   );
 }
