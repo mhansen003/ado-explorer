@@ -1,4 +1,4 @@
-export const VERSION = 'v1.4.2';
+export const VERSION = 'v1.4.3';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.4.3',
+    date: '2025-01-12',
+    changes: [
+      {
+        category: 'Enhancement',
+        description: '👤 Auto-populate User Filter - "My Tickets" filter now automatically uses authenticated email from MFA session, no manual entry needed',
+      },
+    ],
+  },
   {
     version: 'v1.4.2',
     date: '2025-01-12',
