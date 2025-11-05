@@ -27,8 +27,10 @@ export class ADOService {
     });
 
     // Project-level client (for single project searches)
+    // URL-encode the project name to handle spaces and special characters
+    const encodedProject = project ? encodeURIComponent(project) : '';
     this.client = axios.create({
-      baseURL: `https://dev.azure.com/${organization}${project ? `/${project}` : ''}/_apis`,
+      baseURL: `https://dev.azure.com/${organization}${encodedProject ? `/${encodedProject}` : ''}/_apis`,
       headers: {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
@@ -777,9 +779,13 @@ export class ADOService {
     } catch (error: any) {
       console.error('[ADO getComments] Error fetching comments:', {
         workItemId,
+        project: this.project,
         status: error.response?.status,
         statusText: error.response?.statusText,
         message: error.message,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        responseData: error.response?.data,
       });
       // Return empty array instead of throwing
       return [];
