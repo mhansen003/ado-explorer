@@ -38,65 +38,58 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const adoService = new ADOService(organization, pat, targetProject);
+      // Use org-level client (no project) for cross-project relation support
+      const adoService = new ADOService(organization, pat);
 
       const relatedItems: WorkItem[] = [];
-      const maxSuggestedResults = 10; // Only limit AI-suggested items, not actual ADO relationships
+      const maxSimilarTitles = 5; // Only show up to 5 similar title suggestions
 
-      // FIRST: Get actual linked work items from Azure DevOps relations
-      // IMPORTANT: Get ALL ADO relationships (no limit) - parent, children, related, etc.
-      console.log('[AI Actions] Fetching linked work items for work item ID:', workItem.id);
+      // FIRST AND MOST IMPORTANT: Get actual linked work items from Azure DevOps relations
+      // This includes Parent, Child, Related, Predecessor, Successor from ADO
+      console.log('[AI Actions] 🔍 Fetching ADO relationships for work item ID:', workItem.id);
       try {
         const linkedItems = await adoService.getRelatedWorkItems(parseInt(workItem.id));
-        relatedItems.push(...linkedItems); // Add ALL linked items, no limit
-        console.log('[AI Actions] Found', linkedItems.length, 'linked work items:', linkedItems.map(item => ({
-          id: item.id,
-          title: item.title,
-          relationType: item.relationType,
-          relationSource: item.relationSource,
-        })));
-      } catch (error) {
-        console.error('[AI Actions] Error fetching linked items:', error);
-      }
+        console.log('[AI Actions] ✅ ADO returned', linkedItems.length, 'linked relationships');
 
-      // SECOND: If we have fewer than maxSuggestedResults total, add tag-based suggestions
-      if (relatedItems.length < maxSuggestedResults && workItem.tags && workItem.tags.length > 0) {
-        const tagQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Tags] CONTAINS '${workItem.tags[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
-        try {
-          const tagResults = await adoService.searchWorkItems(tagQuery);
-          // Add items that aren't already in the list and mark them as tag-based
-          const existingIds = new Set(relatedItems.map(item => item.id));
-          const newResults = tagResults
-            .filter(item => !existingIds.has(item.id))
-            .map(item => ({ ...item, relationSource: 'tag' as const, relationType: 'Similar Tag' }));
-          relatedItems.push(...newResults.slice(0, maxSuggestedResults - relatedItems.length));
-          console.log('[AI Actions] Added', newResults.length, 'tag-based results');
-        } catch (error) {
-          console.error('[AI Actions] Tag search error:', error);
+        if (linkedItems.length > 0) {
+          relatedItems.push(...linkedItems); // Add ALL linked items from ADO, no limit
+          console.log('[AI Actions] ADO relationships:', linkedItems.map(item => ({
+            id: item.id,
+            title: item.title,
+            relationType: item.relationType,
+            relationSource: item.relationSource,
+          })));
+        } else {
+          console.warn('[AI Actions] ⚠️ NO ADO RELATIONSHIPS FOUND - This should not happen for ticket with Parent/Child');
         }
+      } catch (error) {
+        console.error('[AI Actions] ❌ ERROR fetching ADO relationships:', error);
       }
 
-      // THIRD: If we still need more, search by title keywords
-      if (relatedItems.length < maxSuggestedResults) {
-        const titleWords = workItem.title
-          .split(/\s+/)
-          .filter(word => word.length >= 4)
-          .slice(0, 3);
+      // SECOND: Add up to 5 similar titles based on title keywords
+      // This is ONLY AI suggestions, separate from actual ADO relationships
+      const titleWords = workItem.title
+        .split(/\s+/)
+        .filter(word => word.length >= 4)
+        .slice(0, 3);
 
-        if (titleWords.length > 0) {
-          const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
-          try {
-            const titleResults = await adoService.searchWorkItems(titleQuery);
-            // Add items that aren't already in the list and mark them as title-based
-            const existingIds = new Set(relatedItems.map(item => item.id));
-            const newResults = titleResults
-              .filter(item => !existingIds.has(item.id))
-              .map(item => ({ ...item, relationSource: 'title' as const, relationType: 'Similar Title' }));
-            relatedItems.push(...newResults.slice(0, maxSuggestedResults - relatedItems.length));
-            console.log('[AI Actions] Added', newResults.length, 'title-based results');
-          } catch (error) {
-            console.error('[AI Actions] Title search error:', error);
+      if (titleWords.length > 0) {
+        const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
+        try {
+          const titleResults = await adoService.searchWorkItems(titleQuery);
+          // Add items that aren't already in the list
+          const existingIds = new Set(relatedItems.map(item => item.id));
+          const newResults = titleResults
+            .filter(item => !existingIds.has(item.id))
+            .slice(0, maxSimilarTitles)
+            .map(item => ({ ...item, relationSource: 'title' as const, relationType: 'Similar Title' }));
+
+          if (newResults.length > 0) {
+            relatedItems.push(...newResults);
+            console.log('[AI Actions] Added', newResults.length, 'similar title suggestions (max 5)');
           }
+        } catch (error) {
+          console.error('[AI Actions] Title similarity search error:', error);
         }
       }
 

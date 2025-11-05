@@ -348,6 +348,17 @@ export default function RelationshipDiagram({
         >
           <div
             className="w-full h-full p-6 border-4 border-rh-green bg-rh-green/20 rounded-lg shadow-2xl backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105"
+            onMouseEnter={(e) => {
+              setHoveredId(currentWorkItem.id);
+              setTooltipItem({ ...currentWorkItem, x: centerX, y: centerY, level: 0 });
+              const rect = e.currentTarget.getBoundingClientRect();
+              setTooltipPosition({ x: rect.right + 10, y: rect.top });
+            }}
+            onMouseLeave={() => {
+              setHoveredId(null);
+              setTooltipItem(null);
+              setTooltipPosition(null);
+            }}
             style={{
               boxShadow: '0 0 30px rgba(16, 185, 129, 0.5)',
             }}
@@ -461,16 +472,41 @@ export default function RelationshipDiagram({
       </div>
 
       {/* Detailed Tooltip */}
-      {tooltipItem && tooltipPosition && (
-        <div
-          className="fixed z-[200] w-96 bg-rh-dark/98 backdrop-blur-xl border-2 border-rh-green rounded-xl shadow-2xl p-6 pointer-events-none"
-          style={{
-            left: `${tooltipPosition.x}px`,
-            top: `${tooltipPosition.y}px`,
-            maxHeight: '80vh',
-            overflowY: 'auto',
-          }}
-        >
+      {tooltipItem && tooltipPosition && (() => {
+        const tooltipWidth = 384; // w-96 = 24rem = 384px
+        const tooltipMaxHeight = window.innerHeight * 0.8; // 80vh
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Check if tooltip would go off-screen to the right
+        let left = tooltipPosition.x;
+        if (left + tooltipWidth > viewportWidth - 20) {
+          // Position to the left of the card instead
+          left = tooltipPosition.x - tooltipWidth - 20;
+        }
+
+        // Ensure tooltip doesn't go off left edge
+        left = Math.max(10, left);
+
+        // Check if tooltip would go off-screen vertically
+        let top = tooltipPosition.y;
+        if (top + tooltipMaxHeight > viewportHeight - 20) {
+          // Adjust upward to fit on screen
+          top = viewportHeight - tooltipMaxHeight - 20;
+        }
+        top = Math.max(10, top);
+
+        return (
+          <div
+            className="fixed z-[200] w-96 bg-rh-dark/98 backdrop-blur-xl border-2 border-rh-green rounded-xl shadow-2xl p-6 pointer-events-none"
+            style={{
+              left: `${left}px`,
+              top: `${top}px`,
+              maxHeight: '80vh',
+              overflowY: 'auto',
+            }}
+          >
+
           {/* Header */}
           <div className="mb-4 pb-4 border-b border-rh-border">
             <div className="flex items-center gap-2 mb-2">
@@ -573,8 +609,9 @@ export default function RelationshipDiagram({
               />
             </div>
           )}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
