@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { WorkItem, Comment } from '@/types';
-import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare } from 'lucide-react';
+import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -119,6 +119,12 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
       // Handle related items specially
       if (action === 'relatedItems' && data.relatedWorkItems) {
+        console.log('[WorkItemDetailModal] Received related items:', data.relatedWorkItems.map((item: WorkItem) => ({
+          id: item.id,
+          title: item.title,
+          relationType: item.relationType,
+          relationSource: item.relationSource,
+        })));
         setRelatedWorkItems(data.relatedWorkItems);
         setAiResult(data.relatedWorkItems.length > 0
           ? `Found ${data.relatedWorkItems.length} related work items. Click on any item below to view details.`
@@ -535,13 +541,19 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                         </span>
                         <span className="text-xs text-rh-text-secondary">{item.state}</span>
                         {item.relationType && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            item.relationSource === 'linked'
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
+                            item.relationType === 'Parent'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                              : item.relationType === 'Child'
+                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                              : item.relationSource === 'linked'
                               ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
                               : item.relationSource === 'tag'
                               ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
                               : 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
                           }`}>
+                            {item.relationType === 'Parent' && <ArrowUp className="w-3 h-3" />}
+                            {item.relationType === 'Child' && <ArrowDown className="w-3 h-3" />}
                             {item.relationType}
                           </span>
                         )}
