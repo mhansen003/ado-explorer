@@ -148,6 +148,30 @@ export default function ChatInterface() {
     const preloadData = async () => {
       console.log('[ChatInterface] Starting pre-load of autocomplete data...');
 
+      // FIRST: Load filters from localStorage BEFORE anything else
+      try {
+        const savedFilters = localStorage.getItem('ado-explorer-filters');
+        if (savedFilters) {
+          const parsedFilters = JSON.parse(savedFilters);
+          setGlobalFilters(parsedFilters);
+          console.log('[ChatInterface] Loaded filters from localStorage:', parsedFilters);
+        }
+      } catch (error) {
+        console.error('[ChatInterface] Failed to load filters from localStorage:', error);
+      }
+
+      // Load view preferences
+      try {
+        const savedPrefs = localStorage.getItem('ado-explorer-view-preferences');
+        if (savedPrefs) {
+          const parsedPrefs = JSON.parse(savedPrefs);
+          setViewPreferences(parsedPrefs);
+          console.log('[ChatInterface] Loaded view preferences from localStorage:', parsedPrefs);
+        }
+      } catch (error) {
+        console.error('[ChatInterface] Failed to load view preferences from localStorage:', error);
+      }
+
       // Pre-load projects
       try {
         const response = await fetch('/api/projects');

@@ -17,34 +17,14 @@ export default function FilterBar({ filters, onFiltersChange, viewPreferences, o
   const [usernameInput, setUsernameInput] = useState(filters.currentUser || '');
 
   useEffect(() => {
-    // Load filters from localStorage on mount
-    const saved = localStorage.getItem('ado-explorer-filters');
-    if (saved) {
-      try {
-        const savedFilters = JSON.parse(saved);
-        onFiltersChange(savedFilters);
-        if (savedFilters.ignoreOlderThanDays) {
-          setDaysInput(savedFilters.ignoreOlderThanDays.toString());
-        }
-        if (savedFilters.currentUser) {
-          setUsernameInput(savedFilters.currentUser);
-        }
-      } catch (error) {
-        console.error('Failed to load filters from localStorage:', error);
-      }
+    // Sync UI inputs with loaded filters
+    if (filters.ignoreOlderThanDays) {
+      setDaysInput(filters.ignoreOlderThanDays.toString());
     }
-
-    // Load view preferences from localStorage
-    const savedPrefs = localStorage.getItem('ado-explorer-view-preferences');
-    if (savedPrefs) {
-      try {
-        const savedViewPrefs = JSON.parse(savedPrefs);
-        onViewPreferencesChange(savedViewPrefs);
-      } catch (error) {
-        console.error('Failed to load view preferences from localStorage:', error);
-      }
+    if (filters.currentUser) {
+      setUsernameInput(filters.currentUser);
     }
-  }, []);
+  }, [filters]);
 
   const handleFilterChange = (key: keyof GlobalFilters, value: boolean | number | null) => {
     const newFilters = { ...filters, [key]: value };
