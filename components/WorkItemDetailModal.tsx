@@ -25,15 +25,24 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [activeTab, setActiveTab] = useState<'details' | 'discussion'>('details');
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [hasFetchedComments, setHasFetchedComments] = useState(false);
 
   // Current trail includes all previous items plus this one
   const currentTrail = [...breadcrumbTrail, workItem];
 
+  // Reset comments state when work item changes
+  useEffect(() => {
+    setComments([]);
+    setHasFetchedComments(false);
+    setLoadingComments(false);
+  }, [workItem.id]);
+
   // Fetch comments when discussion tab is opened
   useEffect(() => {
     const fetchComments = async () => {
-      if (activeTab === 'discussion' && comments.length === 0 && !loadingComments) {
+      if (activeTab === 'discussion' && !hasFetchedComments && !loadingComments) {
         setLoadingComments(true);
+        setHasFetchedComments(true);
 
         // Create an AbortController for timeout
         const controller = new AbortController();
@@ -73,7 +82,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     };
 
     fetchComments();
-  }, [activeTab, workItem.id, comments.length, loadingComments]);
+  }, [activeTab, workItem.id, hasFetchedComments, loadingComments]);
 
   // Sanitize the HTML description to prevent XSS attacks
   const sanitizedDescription = useMemo(() => {
