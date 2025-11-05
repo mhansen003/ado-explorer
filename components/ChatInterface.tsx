@@ -770,15 +770,17 @@ export default function ChatInterface() {
       if (e.key === 'Tab') {
         e.preventDefault();
 
-        // Check if user has typed a command and space (e.g., "/project ")
+        // Check if user has typed a command with or without space (e.g., "/project" or "/project ")
         const parts = input.slice(1).split(' ');
         const commandName = parts[0].toLowerCase();
         const hasSpace = input.endsWith(' ');
+        const isJustCommand = !hasSpace && parts.length === 1;
 
         console.log('[Tab Handler]', {
           input,
           commandName,
           hasSpace,
+          isJustCommand,
           parts,
           cachedProjectsLength: cachedProjects.length,
           cachedBoardsLength: cachedBoards.length,
@@ -788,8 +790,8 @@ export default function ChatInterface() {
           cachedTagsLength: cachedTags.length,
         });
 
-        // If command has a space after it, show all cached options for that command
-        if (hasSpace && parts.length === 2 && parts[1] === '') {
+        // If command with or without space, show all cached options for that command
+        if ((hasSpace && parts.length === 2 && parts[1] === '') || isJustCommand) {
           let cachedData: DynamicSuggestion[] = [];
 
           switch (commandName) {
