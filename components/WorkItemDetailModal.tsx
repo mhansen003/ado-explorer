@@ -125,6 +125,10 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
           if (response.ok && data.relatedWorkItems) {
             setRelatedWorkItems(data.relatedWorkItems);
+            // Auto-open full screen view when relationships are loaded
+            if (data.relatedWorkItems.length > 0) {
+              setShowFullScreenRelationships(true);
+            }
           } else {
             console.error('Failed to fetch relationships:', data.error);
             setRelatedWorkItems([]);
@@ -674,7 +678,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                           onChange={(e) => {
                             setRelationshipFilters(prev => ({
                               ...prev,
-                              [type]: e.target.checked,
+                              [type as keyof typeof relationshipFilters]: e.target.checked,
                             }));
                           }}
                           className="w-4 h-4 text-rh-green bg-rh-dark border-rh-border rounded focus:ring-rh-green focus:ring-2"
