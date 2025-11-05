@@ -142,7 +142,7 @@ export default function MessageList({ messages, onListItemClick }: MessageListPr
                         onClick={() => setModalMessage(message)}
                         className="text-sm text-rh-green hover:text-green-400 transition-colors"
                       >
-                        ... and {message.workItems.length - 5} more items (click "View All" to see them)
+                        ... and {message.workItems.length - 5} more items (click &quot;View All&quot; to see them)
                       </button>
                     </div>
                   )}
