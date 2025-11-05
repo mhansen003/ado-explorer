@@ -4,16 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { kv } from '@vercel/kv';
 import { generateOTP, sendOTPEmail } from '@/lib/auth/email';
 import { isValidCMGEmail } from '@/lib/auth/jwt';
 import { AUTH_CONFIG } from '@/lib/auth/config';
-
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
 
 interface OTPData {
   code: string;
@@ -63,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Check rate limiting
     const rateLimitKey = getRateLimitKey(email);
-    const requestCount = await redis.get<number>(rateLimitKey);
+    const requestCount = await kv.get<number>(rateLimitKey);
 
     if (requestCount && requestCount >= AUTH_CONFIG.MAX_REQUESTS_PER_WINDOW) {
       console.log('[Send OTP] Rate limit exceeded:', email);
@@ -78,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Increment rate limit counter
     const newCount = (requestCount || 0) + 1;
-    await redis.set(rateLimitKey, newCount, {
+    await kv.set(rateLimitKey, newCount, {
       ex: AUTH_CONFIG.RATE_LIMIT_WINDOW_MINUTES * 60, // Convert to seconds
     });
 
@@ -95,7 +89,7 @@ export async function POST(request: NextRequest) {
       expiresAt: new Date(Date.now() + AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60 * 1000).toISOString(),
     };
 
-    await redis.set(getOTPKey(email), JSON.stringify(otpData), {
+    await kv.set(getOTPKey(email), JSON.stringify(otpData), {
       ex: AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60, // Convert to seconds
     });
 

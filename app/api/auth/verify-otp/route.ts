@@ -4,15 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { kv } from '@vercel/kv';
 import { createAuthToken } from '@/lib/auth/jwt';
 import { AUTH_CONFIG } from '@/lib/auth/config';
-
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
 
 interface OTPData {
   code: string;
@@ -46,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Get OTP data from Redis
     const otpKey = getOTPKey(email);
-    const otpDataStr = await redis.get<string>(otpKey);
+    const otpDataStr = await kv.get<string>(otpKey);
 
     if (!otpDataStr) {
       console.log('[Verify OTP] Code not found or expired:', email);
@@ -63,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Check if code has expired
     if (new Date(otpData.expiresAt) < new Date()) {
-      await redis.del(otpKey);
+      await kv.del(otpKey);
       console.log('[Verify OTP] Code expired:', email);
       return NextResponse.json(
         {
@@ -76,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Check maximum attempts
     if (otpData.attempts >= AUTH_CONFIG.MAX_ATTEMPTS) {
-      await redis.del(otpKey);
+      await kv.del(otpKey);
       console.log('[Verify OTP] Max attempts exceeded:', email);
       return NextResponse.json(
         {
@@ -91,7 +85,7 @@ export async function POST(request: NextRequest) {
     if (otpData.code !== code.trim()) {
       // Increment attempts
       otpData.attempts += 1;
-      await redis.set(otpKey, JSON.stringify(otpData), {
+      await kv.set(otpKey, JSON.stringify(otpData), {
         ex: AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60,
       });
 
@@ -108,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Success! Delete OTP and create session
-    await redis.del(otpKey);
+    await kv.del(otpKey);
     console.log('[Verify OTP] Verification successful:', email);
 
     // Create JWT token
