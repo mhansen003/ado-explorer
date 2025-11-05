@@ -736,9 +736,20 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-rh-text group-hover:text-cyan-400 transition-colors line-clamp-2">
+                      <p className="text-sm text-rh-text group-hover:text-cyan-400 transition-colors line-clamp-2 mb-1">
                         {item.title}
                       </p>
+                      {item.relationSource && (
+                        <p className="text-xs text-rh-text-secondary italic">
+                          {item.relationSource === 'linked'
+                            ? '🔗 Linked in Azure DevOps'
+                            : item.relationSource === 'tag'
+                            ? '🏷️ Similar tags'
+                            : item.relationSource === 'title'
+                            ? '📝 Similar title keywords'
+                            : ''}
+                        </p>
+                      )}
                     </div>
                     <ExternalLink className="w-4 h-4 text-rh-text-secondary group-hover:text-cyan-400 transition-colors flex-shrink-0 ml-2" />
                   </button>
@@ -859,23 +870,23 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
               )}
             </div>
           )}
+        </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-6 mt-6 border-t border-rh-border">
-            <button
-              onClick={handleOpenInAdo}
-              className="flex items-center gap-2 px-4 py-2 bg-rh-green text-rh-dark rounded-lg font-medium hover:bg-green-600 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open in Azure DevOps
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-rh-dark border border-rh-border text-rh-text rounded-lg font-medium hover:bg-rh-border transition-colors"
-            >
-              Close
-            </button>
-          </div>
+        {/* Actions - Always visible on all tabs */}
+        <div className="flex gap-3 p-6 border-t border-rh-border bg-rh-card">
+          <button
+            onClick={handleOpenInAdo}
+            className="flex items-center gap-2 px-4 py-2 bg-rh-green text-rh-dark rounded-lg font-medium hover:bg-green-600 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Open in Azure DevOps
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-rh-dark border border-rh-border text-rh-text rounded-lg font-medium hover:bg-rh-border transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
 
