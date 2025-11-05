@@ -37,10 +37,10 @@ export default function RelationshipDiagram({
   );
 
   // Calculate positions for hierarchical layout
-  const CARD_WIDTH = 420;
+  const CARD_WIDTH = 440; // Increased from 420 for better readability
   const CARD_HEIGHT = 200;
-  const VERTICAL_GAP = 180; // Increased from 140 to prevent overlap
-  const HORIZONTAL_GAP = 80; // Increased from 60 to prevent overlap
+  const VERTICAL_GAP = 220; // Increased from 180 to prevent overlap
+  const HORIZONTAL_GAP = 100; // Increased from 80 to prevent overlap
 
   // Calculate how many rows we'll need
   const parentRows = Math.ceil(parents.length / 5);
@@ -56,10 +56,10 @@ export default function RelationshipDiagram({
 
   // Position parents above (stack in rows if more than 5)
   const positionedParents: PositionedWorkItem[] = parents.map((item, index) => {
-    const itemsPerRow = Math.min(5, parents.length);
+    const itemsPerRow = Math.min(4, parents.length); // Reduced from 5 to 4 per row
     const row = Math.floor(index / itemsPerRow);
     const col = index % itemsPerRow;
-    const rowOffset = row * (CARD_HEIGHT + 60); // Increased spacing between rows
+    const rowOffset = row * (CARD_HEIGHT + 80); // Increased from 60 to 80
     return {
       ...item,
       x: centerX + (col - (itemsPerRow - 1) / 2) * (CARD_WIDTH + HORIZONTAL_GAP),
@@ -70,10 +70,10 @@ export default function RelationshipDiagram({
 
   // Position children below (stack in rows if more than 5)
   const positionedChildren: PositionedWorkItem[] = children.map((item, index) => {
-    const itemsPerRow = Math.min(5, children.length);
+    const itemsPerRow = Math.min(4, children.length); // Reduced from 5 to 4 per row
     const row = Math.floor(index / itemsPerRow);
     const col = index % itemsPerRow;
-    const rowOffset = row * (CARD_HEIGHT + 60); // Increased spacing between rows
+    const rowOffset = row * (CARD_HEIGHT + 80); // Increased from 60 to 80
     return {
       ...item,
       x: centerX + (col - (itemsPerRow - 1) / 2) * (CARD_WIDTH + HORIZONTAL_GAP),
@@ -84,14 +84,14 @@ export default function RelationshipDiagram({
 
   // Position related items to the right (stack vertically if more than 5)
   const positionedRelated: PositionedWorkItem[] = related.map((item, index) => {
-    const itemsPerColumn = Math.min(5, related.length);
+    const itemsPerColumn = Math.min(4, related.length); // Reduced from 5 to 4 per column
     const col = Math.floor(index / itemsPerColumn);
     const row = index % itemsPerColumn;
-    const colOffset = col * (CARD_WIDTH + HORIZONTAL_GAP + 100); // More spacing between columns
+    const colOffset = col * (CARD_WIDTH + HORIZONTAL_GAP + 120); // Increased from 100 to 120
     return {
       ...item,
-      x: centerX + CARD_WIDTH + HORIZONTAL_GAP + 100 + colOffset,
-      y: centerY + (row - (itemsPerColumn - 1) / 2) * (CARD_HEIGHT + 60), // Increased vertical spacing
+      x: centerX + CARD_WIDTH + HORIZONTAL_GAP + 120 + colOffset,
+      y: centerY + (row - (itemsPerColumn - 1) / 2) * (CARD_HEIGHT + 80), // Increased from 60 to 80
       level: 0,
     };
   });
@@ -99,29 +99,29 @@ export default function RelationshipDiagram({
   // Position predecessors to the left
   const positionedPredecessors: PositionedWorkItem[] = predecessors.map((item, index) => ({
     ...item,
-    x: centerX - CARD_WIDTH - HORIZONTAL_GAP - 150, // More spacing from center
-    y: centerY + (index - (predecessors.length - 1) / 2) * (CARD_HEIGHT + 60) - 100, // Increased vertical spacing
+    x: centerX - CARD_WIDTH - HORIZONTAL_GAP - 180, // Increased from 150 to 180
+    y: centerY + (index - (predecessors.length - 1) / 2) * (CARD_HEIGHT + 80) - 100, // Increased from 60 to 80
     level: 0,
   }));
 
   // Position successors to the right below related
   const positionedSuccessors: PositionedWorkItem[] = successors.map((item, index) => ({
     ...item,
-    x: centerX + CARD_WIDTH + HORIZONTAL_GAP + 150, // More spacing from center
-    y: centerY + (index - (successors.length - 1) / 2) * (CARD_HEIGHT + 60) + 100, // Increased vertical spacing
+    x: centerX + CARD_WIDTH + HORIZONTAL_GAP + 180, // Increased from 150 to 180
+    y: centerY + (index - (successors.length - 1) / 2) * (CARD_HEIGHT + 80) + 100, // Increased from 60 to 80
     level: 0,
   }));
 
   // Position Similar Title items to the left (AI suggestions)
   const positionedSimilarTitle: PositionedWorkItem[] = similarTitle.map((item, index) => {
-    const itemsPerColumn = Math.min(5, similarTitle.length);
+    const itemsPerColumn = Math.min(4, similarTitle.length); // Reduced from 5 to 4 per column
     const col = Math.floor(index / itemsPerColumn);
     const row = index % itemsPerColumn;
-    const colOffset = col * (CARD_WIDTH + HORIZONTAL_GAP + 100); // More spacing between columns
+    const colOffset = col * (CARD_WIDTH + HORIZONTAL_GAP + 120); // Increased from 100 to 120
     return {
       ...item,
-      x: centerX - CARD_WIDTH - HORIZONTAL_GAP - 150 - colOffset, // More spacing from center
-      y: centerY + (row - (itemsPerColumn - 1) / 2) * (CARD_HEIGHT + 60) + 100, // Increased vertical spacing
+      x: centerX - CARD_WIDTH - HORIZONTAL_GAP - 180 - colOffset, // Increased from 150 to 180
+      y: centerY + (row - (itemsPerColumn - 1) / 2) * (CARD_HEIGHT + 80) + 100, // Increased from 60 to 80
       level: 0,
     };
   });
