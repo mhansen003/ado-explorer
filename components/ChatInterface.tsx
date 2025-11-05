@@ -34,6 +34,7 @@ export default function ChatInterface() {
   const [cachedStates, setCachedStates] = useState<DynamicSuggestion[]>([]);
   const [cachedTypes, setCachedTypes] = useState<DynamicSuggestion[]>([]);
   const [cachedTags, setCachedTags] = useState<DynamicSuggestion[]>([]);
+  const [cachedQueries, setCachedQueries] = useState<DynamicSuggestion[]>([]);
 
   // Multi-select state for tags
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -91,7 +92,7 @@ export default function ChatInterface() {
       );
 
       // Check if we need to fetch dynamic suggestions or show cached data
-      const isDynamicCommand = ['project', 'board', 'created_by', 'assigned_to', 'state', 'type', 'tag'].includes(commandName);
+      const isDynamicCommand = ['project', 'board', 'created_by', 'assigned_to', 'state', 'type', 'tag', 'query'].includes(commandName);
 
       if (param && isDynamicCommand) {
         // Fetch filtered results when user is typing
@@ -114,6 +115,9 @@ export default function ChatInterface() {
             break;
           case 'tag':
             fetchTags(param);
+            break;
+          case 'query':
+            fetchQueries(param);
             break;
         }
       } else if (!param && isDynamicCommand) {
@@ -140,6 +144,9 @@ export default function ChatInterface() {
             cachedData = cachedTags;
             setIsMultiSelectMode(true);
             setSelectedTags([]);
+            break;
+          case 'query':
+            cachedData = cachedQueries;
             break;
         }
         setDynamicSuggestions(cachedData);
@@ -399,6 +406,32 @@ Type **/help** for more info`,
       } catch (err) {
         console.warn('[ChatInterface] Could not pre-load tags:', err);
       }
+
+      // Pre-load queries
+      try {
+        console.log('[ChatInterface] Fetching queries...');
+        const response = await fetch('/api/queries');
+        const data = await response.json();
+        console.log('[ChatInterface] Queries response:', { ok: response.ok, data });
+        if (response.ok && data.queries) {
+          setCachedQueries(data.queries.map((q: any) => ({
+            value: q.id,
+            description: q.path,
+          })));
+          console.log('[ChatInterface] Pre-loaded queries:', data.queries.length);
+        } else if (response.ok && Array.isArray(data)) {
+          // API returns array directly
+          setCachedQueries(data.map((q: any) => ({
+            value: q.id,
+            description: q.path,
+          })));
+          console.log('[ChatInterface] Pre-loaded queries (array format):', data.length);
+        } else {
+          console.warn('[ChatInterface] Queries API returned error:', data);
+        }
+      } catch (err) {
+        console.warn('[ChatInterface] Could not pre-load queries:', err);
+      }
     };
 
     preloadData();
@@ -410,6 +443,14 @@ Type **/help** for more info`,
 
     if (globalFilters.ignoreClosed) {
       filters.push('ignoring closed tickets');
+    }
+
+    if (Array.isArray(globalFilters.ignoreStates) && globalFilters.ignoreStates.length > 0) {
+      filters.push(`not showing ${globalFilters.ignoreStates.join(', ')}`);
+    }
+
+    if (Array.isArray(globalFilters.ignoreCreatedBy) && globalFilters.ignoreCreatedBy.length > 0) {
+      filters.push(`excluding ${globalFilters.ignoreCreatedBy.length} user${globalFilters.ignoreCreatedBy.length !== 1 ? 's' : ''}`);
     }
 
     if (globalFilters.onlyMyTickets && globalFilters.currentUser) {
@@ -547,6 +588,31 @@ Type **/help** for more info`,
       }
     } catch (error) {
       console.error('Error fetching tags:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
+  const fetchQueries = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/queries');
+      const data = await response.json();
+
+      if (response.ok && data.queries) {
+        const filtered = data.queries
+          .filter((q: any) =>
+            q.name.toLowerCase().includes(searchTerm) ||
+            q.path.toLowerCase().includes(searchTerm)
+          )
+          .map((q: any) => ({
+            value: q.id,
+            description: q.path,
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching queries:', error);
     } finally {
       setIsLoadingDynamic(false);
     }
@@ -716,6 +782,56 @@ Just type naturally - I understand questions like:
       return;
     }
 
+    // Handle /query command specially
+    if (command.startsWith('/query ')) {
+      const parts = command.split(' ');
+      const queryId = parts.slice(1).join(' ');
+
+      const loadingMessage: Message = {
+        id: Date.now().toString(),
+        type: 'system',
+        content: 'Running saved query...',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+
+      try {
+        const response = await fetch('/api/run-query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ queryId, filters: globalFilters }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to run query');
+        }
+
+        const filterSummary = buildFilterSummary();
+        const resultMessage: Message = {
+          id: Date.now().toString(),
+          type: 'results',
+          content: `Query results${filterSummary}`,
+          timestamp: new Date(),
+          workItems: data.workItems || [],
+        };
+        setMessages(prev => [...prev.slice(0, -1), resultMessage]);
+      } catch (error: any) {
+        console.error('Query error:', error.message);
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          type: 'system',
+          content: `❌ Error: ${error.message}`,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+      }
+      return;
+    }
+
     // Show loading message
     const loadingMessage: Message = {
       id: Date.now().toString(),
@@ -805,14 +921,21 @@ Just type naturally - I understand questions like:
       return;
     }
 
+    // For query command, find the query name from cached queries
+    let displayValue = value;
+    if (commandName === 'query') {
+      const query = cachedQueries.find(q => q.value === value);
+      displayValue = query?.description || value;
+    }
+
     // Build the full command
     const fullCommand = `/${commandName} ${value}`;
 
-    // Add user message
+    // Add user message (show the friendly name for queries)
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: fullCommand,
+      content: commandName === 'query' ? `/query ${displayValue}` : fullCommand,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
@@ -824,7 +947,7 @@ Just type naturally - I understand questions like:
     setIsShowingTabAutocomplete(false);
     setIsFilterExpanded(false); // Close filter dropdown when executing search
 
-    // Execute the command
+    // Execute the command (using the ID for queries)
     await processCommand(fullCommand);
   };
 
@@ -1070,6 +1193,7 @@ Just type naturally - I understand questions like:
           cachedStatesLength: cachedStates.length,
           cachedTypesLength: cachedTypes.length,
           cachedTagsLength: cachedTags.length,
+          cachedQueriesLength: cachedQueries.length,
         });
 
         // If autocomplete is already showing, Tab should SELECT like Enter does
@@ -1126,6 +1250,9 @@ Just type naturally - I understand questions like:
               setIsMultiSelectMode(true);
               setSelectedTags([]);
               break;
+            case 'query':
+              cachedData = cachedQueries;
+              break;
           }
 
           console.log('[Tab Handler] Showing cached data for', commandName, ':', cachedData.length, 'items');
@@ -1165,6 +1292,7 @@ Just type naturally - I understand questions like:
         onSuggestionClick={handleSuggestionClick}
         viewPreferences={viewPreferences}
         globalFilters={globalFilters}
+        onOpenFilters={() => setIsFilterExpanded(true)}
       />
 
       <FilterBar

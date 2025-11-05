@@ -808,6 +808,108 @@ export class ADOService {
   }
 
   /**
+   * Get all shared queries for the project
+   */
+  async getQueries(): Promise<{ id: string; name: string; path: string; wiql?: string }[]> {
+    try {
+      if (!this.project) {
+        console.warn('[ADO getQueries] Project required for queries, returning empty array');
+        return [];
+      }
+
+      console.log('[ADO getQueries] Fetching queries for project:', this.project);
+
+      // Get the query folders and queries
+      // $depth=2 will get queries inside folders as well
+      const response = await this.client.get('/wit/queries', {
+        params: {
+          '$depth': 2,
+          '$expand': 'all',
+        },
+      });
+
+      console.log('[ADO getQueries] API response:', response.data);
+
+      const queries: { id: string; name: string; path: string; wiql?: string }[] = [];
+
+      // Recursive function to extract queries from folder structure
+      const extractQueries = (items: any[], parentPath: string = '') => {
+        if (!items) return;
+
+        items.forEach((item: any) => {
+          if (item.isFolder) {
+            // Recursively process folder contents
+            const folderPath = parentPath ? `${parentPath}/${item.name}` : item.name;
+            if (item.children) {
+              extractQueries(item.children, folderPath);
+            }
+          } else if (item.isPublic !== false) {
+            // Only include public/shared queries, skip private queries
+            queries.push({
+              id: item.id,
+              name: item.name,
+              path: parentPath ? `${parentPath}/${item.name}` : item.name,
+              wiql: item.wiql,
+            });
+          }
+        });
+      };
+
+      // Start extraction from root
+      if (response.data.value) {
+        extractQueries(response.data.value);
+      }
+
+      console.log('[ADO getQueries] Found', queries.length, 'queries');
+      return queries;
+    } catch (error: any) {
+      console.error('[ADO getQueries] Error fetching queries:', {
+        project: this.project,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.message,
+        url: error.config?.url,
+        responseData: error.response?.data,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Run a saved query by its ID
+   */
+  async runQuery(queryId: string): Promise<WorkItem[]> {
+    try {
+      if (!this.project) {
+        throw new Error('Project required to run queries');
+      }
+
+      console.log('[ADO runQuery] Running query:', queryId);
+
+      // Get the query details to extract the WIQL
+      const queryResponse = await this.client.get(`/wit/queries/${queryId}`);
+      const wiql = queryResponse.data.wiql;
+
+      if (!wiql) {
+        throw new Error('Query does not contain WIQL');
+      }
+
+      console.log('[ADO runQuery] Query WIQL:', wiql);
+
+      // Execute the WIQL query
+      return await this.searchWorkItems(wiql);
+    } catch (error: any) {
+      console.error('[ADO runQuery] Error running query:', {
+        queryId,
+        project: this.project,
+        status: error.response?.status,
+        message: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Get all comments/discussion for a work item
    */
   async getComments(workItemId: number): Promise<Comment[]> {
