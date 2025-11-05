@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { WorkItem } from '@/types';
-import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2 } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { WorkItem, Comment } from '@/types';
+import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -22,9 +22,42 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [activeAction, setActiveAction] = useState<AIAction | null>(null);
   const [relatedWorkItems, setRelatedWorkItems] = useState<WorkItem[] | null>(null);
   const [selectedRelatedItem, setSelectedRelatedItem] = useState<WorkItem | null>(null);
+  const [activeTab, setActiveTab] = useState<'details' | 'discussion'>('details');
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
 
   // Current trail includes all previous items plus this one
   const currentTrail = [...breadcrumbTrail, workItem];
+
+  // Fetch comments when discussion tab is opened
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (activeTab === 'discussion' && comments.length === 0 && !loadingComments) {
+        setLoadingComments(true);
+        try {
+          const response = await fetch('/api/comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workItemId: parseInt(workItem.id) }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            setComments(data.comments || []);
+          } else {
+            console.error('Failed to fetch comments:', data.error);
+          }
+        } catch (error) {
+          console.error('Error fetching comments:', error);
+        } finally {
+          setLoadingComments(false);
+        }
+      }
+    };
+
+    fetchComments();
+  }, [activeTab, workItem.id, comments.length, loadingComments]);
 
   // Sanitize the HTML description to prevent XSS attacks
   const sanitizedDescription = useMemo(() => {
@@ -214,11 +247,44 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           </div>
         )}
 
+        {/* Tab Navigation */}
+        <div className="flex border-b border-rh-border">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'details'
+                ? 'text-rh-green border-b-2 border-rh-green'
+                : 'text-rh-text-secondary hover:text-rh-text'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Details
+          </button>
+          <button
+            onClick={() => setActiveTab('discussion')}
+            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'discussion'
+                ? 'text-rh-green border-b-2 border-rh-green'
+                : 'text-rh-text-secondary hover:text-rh-text'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Discussion
+            {comments.length > 0 && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-rh-green/20 text-rh-green">
+                {comments.length}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-88px)]">
-          <h2 className="text-2xl font-semibold text-rh-text mb-6">
-            {workItem.title}
-          </h2>
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-176px)]">
+          {activeTab === 'details' ? (
+            <>
+              <h2 className="text-2xl font-semibold text-rh-text mb-6">
+                {workItem.title}
+              </h2>
 
           {/* Metadata Grid */}
           <div className="grid grid-cols-2 gap-4 mb-6">
@@ -475,8 +541,90 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             </div>
           )}
 
+            </>
+          ) : (
+            /* Discussion Tab */
+            <div>
+              <h2 className="text-2xl font-semibold text-rh-text mb-6">Discussion</h2>
+
+              {loadingComments ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center gap-3 text-rh-text-secondary">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-rh-green border-t-transparent"></div>
+                    <span>Loading discussion...</span>
+                  </div>
+                </div>
+              ) : comments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <MessageSquare className="w-12 h-12 text-rh-text-secondary mb-4 opacity-50" />
+                  <p className="text-rh-text-secondary text-lg">No comments yet</p>
+                  <p className="text-rh-text-secondary text-sm mt-2">Be the first to start the discussion</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {comments.map((comment, index) => (
+                    <div
+                      key={comment.id}
+                      className="bg-rh-dark border border-rh-border rounded-lg p-4 hover:border-rh-green/30 transition-colors"
+                    >
+                      {/* Comment Header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-rh-green/20 flex items-center justify-center">
+                            <User className="w-4 h-4 text-rh-green" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              {comment.createdByEmail ? (
+                                <a
+                                  href={`mailto:${comment.createdByEmail}`}
+                                  className="text-sm font-medium text-rh-text hover:text-rh-green transition-colors hover:underline"
+                                >
+                                  {comment.createdBy}
+                                </a>
+                              ) : (
+                                <span className="text-sm font-medium text-rh-text">{comment.createdBy}</span>
+                              )}
+                              <span className="text-xs text-rh-text-secondary">
+                                {new Date(comment.createdDate).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                            {comment.modifiedDate && comment.modifiedDate !== comment.createdDate && (
+                              <span className="text-xs text-rh-text-secondary italic">
+                                (edited {new Date(comment.modifiedDate).toLocaleDateString()})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-rh-text-secondary">#{index + 1}</span>
+                      </div>
+
+                      {/* Comment Body */}
+                      <div className="prose prose-invert prose-sm max-w-none prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-a:text-rh-green hover:prose-a:text-green-400 ml-11">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(comment.text, {
+                              ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'code', 'pre', 'div', 'span', 'blockquote'],
+                              ALLOWED_ATTR: ['href', 'target', 'rel'],
+                            })
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-rh-border">
+          <div className="flex gap-3 pt-6 mt-6 border-t border-rh-border">
             <button
               onClick={handleOpenInAdo}
               className="flex items-center gap-2 px-4 py-2 bg-rh-green text-rh-dark rounded-lg font-medium hover:bg-green-600 transition-colors"

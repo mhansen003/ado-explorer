@@ -67,12 +67,16 @@ Common Fields (in order of usefulness):
 - System.CreatedBy - Creator (use CONTAINS for name search)
 - System.ChangedDate - Last modified date (use >=, <=, or = with @Today)
 - System.CreatedDate - Creation date (use >=, <=, or = with @Today)
+- Microsoft.VSTS.Common.Priority - Priority (1=highest, 4=lowest) (use = or < or >)
+- System.IterationPath - Sprint/Iteration (use CONTAINS or UNDER for hierarchical search)
+- System.AreaPath - Team/Area (use CONTAINS or UNDER for hierarchical search)
 
 Operators:
 - CONTAINS - For text search in Title, Description, AssignedTo, CreatedBy, Tags
-- = - Exact match for State, WorkItemType
-- >= / <= - Date/number comparison
+- = - Exact match for State, WorkItemType, Priority
+- >= / <= / < / > - Date/number comparison
 - @Today - Current date
+- UNDER - Hierarchical path matching for AreaPath and IterationPath
 
 Examples:
 Q: "Which tickets are talking about credit?"
@@ -86,6 +90,15 @@ A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [Syst
 
 Q: "Show me all bob builder projects"
 A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS 'bob builder' OR [System.Description] CONTAINS 'bob builder' ORDER BY [System.ChangedDate] DESC
+
+Q: "What are the most urgent issues?"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+
+Q: "Show me all P1 bugs"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [Microsoft.VSTS.Common.Priority] = 1 ORDER BY [System.ChangedDate] DESC
+
+Q: "What are we working on this sprint?"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.State] = 'Active' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
 
 Respond ONLY with the WIQL query, nothing else.`,
           },
@@ -176,9 +189,43 @@ Respond ONLY with the WIQL query, nothing else.`,
     const responseType = shouldAnswerData.choices[0].message.content.trim().toUpperCase();
     console.log('[ADO Prompt API] Response type:', responseType);
 
-    // If user wants an answer, generate it
+    // If user wants an answer, generate it with full context
     let conversationalAnswer = null;
     if (responseType === 'ANSWER') {
+      // Load all non-closed items for comprehensive context
+      console.log('[ADO Prompt API] Loading all non-closed items for AI context...');
+      const allNonClosedItems = await adoService.getAllNonClosedWorkItems();
+      console.log(`[ADO Prompt API] Loaded ${allNonClosedItems.length} non-closed items for context`);
+
+      // Prepare context summary - group by priority and type
+      const contextSummary = {
+        totalNonClosed: allNonClosedItems.length,
+        byPriority: {
+          p1: allNonClosedItems.filter(i => i.priority === 1).length,
+          p2: allNonClosedItems.filter(i => i.priority === 2).length,
+          p3: allNonClosedItems.filter(i => i.priority === 3).length,
+          p4: allNonClosedItems.filter(i => i.priority === 4).length,
+        },
+        byType: {} as Record<string, number>,
+        byState: {} as Record<string, number>,
+        searchResults: workItems.length,
+      };
+
+      // Count by type and state
+      allNonClosedItems.forEach(item => {
+        contextSummary.byType[item.type] = (contextSummary.byType[item.type] || 0) + 1;
+        contextSummary.byState[item.state] = (contextSummary.byState[item.state] || 0) + 1;
+      });
+
+      // Prepare detailed items list - prioritize search results but include context from all items
+      const detailedItems = workItems.length > 0
+        ? workItems.slice(0, 30) // Show up to 30 search results
+        : allNonClosedItems.slice(0, 50); // If no search results, show top 50 by priority
+
+      const itemsList = detailedItems.map(item =>
+        `- #${item.id}: ${item.title} (${item.type}, ${item.state}, P${item.priority}${item.assignedTo ? `, assigned to ${item.assignedTo}` : ''}${item.tags && item.tags.length > 0 ? `, tags: ${item.tags.join(', ')}` : ''})`
+      ).join('\n');
+
       const answerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -190,21 +237,32 @@ Respond ONLY with the WIQL query, nothing else.`,
           messages: [
             {
               role: 'system',
-              content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational and helpful.',
+              content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational, insightful, and helpful. When discussing priority, remember P1 is highest priority and P4 is lowest.',
             },
             {
               role: 'user',
-              content: `Question: "${prompt}"\n\nFound ${workItems.length} work items:\n${workItems.slice(0, 10).map(item => `- ${item.id}: ${item.title} (${item.type}, ${item.state})`).join('\n')}\n\nProvide a helpful answer to the question.`,
+              content: `Question: "${prompt}"
+
+CONTEXT: Overall Project Status (all non-closed items)
+- Total non-closed items: ${contextSummary.totalNonClosed}
+- By Priority: P1=${contextSummary.byPriority.p1}, P2=${contextSummary.byPriority.p2}, P3=${contextSummary.byPriority.p3}, P4=${contextSummary.byPriority.p4}
+- By Type: ${Object.entries(contextSummary.byType).map(([type, count]) => `${type}=${count}`).join(', ')}
+- By State: ${Object.entries(contextSummary.byState).map(([state, count]) => `${state}=${count}`).join(', ')}
+
+SEARCH RESULTS: Found ${contextSummary.searchResults} matching items
+${itemsList}
+
+Based on this context, provide a helpful, conversational answer to the user's question. If asked about priorities or urgency, focus on P1 and P2 items. Be specific and reference actual work item IDs when relevant.`,
             },
           ],
           temperature: 0.7,
-          max_tokens: 500,
+          max_tokens: 800,
         }),
       });
 
       const answerData = await answerResponse.json();
       conversationalAnswer = answerData.choices[0].message.content.trim();
-      console.log('[ADO Prompt API] Generated conversational answer');
+      console.log('[ADO Prompt API] Generated conversational answer with full context');
     }
 
     return NextResponse.json({

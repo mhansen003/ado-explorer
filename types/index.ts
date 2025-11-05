@@ -64,3 +64,14 @@ export interface GlobalFilters {
 export interface ViewPreferences {
   useGridView: boolean;
 }
+
+export interface Comment {
+  id: number;
+  text: string;
+  createdBy: string;
+  createdByEmail?: string;
+  createdDate: string;
+  modifiedBy?: string;
+  modifiedByEmail?: string;
+  modifiedDate?: string;
+}

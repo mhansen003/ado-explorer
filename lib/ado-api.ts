@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { WorkItem, GlobalFilters } from '@/types';
+import { WorkItem, GlobalFilters, Comment } from '@/types';
 
 export class ADOService {
   private client: AxiosInstance;
@@ -77,6 +77,53 @@ export class ADOService {
     } catch (error) {
       console.error('Error searching work items:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get all non-closed work items for AI context
+   * Returns up to 500 items to provide comprehensive context while staying within limits
+   */
+  async getAllNonClosedWorkItems(): Promise<WorkItem[]> {
+    try {
+      if (!this.project) {
+        throw new Error('A project must be specified for WIQL queries.');
+      }
+
+      const query = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC`;
+
+      // Use the existing searchWorkItems method but we'll fetch more details
+      const queryResponse = await this.client.post('/wit/wiql', {
+        query: query,
+      });
+
+      const workItemIds = queryResponse.data.workItems.map((item: any) => item.id);
+
+      if (workItemIds.length === 0) {
+        return [];
+      }
+
+      // Limit to 500 items to provide good context without overwhelming the AI or exceeding limits
+      const limitedIds = workItemIds.slice(0, 500);
+      console.log(`[ADO API] Loading ${limitedIds.length} non-closed items for AI context (total available: ${workItemIds.length})`);
+
+      // Fetch in batches of 200 to avoid URL length limits
+      const batches: WorkItem[] = [];
+      for (let i = 0; i < limitedIds.length; i += 200) {
+        const batchIds = limitedIds.slice(i, i + 200);
+        const detailsResponse = await this.orgClient.get('/wit/workitems', {
+          params: {
+            ids: batchIds.join(','),
+            fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,Microsoft.VSTS.Common.Priority,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints',
+          },
+        });
+        batches.push(...detailsResponse.data.value.map((item: any) => this.mapToWorkItem(item)));
+      }
+
+      return batches;
+    } catch (error) {
+      console.error('[ADO API] Error fetching all non-closed work items:', error);
+      return []; // Return empty array on error so AI can still try to answer
     }
   }
 
@@ -638,6 +685,54 @@ export class ADOService {
       }
     } catch (error) {
       console.error('[ADO getTags] Error fetching tags:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all comments/discussion for a work item
+   */
+  async getComments(workItemId: number): Promise<Comment[]> {
+    try {
+      console.log('[ADO getComments] Fetching comments for work item:', workItemId);
+
+      // Use the comments API endpoint
+      const response = await this.orgClient.get(`/wit/workitems/${workItemId}/comments`, {
+        params: {
+          '$top': 200, // Get up to 200 comments
+          '$expand': 'all',
+        },
+      });
+
+      console.log('[ADO getComments] API response:', response.data);
+
+      if (!response.data.comments || response.data.comments.length === 0) {
+        console.log('[ADO getComments] No comments found for work item:', workItemId);
+        return [];
+      }
+
+      // Map comments to our Comment interface
+      const comments: Comment[] = response.data.comments.map((comment: any) => ({
+        id: comment.id,
+        text: comment.text || '',
+        createdBy: comment.createdBy?.displayName || 'Unknown',
+        createdByEmail: comment.createdBy?.uniqueName,
+        createdDate: comment.createdDate,
+        modifiedBy: comment.modifiedBy?.displayName,
+        modifiedByEmail: comment.modifiedBy?.uniqueName,
+        modifiedDate: comment.modifiedDate,
+      }));
+
+      console.log('[ADO getComments] Found', comments.length, 'comments');
+      return comments;
+    } catch (error: any) {
+      console.error('[ADO getComments] Error fetching comments:', {
+        workItemId,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.message,
+      });
+      // Return empty array instead of throwing
       return [];
     }
   }
