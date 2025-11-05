@@ -64,15 +64,20 @@ export default function TemplateInputBuilder({
 
   // Check if all required placeholders are filled
   const isComplete = (): boolean => {
-    return template.placeholders
-      .filter(p => p.required)
-      .every(p => {
-        const value = values[p.key];
-        if (Array.isArray(value)) {
-          return value.length > 0;
-        }
-        return !!value;
-      });
+    const requiredPlaceholders = template.placeholders.filter(p => p.required);
+    const complete = requiredPlaceholders.every(p => {
+      const value = values[p.key];
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return !!value;
+    });
+    console.log('isComplete check:', {
+      requiredPlaceholders: requiredPlaceholders.map(p => p.key),
+      values,
+      complete
+    });
+    return complete;
   };
 
   // Handle value selection
@@ -87,6 +92,7 @@ export default function TemplateInputBuilder({
       setValues(prev => ({ ...prev, [key]: value }));
       setDropdownOpen(false);
       setFilterText('');
+      setSelectedDropdownIndex(0);
       // Move to next placeholder
       const currentIndex = template.placeholders.findIndex(p => p.key === key);
       if (currentIndex < template.placeholders.length - 1) {
@@ -94,6 +100,8 @@ export default function TemplateInputBuilder({
       } else {
         setActivePlaceholder(null);
       }
+      // Return focus to hidden input so Enter key works
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
@@ -302,6 +310,9 @@ export default function TemplateInputBuilder({
       const target = e.target as HTMLElement;
       if (!target.closest('button') && !target.closest('.absolute')) {
         setDropdownOpen(false);
+        setFilterText('');
+        // Return focus to hidden input
+        setTimeout(() => inputRef.current?.focus(), 100);
       }
     };
 
@@ -310,6 +321,14 @@ export default function TemplateInputBuilder({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [dropdownOpen]);
+
+  // Focus hidden input when dropdown closes
+  useEffect(() => {
+    if (!dropdownOpen && !activePlaceholder) {
+      // All placeholders filled, focus hidden input for Enter key
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [dropdownOpen, activePlaceholder]);
 
   return (
     <div className="absolute bottom-full left-0 right-0 mb-2 mx-4 bg-rh-card border border-rh-green rounded-lg shadow-2xl p-4 z-50">
@@ -330,16 +349,43 @@ export default function TemplateInputBuilder({
         {buildDisplayText()}
       </div>
 
-      <div className="flex items-center justify-between text-xs text-rh-text-secondary pt-3 border-t border-rh-border">
-        <span>Fill in the blanks and press Enter</span>
-        {isComplete() ? (
-          <span className="flex items-center gap-1 text-rh-green">
-            <Check className="w-3 h-3" />
-            Ready to search
-          </span>
-        ) : (
-          <span>Required fields missing</span>
-        )}
+      <div className="flex items-center justify-between pt-3 border-t border-rh-border">
+        <span className="text-xs text-rh-text-secondary">
+          {isComplete() ? 'Ready to search!' : 'Fill in all required fields'}
+        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Search button clicked', { isComplete: isComplete(), values });
+            if (isComplete()) {
+              const command = template.buildCommand(values);
+              console.log('Executing command:', command);
+              onExecute(command);
+            } else {
+              console.log('Form not complete', {
+                required: template.placeholders.filter(p => p.required),
+                values
+              });
+            }
+          }}
+          disabled={!isComplete()}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            isComplete()
+              ? 'bg-rh-green text-rh-dark hover:bg-rh-green/90 cursor-pointer'
+              : 'bg-rh-border text-rh-text-secondary cursor-not-allowed opacity-50'
+          }`}
+        >
+          {isComplete() ? (
+            <span className="flex items-center gap-2">
+              <Check className="w-4 h-4" />
+              Search
+            </span>
+          ) : (
+            'Search'
+          )}
+        </button>
       </div>
 
       {/* Hidden input to capture Enter key */}
