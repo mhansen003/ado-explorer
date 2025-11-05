@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChartData, WorkItem } from '@/types';
 import { ChevronDown } from 'lucide-react';
 import {
@@ -20,6 +20,8 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import EmailButton from './EmailButton';
+import { captureElementAsImage, sendEmailReport } from '@/lib/email-utils';
 
 interface WorkItemChartProps {
   chartData: ChartData;
@@ -43,6 +45,33 @@ export default function WorkItemChart({ chartData, workItems }: WorkItemChartPro
   const [currentDataKey, setCurrentDataKey] = useState<'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy' | 'project' | 'areaPath' | 'changedBy' | 'iterationPath' | 'storyPoints' | 'tags'>(initialDataKey);
   const [currentData, setCurrentData] = useState(chartData.data);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const handleEmailChart = async () => {
+    if (!workItems || workItems.length === 0 || !chartRef.current) {
+      throw new Error('No data to send');
+    }
+
+    // Capture chart as image
+    const chartCapture = await captureElementAsImage(
+      chartRef.current,
+      `${chartType} Chart - ${currentDataKey}`
+    );
+
+    // Send email with chart and data
+    const result = await sendEmailReport({
+      searchParams: {
+        chartType,
+        groupBy: currentDataKey,
+      },
+      workItems,
+      charts: [chartCapture],
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to send email');
+    }
+  };
 
   // Available pivot options
   const pivotOptions = [
@@ -193,12 +222,21 @@ export default function WorkItemChart({ chartData, workItems }: WorkItemChartPro
   };
 
   return (
-    <div className="bg-rh-card border border-rh-border rounded-lg p-6 mt-4">
+    <div ref={chartRef} className="bg-rh-card border border-rh-border rounded-lg p-6 mt-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-rh-text">
           {chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart
         </h3>
         <div className="flex items-center gap-4">
+          {/* Email Chart Button */}
+          {workItems && workItems.length > 0 && (
+            <EmailButton
+              onClick={handleEmailChart}
+              variant="icon"
+              size="sm"
+            />
+          )}
+
           {/* Pivot Point Dropdown */}
           {workItems && (
             <div className="relative">

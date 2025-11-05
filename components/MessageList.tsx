@@ -6,6 +6,8 @@ import AnalyticsInsights from './AnalyticsInsights';
 import { Bot, User, Download, Table, BarChart3, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ResultsModal from './ResultsModal';
+import EmailButton from './EmailButton';
+import { sendEmailReport } from '@/lib/email-utils';
 
 interface MessageListProps {
   messages: Message[];
@@ -103,6 +105,26 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
     a.download = `ado-results-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleEmailReport = async (message: Message) => {
+    if (!message.workItems || message.workItems.length === 0) {
+      throw new Error('No work items to send');
+    }
+
+    // Extract search parameters from message
+    const searchParams = {
+      query: message.content || '',
+    };
+
+    const result = await sendEmailReport({
+      searchParams,
+      workItems: message.workItems,
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to send email');
+    }
   };
 
   // Parse markdown links and render them as clickable elements
@@ -272,6 +294,13 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                           <Download className="w-3 h-3" />
                           JSON
                         </button>
+
+                        {/* Email Me Button */}
+                        <EmailButton
+                          onClick={() => handleEmailReport(message)}
+                          variant="secondary"
+                          size="sm"
+                        />
 
                         {/* Render Chart Dropdown */}
                         {onCreateChart && (
