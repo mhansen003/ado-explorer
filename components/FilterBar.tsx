@@ -35,9 +35,30 @@ export default function FilterBar({
     }
   };
   const [daysInput, setDaysInput] = useState(filters.ignoreOlderThanDays?.toString() || '30');
-  const [usernameInput, setUsernameInput] = useState(filters.currentUser || '');
+  const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(null);
 
-  // Fetch states and users when component mounts
+  // Fetch authenticated user session
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const response = await fetch('/api/auth/session', { credentials: 'include' });
+        const data = await response.json();
+        if (data.authenticated && data.user?.email) {
+          setAuthenticatedUser(data.user.email);
+          // Auto-set currentUser if not already set
+          if (!filters.currentUser) {
+            handleFilterChange('currentUser', data.user.email);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch session:', error);
+      }
+    };
+
+    fetchSession();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch states when component mounts
   useEffect(() => {
     const fetchStates = async () => {
       setLoadingStates(true);
@@ -64,9 +85,6 @@ export default function FilterBar({
     // Sync UI inputs with loaded filters
     if (filters.ignoreOlderThanDays) {
       setDaysInput(filters.ignoreOlderThanDays.toString());
-    }
-    if (filters.currentUser) {
-      setUsernameInput(filters.currentUser);
     }
   }, [filters]);
 
@@ -205,7 +223,13 @@ export default function FilterBar({
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => {
-                    const newFilters = { ...filters, onlyMyTickets: !filters.onlyMyTickets };
+                    const newOnlyMyTickets = !filters.onlyMyTickets;
+                    const newFilters = {
+                      ...filters,
+                      onlyMyTickets: newOnlyMyTickets,
+                      // Auto-set currentUser from authenticated session when enabling
+                      currentUser: newOnlyMyTickets && authenticatedUser ? authenticatedUser : filters.currentUser
+                    };
                     onFiltersChange(newFilters);
                     localStorage.setItem('ado-explorer-filters', JSON.stringify(newFilters));
                   }}
@@ -219,21 +243,9 @@ export default function FilterBar({
                 </button>
               </div>
 
-              {filters.onlyMyTickets && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-rh-text-secondary">Username:</span>
-                  <input
-                    type="text"
-                    placeholder="Your name"
-                    value={usernameInput}
-                    onChange={(e) => {
-                      setUsernameInput(e.target.value);
-                      const newFilters = { ...filters, currentUser: e.target.value };
-                      onFiltersChange(newFilters);
-                      localStorage.setItem('ado-explorer-filters', JSON.stringify(newFilters));
-                    }}
-                    className="flex-1 px-2 py-1 bg-rh-dark border border-rh-border rounded text-xs text-rh-text focus:outline-none focus:border-rh-green"
-                  />
+              {filters.onlyMyTickets && authenticatedUser && (
+                <div className="mt-2 text-xs text-rh-text-secondary">
+                  <span className="opacity-60">Filtering for:</span> <span className="text-rh-green font-medium">{authenticatedUser}</span>
                 </div>
               )}
             </div>
@@ -318,12 +330,11 @@ export default function FilterBar({
                     ignoreCreatedBy: [],
                     onlyMyTickets: false,
                     ignoreOlderThanDays: null,
-                    currentUser: undefined,
+                    currentUser: authenticatedUser || undefined,
                   };
                   onFiltersChange(clearedFilters);
                   localStorage.setItem('ado-explorer-filters', JSON.stringify(clearedFilters));
                   setDaysInput('30');
-                  setUsernameInput('');
                 }}
                 className="flex items-center gap-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors mt-2"
               >

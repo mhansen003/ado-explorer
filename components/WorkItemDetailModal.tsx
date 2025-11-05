@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import RelationshipDiagram from './RelationshipDiagram';
 import RelationshipModal from './RelationshipModal';
+import EmailButton from './EmailButton';
 import { getTypeColorDetailed, getStateColor } from '@/lib/colors';
 
 interface WorkItemDetailModalProps {
@@ -248,6 +249,29 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     }
   };
 
+  // Email handler for comprehensive work item report
+  const handleEmailWorkItem = async () => {
+    try {
+      const response = await fetch('/api/email-work-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workItem,
+          comments,
+          relatedWorkItems: relatedWorkItems || [],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send email');
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to send email');
+    }
+  };
+
   const aiActions = [
     {
       id: 'releaseNotes' as AIAction,
@@ -343,12 +367,20 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
               {workItem.type}
             </span>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-rh-border rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-rh-text-secondary" />
-          </button>
+          <div className="flex items-center gap-2">
+            <EmailButton
+              onClick={handleEmailWorkItem}
+              variant="secondary"
+              size="sm"
+              className="!px-3 !py-1.5 !text-xs !rounded-lg"
+            />
+            <button
+              onClick={handleClose}
+              className="p-2 hover:bg-rh-border rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-rh-text-secondary" />
+            </button>
+          </div>
         </div>
 
         {/* Breadcrumb Navigation */}

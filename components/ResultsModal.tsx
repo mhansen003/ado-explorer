@@ -5,6 +5,8 @@ import { X, Download, ChevronDown, Check, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import WorkItemDetailModal from './WorkItemDetailModal';
 import ChartModal from './ChartModal';
+import EmailButton from './EmailButton';
+import { sendEmailReport } from '@/lib/email-utils';
 import { getTypeColor, getStateColor } from '@/lib/colors';
 
 interface ResultsModalProps {
@@ -177,6 +179,18 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
     setChartDropdownOpen(false);
   };
 
+  // Email handler
+  const handleEmailReport = async () => {
+    if (filteredWorkItems.length === 0) {
+      throw new Error('No work items to send');
+    }
+
+    await sendEmailReport({
+      searchParams: { query: message.content || 'Work Items' },
+      workItems: filteredWorkItems,
+    });
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -203,34 +217,42 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={exportToCSV}
-                className="flex items-center gap-2 px-3 py-2 bg-rh-dark border border-rh-border rounded-lg text-sm hover:border-rh-green transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rh-dark border border-rh-border rounded-lg text-xs hover:border-rh-green transition-colors font-medium"
                 title={hasActiveFilters ? `Export ${filteredWorkItems.length} filtered rows` : `Export all ${workItems.length} rows`}
               >
-                <Download className="w-4 h-4" />
-                Export CSV {hasActiveFilters && `(${filteredWorkItems.length})`}
+                <Download className="w-3.5 h-3.5" />
+                CSV {hasActiveFilters && `(${filteredWorkItems.length})`}
               </button>
               <button
                 onClick={exportToJSON}
-                className="flex items-center gap-2 px-3 py-2 bg-rh-dark border border-rh-border rounded-lg text-sm hover:border-rh-green transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rh-dark border border-rh-border rounded-lg text-xs hover:border-rh-green transition-colors font-medium"
                 title={hasActiveFilters ? `Export ${filteredWorkItems.length} filtered rows` : `Export all ${workItems.length} rows`}
               >
-                <Download className="w-4 h-4" />
-                Export JSON {hasActiveFilters && `(${filteredWorkItems.length})`}
+                <Download className="w-3.5 h-3.5" />
+                JSON {hasActiveFilters && `(${filteredWorkItems.length})`}
               </button>
+
+              {/* Email Button */}
+              <EmailButton
+                onClick={handleEmailReport}
+                variant="secondary"
+                size="sm"
+                className="!px-3 !py-1.5 !text-xs !rounded-lg"
+              />
 
               {/* Chart Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setChartDropdownOpen(!chartDropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 rounded-lg text-sm transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 rounded-lg text-xs transition-colors font-medium"
                   title={hasActiveFilters ? `Chart ${filteredWorkItems.length} filtered items` : `Chart all ${workItems.length} items`}
                 >
-                  <BarChart3 className="w-4 h-4" />
+                  <BarChart3 className="w-3.5 h-3.5" />
                   Chart {hasActiveFilters && `(${filteredWorkItems.length})`}
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-3.5 h-3.5" />
                 </button>
 
                 {chartDropdownOpen && (

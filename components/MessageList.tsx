@@ -290,16 +290,16 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                       <div className="flex gap-2">
                         <button
                           onClick={() => exportToCSV(message)}
-                          className="flex items-center gap-1 px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-rh-dark border border-rh-border rounded-lg hover:border-rh-green transition-colors font-medium"
                         >
-                          <Download className="w-3 h-3" />
+                          <Download className="w-3.5 h-3.5" />
                           CSV
                         </button>
                         <button
                           onClick={() => exportToJSON(message)}
-                          className="flex items-center gap-1 px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-rh-dark border border-rh-border rounded-lg hover:border-rh-green transition-colors font-medium"
                         >
-                          <Download className="w-3 h-3" />
+                          <Download className="w-3.5 h-3.5" />
                           JSON
                         </button>
 
@@ -308,6 +308,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                           onClick={() => handleEmailReport(message)}
                           variant="secondary"
                           size="sm"
+                          className="!px-3 !py-1.5 !text-xs !rounded-lg"
                         />
 
                         {/* Render Chart Dropdown */}
@@ -315,11 +316,11 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                           <div className="relative">
                             <button
                               onClick={() => setChartDropdownOpen(chartDropdownOpen === message.id ? null : message.id)}
-                              className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 rounded transition-colors"
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 rounded-lg transition-colors font-medium"
                             >
-                              <BarChart3 className="w-3 h-3" />
+                              <BarChart3 className="w-3.5 h-3.5" />
                               Chart
-                              <ChevronDown className="w-3 h-3" />
+                              <ChevronDown className="w-3.5 h-3.5" />
                             </button>
 
                             {chartDropdownOpen === message.id && (
@@ -348,9 +349,9 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                         {message.workItems.length > 5 && (
                           <button
                             onClick={() => setModalMessage(message)}
-                            className="flex items-center gap-1 px-2 py-1 text-xs bg-rh-green text-rh-dark rounded hover:bg-green-600 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-rh-green text-rh-dark rounded-lg hover:bg-green-600 transition-colors font-medium"
                           >
-                            <Table className="w-3 h-3" />
+                            <Table className="w-3.5 h-3.5" />
                             View All
                           </button>
                         )}
