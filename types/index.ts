@@ -7,6 +7,7 @@ export interface Message {
   listItems?: Array<{value: string; description?: string; commandName?: string}>;
   conversationalAnswer?: string;
   responseType?: 'TICKETS' | 'ANSWER';
+  suggestions?: string[];
 }
 
 export interface WorkItem {

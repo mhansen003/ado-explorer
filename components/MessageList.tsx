@@ -7,9 +7,10 @@ import ResultsModal from './ResultsModal';
 interface MessageListProps {
   messages: Message[];
   onListItemClick?: (value: string, commandName: string) => void;
+  onSuggestionClick?: (suggestion: string) => void;
 }
 
-export default function MessageList({ messages, onListItemClick }: MessageListProps) {
+export default function MessageList({ messages, onListItemClick, onSuggestionClick }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<Message | null>(null);
 
@@ -92,6 +93,27 @@ export default function MessageList({ messages, onListItemClick }: MessageListPr
                   <p className="text-sm text-rh-text whitespace-pre-wrap">
                     {message.conversationalAnswer}
                   </p>
+                </div>
+              )}
+
+              {/* AI Suggestions */}
+              {message.suggestions && message.suggestions.length > 0 && (
+                <div className="mb-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bot className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm font-medium text-purple-400">Suggested Follow-ups</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {message.suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => onSuggestionClick?.(suggestion)}
+                        className="px-3 py-1.5 text-xs bg-purple-500/20 border border-purple-500/40 text-purple-300 rounded-lg hover:bg-purple-500/30 hover:border-purple-400 transition-all font-medium"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
