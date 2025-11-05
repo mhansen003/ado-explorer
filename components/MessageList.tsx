@@ -13,9 +13,10 @@ interface MessageListProps {
   viewPreferences: ViewPreferences;
   globalFilters: GlobalFilters;
   onOpenFilters?: () => void;
+  onChangelogClick?: () => void;
 }
 
-export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters, onOpenFilters }: MessageListProps) {
+export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters, onOpenFilters, onChangelogClick }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<Message | null>(null);
 
@@ -84,6 +85,63 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
     a.download = `ado-results-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Parse markdown links and render them as clickable elements
+  const renderMarkdownContent = (content: string) => {
+    // Regex to match markdown links: [text](url)
+    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts: (string | JSX.Element)[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = markdownLinkRegex.exec(content)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push(content.substring(lastIndex, match.index));
+      }
+
+      const linkText = match[1];
+      const linkUrl = match[2];
+
+      // Handle #changelog links specially
+      if (linkUrl === '#changelog') {
+        parts.push(
+          <button
+            key={match.index}
+            onClick={(e) => {
+              e.preventDefault();
+              onChangelogClick?.();
+            }}
+            className="text-rh-green hover:text-green-400 underline cursor-pointer font-semibold"
+          >
+            {linkText}
+          </button>
+        );
+      } else {
+        // Regular links
+        parts.push(
+          <a
+            key={match.index}
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-rh-green hover:text-green-400 underline"
+          >
+            {linkText}
+          </a>
+        );
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text after the last link
+    if (lastIndex < content.length) {
+      parts.push(content.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : content;
   };
 
   return (
@@ -262,7 +320,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
               ) : message.listItems && message.listItems.length > 0 ? (
                 <div className="mt-3">
                   <div className="text-rh-text whitespace-pre-wrap text-sm mb-3">
-                    {message.content}
+                    {renderMarkdownContent(message.content)}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
                     {message.listItems.map((item, index) => (
@@ -285,7 +343,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                 </div>
               ) : (
                 <div className="text-rh-text whitespace-pre-wrap text-sm">
-                  {message.content}
+                  {renderMarkdownContent(message.content)}
                 </div>
               )}
             </div>

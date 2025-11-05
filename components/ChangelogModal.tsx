@@ -45,7 +45,7 @@ export default function ChangelogModal({ onClose }: ChangelogModalProps) {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-rh-text">Changelog</h2>
-              <p className="text-xs text-rh-text-secondary">What's new in ADO Explorer</p>
+              <p className="text-xs text-rh-text-secondary">What&apos;s new in ADO Explorer</p>
             </div>
           </div>
           <button

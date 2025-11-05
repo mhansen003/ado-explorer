@@ -6,6 +6,7 @@ import MessageList from './MessageList';
 import CommandAutocomplete from './CommandAutocomplete';
 import TemplateInputBuilder from './TemplateInputBuilder';
 import FilterBar from './FilterBar';
+import ChangelogModal from './ChangelogModal';
 import { Message, Command, DynamicSuggestion, GlobalFilters, ViewPreferences, CommandTemplate } from '@/types';
 import { COMMAND_TEMPLATES } from '@/lib/command-templates';
 
@@ -62,6 +63,9 @@ export default function ChatInterface() {
   const [viewPreferences, setViewPreferences] = useState<ViewPreferences>({
     useGridView: true,
   });
+
+  // Changelog modal state
+  const [showChangelog, setShowChangelog] = useState(false);
 
   // Filter bar expansion state
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
@@ -193,6 +197,8 @@ export default function ChatInterface() {
       id: '1',
       type: 'system',
       content: `🤖 Welcome to ADO Explorer!
+
+✨ **[Click here to see the latest features](#changelog)** ✨
 
 💬 **Natural Language Search:**
 Just type naturally! Examples:
@@ -737,6 +743,8 @@ Type **/help** for more info`,
       id: Date.now().toString(),
       type: 'system',
       content: `🤖 Welcome to ADO Explorer!
+
+✨ **[Click here to see the latest features](#changelog)** ✨
 
 💬 **Natural Language Search:**
 Just type naturally! Examples:
@@ -1403,6 +1411,7 @@ Just type naturally - I understand questions like:
         viewPreferences={viewPreferences}
         globalFilters={globalFilters}
         onOpenFilters={() => setIsFilterExpanded(true)}
+        onChangelogClick={() => setShowChangelog(true)}
       />
 
       <FilterBar

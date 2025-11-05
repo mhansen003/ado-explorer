@@ -64,7 +64,7 @@ export default function WorkItemChart({ chartData }: WorkItemChartProps) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) =>
+                label={({ name, percent }: any) =>
                   `${name} (${(percent * 100).toFixed(0)}%)`
                 }
                 outerRadius={120}
