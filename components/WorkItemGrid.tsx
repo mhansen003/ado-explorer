@@ -54,6 +54,11 @@ export default function WorkItemGrid({ workItem }: WorkItemGridProps) {
           {workItem.assignedTo}
         </td>
 
+        {/* Project */}
+        <td className="px-3 py-2 text-xs text-rh-text-secondary truncate max-w-[120px]">
+          {workItem.project || 'N/A'}
+        </td>
+
         {/* Area */}
         <td className="px-3 py-2 text-xs text-rh-text-secondary truncate max-w-[150px]">
           {workItem.areaPath ? workItem.areaPath.split('\\').pop() : 'N/A'}

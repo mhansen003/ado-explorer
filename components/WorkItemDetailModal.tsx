@@ -2,11 +2,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { WorkItem, Comment } from '@/types';
-import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network } from 'lucide-react';
+import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network, Maximize2 } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import RelationshipDiagram from './RelationshipDiagram';
+import RelationshipModal from './RelationshipModal';
 
 interface WorkItemDetailModalProps {
   workItem: WorkItem;
@@ -29,6 +30,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [hasFetchedComments, setHasFetchedComments] = useState(false);
   const [loadingRelationships, setLoadingRelationships] = useState(false);
   const [hasFetchedRelationships, setHasFetchedRelationships] = useState(false);
+  const [showFullScreenRelationships, setShowFullScreenRelationships] = useState(false);
 
   // Current trail includes all previous items plus this one
   const currentTrail = [...breadcrumbTrail, workItem];
@@ -719,7 +721,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             </div>
           ) : (
             /* Relationships Tab */
-            <div className="h-full">
+            <div className="h-full relative">
               {loadingRelationships ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="flex items-center gap-3 text-rh-text-secondary">
@@ -728,11 +730,24 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                   </div>
                 </div>
               ) : (
-                <RelationshipDiagram
-                  currentWorkItem={workItem}
-                  relatedWorkItems={relatedWorkItems || []}
-                  onNavigate={setSelectedRelatedItem}
-                />
+                <>
+                  {/* Expand Button - Fixed position */}
+                  {relatedWorkItems && relatedWorkItems.length > 0 && (
+                    <button
+                      onClick={() => setShowFullScreenRelationships(true)}
+                      className="absolute top-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-rh-green text-rh-dark rounded-lg font-medium hover:bg-green-600 transition-colors shadow-lg"
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                      Expand Full Screen
+                    </button>
+                  )}
+
+                  <RelationshipDiagram
+                    currentWorkItem={workItem}
+                    relatedWorkItems={relatedWorkItems || []}
+                    onNavigate={setSelectedRelatedItem}
+                  />
+                </>
               )}
             </div>
           )}
@@ -763,6 +778,19 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           onClose={() => setSelectedRelatedItem(null)}
           onCloseAll={handleClose}
           breadcrumbTrail={currentTrail}
+        />
+      )}
+
+      {/* Full Screen Relationship Modal */}
+      {showFullScreenRelationships && relatedWorkItems && (
+        <RelationshipModal
+          currentWorkItem={workItem}
+          relatedWorkItems={relatedWorkItems}
+          onClose={() => setShowFullScreenRelationships(false)}
+          onNavigate={(item) => {
+            setShowFullScreenRelationships(false);
+            setSelectedRelatedItem(item);
+          }}
         />
       )}
     </div>

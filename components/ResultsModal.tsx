@@ -26,6 +26,7 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
     state: new Set<string>(),
     priority: new Set<string>(),
     assignedTo: '',
+    project: '',
   });
 
   if (!message.workItems) return null;
@@ -59,8 +60,9 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
     const stateColumnMatch = columnFilters.state.size === 0 || columnFilters.state.has(item.state);
     const priorityMatch = columnFilters.priority.size === 0 || columnFilters.priority.has(`P${item.priority}`);
     const assignedToMatch = !columnFilters.assignedTo || item.assignedTo.toLowerCase().includes(columnFilters.assignedTo.toLowerCase());
+    const projectMatch = !columnFilters.project || (item.project && item.project.toLowerCase().includes(columnFilters.project.toLowerCase()));
 
-    return typeMatch && stateMatch && idMatch && titleMatch && typeColumnMatch && stateColumnMatch && priorityMatch && assignedToMatch;
+    return typeMatch && stateMatch && idMatch && titleMatch && typeColumnMatch && stateColumnMatch && priorityMatch && assignedToMatch && projectMatch;
   });
 
   // Toggle functions for filters
@@ -98,6 +100,7 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
       state: new Set<string>(),
       priority: new Set<string>(),
       assignedTo: '',
+      project: '',
     });
   };
 
@@ -116,7 +119,8 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
   const hasActiveFilters = selectedTypes.size > 0 || selectedStates.size > 0 ||
     columnFilters.id !== '' || columnFilters.title !== '' ||
     columnFilters.type.size > 0 || columnFilters.state.size > 0 ||
-    columnFilters.priority.size > 0 || columnFilters.assignedTo !== '';
+    columnFilters.priority.size > 0 || columnFilters.assignedTo !== '' ||
+    columnFilters.project !== '';
 
   return (
     <>
@@ -237,6 +241,7 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
                   <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">State</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">Priority</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">Assigned To</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">Project</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">Created</th>
                 </tr>
                 {/* Filter Row */}
@@ -361,6 +366,17 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
                       className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded focus:border-rh-green focus:outline-none text-rh-text"
                     />
                   </th>
+                  {/* Project Filter */}
+                  <th className="px-4 py-2">
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={columnFilters.project}
+                      onChange={(e) => setColumnFilters(prev => ({ ...prev, project: e.target.value }))}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded focus:border-rh-green focus:outline-none text-rh-text"
+                    />
+                  </th>
                   {/* Created - No Filter */}
                   <th className="px-4 py-2">
                     {/* Empty - no filter for date */}
@@ -390,6 +406,7 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
                     </td>
                     <td className="px-4 py-3 text-sm text-rh-text">P{item.priority}</td>
                     <td className="px-4 py-3 text-sm text-rh-text truncate max-w-xs">{item.assignedTo}</td>
+                    <td className="px-4 py-3 text-sm text-rh-text-secondary truncate max-w-xs">{item.project || 'N/A'}</td>
                     <td className="px-4 py-3 text-sm text-rh-text-secondary">
                       {new Date(item.createdDate).toLocaleDateString()}
                     </td>

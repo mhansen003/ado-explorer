@@ -166,6 +166,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                             <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Title</th>
                             <th className="px-3 py-2 text-center text-xs font-medium text-rh-text-secondary">Priority</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Assigned</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Project</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Area</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Changed</th>
                             <th className="px-3 py-2 text-center text-xs font-medium text-rh-text-secondary">SP</th>
