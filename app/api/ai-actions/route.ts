@@ -41,13 +41,14 @@ export async function POST(request: NextRequest) {
       const adoService = new ADOService(organization, pat, targetProject);
 
       const relatedItems: WorkItem[] = [];
-      const maxResults = 10;
+      const maxSuggestedResults = 10; // Only limit AI-suggested items, not actual ADO relationships
 
       // FIRST: Get actual linked work items from Azure DevOps relations
+      // IMPORTANT: Get ALL ADO relationships (no limit) - parent, children, related, etc.
       console.log('[AI Actions] Fetching linked work items for work item ID:', workItem.id);
       try {
         const linkedItems = await adoService.getRelatedWorkItems(parseInt(workItem.id));
-        relatedItems.push(...linkedItems);
+        relatedItems.push(...linkedItems); // Add ALL linked items, no limit
         console.log('[AI Actions] Found', linkedItems.length, 'linked work items:', linkedItems.map(item => ({
           id: item.id,
           title: item.title,
@@ -58,8 +59,8 @@ export async function POST(request: NextRequest) {
         console.error('[AI Actions] Error fetching linked items:', error);
       }
 
-      // SECOND: If we need more results, search by tags
-      if (relatedItems.length < maxResults && workItem.tags && workItem.tags.length > 0) {
+      // SECOND: If we have fewer than maxSuggestedResults total, add tag-based suggestions
+      if (relatedItems.length < maxSuggestedResults && workItem.tags && workItem.tags.length > 0) {
         const tagQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Tags] CONTAINS '${workItem.tags[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
         try {
           const tagResults = await adoService.searchWorkItems(tagQuery);
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
           const newResults = tagResults
             .filter(item => !existingIds.has(item.id))
             .map(item => ({ ...item, relationSource: 'tag' as const, relationType: 'Similar Tag' }));
-          relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
+          relatedItems.push(...newResults.slice(0, maxSuggestedResults - relatedItems.length));
           console.log('[AI Actions] Added', newResults.length, 'tag-based results');
         } catch (error) {
           console.error('[AI Actions] Tag search error:', error);
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       }
 
       // THIRD: If we still need more, search by title keywords
-      if (relatedItems.length < maxResults) {
+      if (relatedItems.length < maxSuggestedResults) {
         const titleWords = workItem.title
           .split(/\s+/)
           .filter(word => word.length >= 4)
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
             const newResults = titleResults
               .filter(item => !existingIds.has(item.id))
               .map(item => ({ ...item, relationSource: 'title' as const, relationType: 'Similar Title' }));
-            relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
+            relatedItems.push(...newResults.slice(0, maxSuggestedResults - relatedItems.length));
             console.log('[AI Actions] Added', newResults.length, 'title-based results');
           } catch (error) {
             console.error('[AI Actions] Title search error:', error);
@@ -99,10 +100,12 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Return structured data with work items
+      // Return ALL related work items - no limit on actual ADO relationships
+      // Only suggested items (tag/title based) are limited to maxSuggestedResults
+      console.log('[AI Actions] Returning total of', relatedItems.length, 'related items');
       return NextResponse.json({
         result: null,
-        relatedWorkItems: relatedItems.slice(0, maxResults),
+        relatedWorkItems: relatedItems, // Return all items, no slice
       });
     }
 

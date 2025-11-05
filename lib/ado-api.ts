@@ -600,10 +600,10 @@ export class ADOService {
     try {
       console.log('[ADO API] Fetching related items for work item:', workItemId);
 
-      // IMPORTANT: Must use project-level client (this.client) not org-level (this.orgClient)
-      // Azure DevOps requires: /{organization}/{project}/_apis/wit/workitems/{id}
-      // Relations are scoped to projects in Azure DevOps
-      const response = await this.client.get(`/wit/workitems/${workItemId}`, {
+      // Try org-level client first for cross-project relations support
+      // Azure DevOps work items can have relations across projects
+      // Format: /{organization}/_apis/wit/workitems/{id}?$expand=Relations
+      const response = await this.orgClient.get(`/wit/workitems/${workItemId}`, {
         params: {
           '$expand': 'Relations',
         },
