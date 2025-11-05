@@ -1,7 +1,7 @@
 'use client';
 
 import { Message } from '@/types';
-import { X, Download } from 'lucide-react';
+import { X, Download, ChevronDown, Check } from 'lucide-react';
 import { useState } from 'react';
 import WorkItemDetailModal from './WorkItemDetailModal';
 import { getTypeColor, getStateColor } from '@/lib/colors';
@@ -18,6 +18,16 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
 
+  // Column filters
+  const [columnFilters, setColumnFilters] = useState({
+    id: '',
+    title: '',
+    type: new Set<string>(),
+    state: new Set<string>(),
+    priority: new Set<string>(),
+    assignedTo: '',
+  });
+
   if (!message.workItems) return null;
 
   const workItems = message.workItems;
@@ -31,11 +41,26 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
     return acc;
   }, {} as Record<string, number>);
 
-  // Filter work items based on selected types and states
+  // Get unique values for dropdowns
+  const uniquePriorities = Array.from(new Set(workItems.map(item => `P${item.priority}`))).sort();
+  const uniqueTypesForColumn = Array.from(new Set(workItems.map(item => item.type))).sort();
+  const uniqueStatesForColumn = Array.from(new Set(workItems.map(item => item.state))).sort();
+
+  // Filter work items based on selected types, states, and column filters
   const filteredWorkItems = workItems.filter(item => {
+    // Tag filters (from badges)
     const typeMatch = selectedTypes.size === 0 || selectedTypes.has(item.type);
     const stateMatch = selectedStates.size === 0 || selectedStates.has(item.state);
-    return typeMatch && stateMatch;
+
+    // Column filters
+    const idMatch = !columnFilters.id || item.id.toString().includes(columnFilters.id);
+    const titleMatch = !columnFilters.title || item.title.toLowerCase().includes(columnFilters.title.toLowerCase());
+    const typeColumnMatch = columnFilters.type.size === 0 || columnFilters.type.has(item.type);
+    const stateColumnMatch = columnFilters.state.size === 0 || columnFilters.state.has(item.state);
+    const priorityMatch = columnFilters.priority.size === 0 || columnFilters.priority.has(`P${item.priority}`);
+    const assignedToMatch = !columnFilters.assignedTo || item.assignedTo.toLowerCase().includes(columnFilters.assignedTo.toLowerCase());
+
+    return typeMatch && stateMatch && idMatch && titleMatch && typeColumnMatch && stateColumnMatch && priorityMatch && assignedToMatch;
   });
 
   // Toggle functions for filters
@@ -66,9 +91,32 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
   const clearAllFilters = () => {
     setSelectedTypes(new Set());
     setSelectedStates(new Set());
+    setColumnFilters({
+      id: '',
+      title: '',
+      type: new Set<string>(),
+      state: new Set<string>(),
+      priority: new Set<string>(),
+      assignedTo: '',
+    });
   };
 
-  const hasActiveFilters = selectedTypes.size > 0 || selectedStates.size > 0;
+  const toggleColumnFilter = (column: 'type' | 'state' | 'priority', value: string) => {
+    setColumnFilters(prev => {
+      const newSet = new Set(prev[column]);
+      if (newSet.has(value)) {
+        newSet.delete(value);
+      } else {
+        newSet.add(value);
+      }
+      return { ...prev, [column]: newSet };
+    });
+  };
+
+  const hasActiveFilters = selectedTypes.size > 0 || selectedStates.size > 0 ||
+    columnFilters.id !== '' || columnFilters.title !== '' ||
+    columnFilters.type.size > 0 || columnFilters.state.size > 0 ||
+    columnFilters.priority.size > 0 || columnFilters.assignedTo !== '';
 
   return (
     <>
@@ -190,6 +238,133 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
                   <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">Priority</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">Assigned To</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-rh-text-secondary">Created</th>
+                </tr>
+                {/* Filter Row */}
+                <tr className="border-b border-rh-border bg-rh-dark/50">
+                  {/* ID Filter */}
+                  <th className="px-4 py-2">
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={columnFilters.id}
+                      onChange={(e) => setColumnFilters(prev => ({ ...prev, id: e.target.value }))}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded focus:border-rh-green focus:outline-none text-rh-text"
+                    />
+                  </th>
+                  {/* Title Filter */}
+                  <th className="px-4 py-2">
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={columnFilters.title}
+                      onChange={(e) => setColumnFilters(prev => ({ ...prev, title: e.target.value }))}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded focus:border-rh-green focus:outline-none text-rh-text"
+                    />
+                  </th>
+                  {/* Type Filter - Multi-select Dropdown */}
+                  <th className="px-4 py-2">
+                    <div className="relative group">
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
+                      >
+                        <span className="truncate">
+                          {columnFilters.type.size > 0 ? `${columnFilters.type.size} selected` : 'All'}
+                        </span>
+                        <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
+                      </button>
+                      <div className="hidden group-hover:block absolute top-full left-0 mt-1 w-48 bg-rh-card border border-rh-border rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                        {uniqueTypesForColumn.map(type => (
+                          <button
+                            key={type}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleColumnFilter('type', type);
+                            }}
+                            className="w-full px-3 py-2 text-xs text-left hover:bg-rh-border flex items-center justify-between"
+                          >
+                            <span>{type}</span>
+                            {columnFilters.type.has(type) && <Check className="w-3 h-3 text-rh-green" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </th>
+                  {/* State Filter - Multi-select Dropdown */}
+                  <th className="px-4 py-2">
+                    <div className="relative group">
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
+                      >
+                        <span className="truncate">
+                          {columnFilters.state.size > 0 ? `${columnFilters.state.size} selected` : 'All'}
+                        </span>
+                        <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
+                      </button>
+                      <div className="hidden group-hover:block absolute top-full left-0 mt-1 w-48 bg-rh-card border border-rh-border rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                        {uniqueStatesForColumn.map(state => (
+                          <button
+                            key={state}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleColumnFilter('state', state);
+                            }}
+                            className="w-full px-3 py-2 text-xs text-left hover:bg-rh-border flex items-center justify-between"
+                          >
+                            <span>{state}</span>
+                            {columnFilters.state.has(state) && <Check className="w-3 h-3 text-rh-green" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </th>
+                  {/* Priority Filter - Multi-select Dropdown */}
+                  <th className="px-4 py-2">
+                    <div className="relative group">
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
+                      >
+                        <span className="truncate">
+                          {columnFilters.priority.size > 0 ? `${columnFilters.priority.size} selected` : 'All'}
+                        </span>
+                        <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
+                      </button>
+                      <div className="hidden group-hover:block absolute top-full left-0 mt-1 w-32 bg-rh-card border border-rh-border rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                        {uniquePriorities.map(priority => (
+                          <button
+                            key={priority}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleColumnFilter('priority', priority);
+                            }}
+                            className="w-full px-3 py-2 text-xs text-left hover:bg-rh-border flex items-center justify-between"
+                          >
+                            <span>{priority}</span>
+                            {columnFilters.priority.has(priority) && <Check className="w-3 h-3 text-rh-green" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </th>
+                  {/* Assigned To Filter */}
+                  <th className="px-4 py-2">
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={columnFilters.assignedTo}
+                      onChange={(e) => setColumnFilters(prev => ({ ...prev, assignedTo: e.target.value }))}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-2 py-1 text-xs bg-rh-card border border-rh-border rounded focus:border-rh-green focus:outline-none text-rh-text"
+                    />
+                  </th>
+                  {/* Created - No Filter */}
+                  <th className="px-4 py-2">
+                    {/* Empty - no filter for date */}
+                  </th>
                 </tr>
               </thead>
               <tbody>

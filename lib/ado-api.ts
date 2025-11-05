@@ -590,6 +590,15 @@ export class ADOService {
       });
 
       const workItem = response.data;
+
+      // Enhanced logging: Show raw relations data
+      console.log('[ADO API] Raw API response for work item', workItemId, ':', {
+        id: workItem.id,
+        hasRelations: !!workItem.relations,
+        relationsCount: workItem.relations?.length || 0,
+        relations: workItem.relations || [],
+      });
+
       if (!workItem.relations || workItem.relations.length === 0) {
         console.log('[ADO API] No relations found for work item:', workItemId);
         return [];
@@ -599,7 +608,13 @@ export class ADOService {
       // Relations have a 'url' property like: https://dev.azure.com/.../workitems/12345
       // and a 'rel' property that indicates the relation type
       const relatedIdsWithTypes: Array<{ id: number; relationType: string }> = [];
-      workItem.relations.forEach((relation: any) => {
+      workItem.relations.forEach((relation: any, index: number) => {
+        console.log(`[ADO API] Processing relation ${index + 1}:`, {
+          url: relation.url,
+          rel: relation.rel,
+          attributes: relation.attributes,
+        });
+
         if (relation.url && relation.url.includes('/workitems/')) {
           const match = relation.url.match(/\/workitems\/(\d+)$/);
           if (match) {
@@ -622,13 +637,18 @@ export class ADOService {
                 relationType = 'Related';
               }
             }
+            console.log(`[ADO API] Parsed relation: ID=${id}, Type=${relationType}, Original rel=${relation.rel}`);
             relatedIdsWithTypes.push({ id, relationType });
+          } else {
+            console.log(`[ADO API] Could not parse work item ID from URL:`, relation.url);
           }
+        } else {
+          console.log(`[ADO API] Skipping non-work-item relation:`, relation.url);
         }
       });
 
       if (relatedIdsWithTypes.length === 0) {
-        console.log('[ADO API] No work item relations found');
+        console.log('[ADO API] No work item relations found after parsing');
         return [];
       }
 
@@ -642,6 +662,8 @@ export class ADOService {
         },
       });
 
+      console.log('[ADO API] Details API returned', detailsResponse.data.value?.length || 0, 'work items');
+
       // Map work items and add relation type
       const relatedWorkItems = detailsResponse.data.value.map((item: any) => {
         const workItem = this.mapToWorkItem(item);
@@ -650,17 +672,24 @@ export class ADOService {
         if (relationInfo) {
           workItem.relationType = relationInfo.relationType;
           workItem.relationSource = 'linked';
+          console.log(`[ADO API] Mapped work item #${item.id}: ${item.fields['System.Title']} as ${relationInfo.relationType}`);
         }
         return workItem;
       });
 
-      console.log('[ADO API] Fetched', relatedWorkItems.length, 'related work items with types');
+      console.log('[ADO API] Successfully fetched', relatedWorkItems.length, 'related work items with types');
 
       return relatedWorkItems;
     } catch (error: any) {
       console.error('[ADO API] Error fetching related work items:', {
         workItemId,
         message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        responseData: error.response?.data,
+        stack: error.stack,
       });
       return [];
     }

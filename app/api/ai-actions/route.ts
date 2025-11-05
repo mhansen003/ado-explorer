@@ -44,10 +44,16 @@ export async function POST(request: NextRequest) {
       const maxResults = 10;
 
       // FIRST: Get actual linked work items from Azure DevOps relations
+      console.log('[AI Actions] Fetching linked work items for work item ID:', workItem.id);
       try {
         const linkedItems = await adoService.getRelatedWorkItems(parseInt(workItem.id));
         relatedItems.push(...linkedItems);
-        console.log('[AI Actions] Found', linkedItems.length, 'linked work items');
+        console.log('[AI Actions] Found', linkedItems.length, 'linked work items:', linkedItems.map(item => ({
+          id: item.id,
+          title: item.title,
+          relationType: item.relationType,
+          relationSource: item.relationSource,
+        })));
       } catch (error) {
         console.error('[AI Actions] Error fetching linked items:', error);
       }
