@@ -16,6 +16,8 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<AIAction | null>(null);
+  const [relatedWorkItems, setRelatedWorkItems] = useState<WorkItem[] | null>(null);
+  const [selectedRelatedItem, setSelectedRelatedItem] = useState<WorkItem | null>(null);
 
   // Sanitize the HTML description to prevent XSS attacks
   const sanitizedDescription = useMemo(() => {
@@ -41,6 +43,7 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
     setLoading(true);
     setActiveAction(action);
     setAiResult(null);
+    setRelatedWorkItems(null);
 
     try {
       const response = await fetch('/api/ai-actions', {
@@ -58,7 +61,16 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
         throw new Error(data.error || 'Failed to generate AI content');
       }
 
-      setAiResult(data.result);
+      // Handle related items specially
+      if (action === 'relatedItems' && data.relatedWorkItems) {
+        setRelatedWorkItems(data.relatedWorkItems);
+        setAiResult(data.relatedWorkItems.length > 0
+          ? `Found ${data.relatedWorkItems.length} related work items. Click on any item below to view details.`
+          : 'No related work items found.'
+        );
+      } else {
+        setAiResult(data.result);
+      }
     } catch (error: any) {
       setAiResult(`❌ Error: ${error.message}`);
     } finally {
@@ -287,7 +299,7 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-rh-text">AI Result</h3>
-                {aiResult && !loading && (
+                {aiResult && !loading && !relatedWorkItems && (
                   <button
                     onClick={copyToClipboard}
                     className="text-xs text-rh-green hover:text-green-400 transition-colors"
@@ -305,6 +317,36 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
                 ) : (
                   <pre className="whitespace-pre-wrap font-sans">{aiResult}</pre>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Related Work Items */}
+          {relatedWorkItems && relatedWorkItems.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-rh-text mb-3">Related Work Items</h3>
+              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                {relatedWorkItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedRelatedItem(item)}
+                    className="flex items-center justify-between p-3 bg-rh-dark border border-rh-border rounded-lg hover:border-cyan-500 hover:bg-cyan-500/10 transition-all text-left group"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono text-cyan-400">#{item.id}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-rh-card border border-rh-border text-rh-text-secondary">
+                          {item.type}
+                        </span>
+                        <span className="text-xs text-rh-text-secondary">{item.state}</span>
+                      </div>
+                      <p className="text-sm text-rh-text group-hover:text-cyan-400 transition-colors line-clamp-2">
+                        {item.title}
+                      </p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-rh-text-secondary group-hover:text-cyan-400 transition-colors flex-shrink-0 ml-2" />
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -327,6 +369,14 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
           </div>
         </div>
       </div>
+
+      {/* Nested Modal for Related Work Item */}
+      {selectedRelatedItem && (
+        <WorkItemDetailModal
+          workItem={selectedRelatedItem}
+          onClose={() => setSelectedRelatedItem(null)}
+        />
+      )}
     </div>
   );
 }

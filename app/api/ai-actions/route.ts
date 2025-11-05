@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WorkItem } from '@/types';
+import { ADOService } from '@/lib/ado-api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,81 @@ export async function POST(request: NextRequest) {
         { error: 'OpenAI API key not found.' },
         { status: 500 }
       );
+    }
+
+    // Special handling for relatedItems - search ADO and return structured data
+    if (action === 'relatedItems') {
+      const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
+      const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
+      const pat = process.env.ADO_PAT;
+
+      if (!organization || !pat) {
+        return NextResponse.json(
+          { error: 'ADO configuration not found.' },
+          { status: 500 }
+        );
+      }
+
+      // Get project if not specified
+      let targetProject = project;
+      if (!targetProject) {
+        const tempService = new ADOService(organization, pat);
+        const projects = await tempService.getProjects();
+        if (projects.length > 0) {
+          targetProject = projects[0].name;
+        }
+      }
+
+      const adoService = new ADOService(organization, pat, targetProject);
+
+      // Search for related items using tags and title keywords
+      const searchTerms: string[] = [];
+
+      // Add tags as search terms
+      if (workItem.tags && workItem.tags.length > 0) {
+        searchTerms.push(...workItem.tags.slice(0, 3)); // Use up to 3 tags
+      }
+
+      // Extract key words from title (3-4 letter words and longer)
+      const titleWords = workItem.title
+        .split(/\s+/)
+        .filter(word => word.length >= 4)
+        .slice(0, 3); // Use up to 3 words
+      searchTerms.push(...titleWords);
+
+      const relatedItems: WorkItem[] = [];
+      const maxResults = 10;
+
+      // Search by tags first if available
+      if (workItem.tags && workItem.tags.length > 0) {
+        const tagQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Tags] CONTAINS '${workItem.tags[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
+        try {
+          const tagResults = await adoService.searchWorkItems(tagQuery);
+          relatedItems.push(...tagResults.slice(0, maxResults));
+        } catch (error) {
+          console.error('[AI Actions] Tag search error:', error);
+        }
+      }
+
+      // If we don't have enough results, search by title keywords
+      if (relatedItems.length < maxResults && titleWords.length > 0) {
+        const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
+        try {
+          const titleResults = await adoService.searchWorkItems(titleQuery);
+          // Add items that aren't already in the list
+          const existingIds = new Set(relatedItems.map(item => item.id));
+          const newResults = titleResults.filter(item => !existingIds.has(item.id));
+          relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
+        } catch (error) {
+          console.error('[AI Actions] Title search error:', error);
+        }
+      }
+
+      // Return structured data with work items
+      return NextResponse.json({
+        result: null,
+        relatedWorkItems: relatedItems.slice(0, maxResults),
+      });
     }
 
     const prompts: Record<string, string> = {
