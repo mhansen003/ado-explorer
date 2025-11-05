@@ -184,7 +184,7 @@ export default function FilterBar({
                         onClick={() => toggleState(state)}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                           isActive
-                            ? 'bg-rh-green text-rh-dark shadow-lg'
+                            ? 'bg-red-500 text-white shadow-lg'
                             : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
                         }`}
                       >

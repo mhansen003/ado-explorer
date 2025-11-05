@@ -31,8 +31,9 @@ export default function RelationshipDiagram({
   const related = relatedWorkItems.filter(item => item.relationType === 'Related');
   const successors = relatedWorkItems.filter(item => item.relationType === 'Successor');
   const predecessors = relatedWorkItems.filter(item => item.relationType === 'Predecessor');
+  const similarTitle = relatedWorkItems.filter(item => item.relationType === 'Similar Title');
   const others = relatedWorkItems.filter(item =>
-    !['Parent', 'Child', 'Related', 'Successor', 'Predecessor'].includes(item.relationType || '')
+    !['Parent', 'Child', 'Related', 'Successor', 'Predecessor', 'Similar Title'].includes(item.relationType || '')
   );
 
   // Calculate positions for hierarchical layout
@@ -111,6 +112,20 @@ export default function RelationshipDiagram({
     level: 0,
   }));
 
+  // Position Similar Title items to the left (AI suggestions)
+  const positionedSimilarTitle: PositionedWorkItem[] = similarTitle.map((item, index) => {
+    const itemsPerColumn = Math.min(5, similarTitle.length);
+    const col = Math.floor(index / itemsPerColumn);
+    const row = index % itemsPerColumn;
+    const colOffset = col * (CARD_WIDTH + HORIZONTAL_GAP);
+    return {
+      ...item,
+      x: centerX - CARD_WIDTH - HORIZONTAL_GAP - 100 - colOffset,
+      y: centerY + (row - (itemsPerColumn - 1) / 2) * (CARD_HEIGHT + 30) + 60,
+      level: 0,
+    };
+  });
+
   // Position other items below children
   const positionedOthers: PositionedWorkItem[] = others.map((item, index) => ({
     ...item,
@@ -125,6 +140,7 @@ export default function RelationshipDiagram({
     ...positionedRelated,
     ...positionedPredecessors,
     ...positionedSuccessors,
+    ...positionedSimilarTitle,
     ...positionedOthers,
   ];
 
@@ -335,6 +351,40 @@ export default function RelationshipDiagram({
                 className="transition-opacity duration-300"
                 markerEnd={`url(#arrow-${markerColor})`}
               />
+            </g>
+          );
+        })}
+
+        {/* Draw lines to Similar Title items (AI suggestions) */}
+        {positionedSimilarTitle.map(item => {
+          const color = getRelationshipColor(item.relationType);
+          const markerColor = 'blue';
+          const midX = (centerX - CARD_WIDTH / 2 + item.x + CARD_WIDTH / 2) / 2;
+          const midY = (centerY + item.y) / 2;
+          return (
+            <g key={`line-similar-${item.id}`}>
+              <path
+                d={`M ${centerX - CARD_WIDTH / 2} ${centerY} L ${item.x + CARD_WIDTH / 2} ${item.y}`}
+                stroke={color}
+                strokeWidth="3"
+                strokeDasharray="8,4"
+                fill="none"
+                opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
+                className="transition-opacity duration-300"
+                markerEnd={`url(#arrow-${markerColor})`}
+              />
+              {/* AI Suggestion label */}
+              <text
+                x={midX}
+                y={midY - 10}
+                fontSize="12"
+                fill={color}
+                textAnchor="middle"
+                className="font-medium pointer-events-none"
+                opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.6}
+              >
+                ✨ AI Suggestion
+              </text>
             </g>
           );
         })}

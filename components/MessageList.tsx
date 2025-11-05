@@ -276,8 +276,6 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
         <ResultsModal
           message={modalMessage}
           onClose={() => setModalMessage(null)}
-          onExportCSV={() => exportToCSV(modalMessage)}
-          onExportJSON={() => exportToJSON(modalMessage)}
         />
       )}
     </>

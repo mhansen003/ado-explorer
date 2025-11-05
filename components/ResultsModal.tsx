@@ -9,11 +9,9 @@ import { getTypeColor, getStateColor } from '@/lib/colors';
 interface ResultsModalProps {
   message: Message;
   onClose: () => void;
-  onExportCSV: () => void;
-  onExportJSON: () => void;
 }
 
-export default function ResultsModal({ message, onClose, onExportCSV, onExportJSON }: ResultsModalProps) {
+export default function ResultsModal({ message, onClose }: ResultsModalProps) {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
@@ -122,6 +120,46 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
     columnFilters.priority.size > 0 || columnFilters.assignedTo !== '' ||
     columnFilters.project !== '';
 
+  // Export functions that use filtered data
+  const exportToCSV = () => {
+    if (filteredWorkItems.length === 0) return;
+
+    const headers = ['ID', 'Title', 'Type', 'State', 'Priority', 'Assigned To', 'Created By', 'Created Date', 'Project'];
+    const rows = filteredWorkItems.map(item => [
+      item.id,
+      `"${item.title.replace(/"/g, '""')}"`,
+      item.type,
+      item.state,
+      `P${item.priority}`,
+      item.assignedTo,
+      item.createdBy,
+      new Date(item.createdDate).toLocaleDateString(),
+      item.project || ''
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ado-results-filtered-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToJSON = () => {
+    if (filteredWorkItems.length === 0) return;
+
+    const json = JSON.stringify(filteredWorkItems, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ado-results-filtered-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -150,18 +188,20 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={onExportCSV}
+                onClick={exportToCSV}
                 className="flex items-center gap-2 px-3 py-2 bg-rh-dark border border-rh-border rounded-lg text-sm hover:border-rh-green transition-colors"
+                title={hasActiveFilters ? `Export ${filteredWorkItems.length} filtered rows` : `Export all ${workItems.length} rows`}
               >
                 <Download className="w-4 h-4" />
-                Export CSV
+                Export CSV {hasActiveFilters && `(${filteredWorkItems.length})`}
               </button>
               <button
-                onClick={onExportJSON}
+                onClick={exportToJSON}
                 className="flex items-center gap-2 px-3 py-2 bg-rh-dark border border-rh-border rounded-lg text-sm hover:border-rh-green transition-colors"
+                title={hasActiveFilters ? `Export ${filteredWorkItems.length} filtered rows` : `Export all ${workItems.length} rows`}
               >
                 <Download className="w-4 h-4" />
-                Export JSON
+                Export JSON {hasActiveFilters && `(${filteredWorkItems.length})`}
               </button>
               <button
                 onClick={onClose}
