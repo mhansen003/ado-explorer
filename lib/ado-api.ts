@@ -498,35 +498,66 @@ export class ADOService {
         return [];
       }
 
-      // Extract work item IDs from relations
+      // Extract work item IDs and relation types from relations
       // Relations have a 'url' property like: https://dev.azure.com/.../workitems/12345
-      const relatedIds: number[] = [];
+      // and a 'rel' property that indicates the relation type
+      const relatedIdsWithTypes: Array<{ id: number; relationType: string }> = [];
       workItem.relations.forEach((relation: any) => {
         if (relation.url && relation.url.includes('/workitems/')) {
           const match = relation.url.match(/\/workitems\/(\d+)$/);
           if (match) {
-            relatedIds.push(parseInt(match[1]));
+            const id = parseInt(match[1]);
+            // Parse relation type from 'rel' field
+            // Examples: "System.LinkTypes.Hierarchy-Forward" = Parent
+            //           "System.LinkTypes.Hierarchy-Reverse" = Child
+            //           "System.LinkTypes.Related" = Related
+            let relationType = 'Related';
+            if (relation.rel) {
+              if (relation.rel.includes('Hierarchy-Forward')) {
+                relationType = 'Parent';
+              } else if (relation.rel.includes('Hierarchy-Reverse')) {
+                relationType = 'Child';
+              } else if (relation.rel.includes('Dependency-Forward')) {
+                relationType = 'Successor';
+              } else if (relation.rel.includes('Dependency-Reverse')) {
+                relationType = 'Predecessor';
+              } else if (relation.rel.includes('Related')) {
+                relationType = 'Related';
+              }
+            }
+            relatedIdsWithTypes.push({ id, relationType });
           }
         }
       });
 
-      if (relatedIds.length === 0) {
+      if (relatedIdsWithTypes.length === 0) {
         console.log('[ADO API] No work item relations found');
         return [];
       }
 
-      console.log('[ADO API] Found', relatedIds.length, 'related work item IDs:', relatedIds);
+      console.log('[ADO API] Found', relatedIdsWithTypes.length, 'related work item IDs:', relatedIdsWithTypes);
 
       // Fetch details for all related work items
       const detailsResponse = await this.orgClient.get('/wit/workitems', {
         params: {
-          ids: relatedIds.join(','),
+          ids: relatedIdsWithTypes.map(r => r.id).join(','),
           fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,System.ChangedDate,System.ChangedBy,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,Microsoft.VSTS.Common.AcceptanceCriteria',
         },
       });
 
-      const relatedWorkItems = detailsResponse.data.value.map((item: any) => this.mapToWorkItem(item));
-      console.log('[ADO API] Fetched', relatedWorkItems.length, 'related work items');
+      // Map work items and add relation type
+      const relatedWorkItems = detailsResponse.data.value.map((item: any) => {
+        const workItem = this.mapToWorkItem(item);
+        // Find the relation type for this work item
+        const relationInfo = relatedIdsWithTypes.find(r => r.id.toString() === item.id.toString());
+        if (relationInfo) {
+          workItem.relationType = relationInfo.relationType;
+          workItem.relationSource = 'linked';
+        }
+        return workItem;
+      });
+
+      console.log('[ADO API] Fetched', relatedWorkItems.length, 'related work items with types');
 
       return relatedWorkItems;
     } catch (error: any) {

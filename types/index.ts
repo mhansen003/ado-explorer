@@ -31,6 +31,8 @@ export interface WorkItem {
   areaPath?: string;
   storyPoints?: number;
   acceptanceCriteria?: string;
+  relationType?: string; // How this item is related (Parent, Child, Related, etc.)
+  relationSource?: 'linked' | 'tag' | 'title'; // How we found this relation
 }
 
 export interface Command {

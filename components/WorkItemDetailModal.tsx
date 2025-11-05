@@ -403,7 +403,7 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
           {/* Related Work Items */}
           {relatedWorkItems && relatedWorkItems.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-rh-text mb-3">Related Work Items</h3>
+              <h3 className="text-sm font-semibold text-rh-text mb-3">Related Work Items ({relatedWorkItems.length})</h3>
               <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
                 {relatedWorkItems.map((item) => (
                   <button
@@ -418,6 +418,17 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
                           {item.type}
                         </span>
                         <span className="text-xs text-rh-text-secondary">{item.state}</span>
+                        {item.relationType && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            item.relationSource === 'linked'
+                              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                              : item.relationSource === 'tag'
+                              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+                              : 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                          }`}>
+                            {item.relationType}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-rh-text group-hover:text-cyan-400 transition-colors line-clamp-2">
                         {item.title}

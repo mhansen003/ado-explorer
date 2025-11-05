@@ -57,9 +57,11 @@ export async function POST(request: NextRequest) {
         const tagQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Tags] CONTAINS '${workItem.tags[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
         try {
           const tagResults = await adoService.searchWorkItems(tagQuery);
-          // Add items that aren't already in the list
+          // Add items that aren't already in the list and mark them as tag-based
           const existingIds = new Set(relatedItems.map(item => item.id));
-          const newResults = tagResults.filter(item => !existingIds.has(item.id));
+          const newResults = tagResults
+            .filter(item => !existingIds.has(item.id))
+            .map(item => ({ ...item, relationSource: 'tag' as const, relationType: 'Similar Tag' }));
           relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
           console.log('[AI Actions] Added', newResults.length, 'tag-based results');
         } catch (error) {
@@ -78,9 +80,11 @@ export async function POST(request: NextRequest) {
           const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
           try {
             const titleResults = await adoService.searchWorkItems(titleQuery);
-            // Add items that aren't already in the list
+            // Add items that aren't already in the list and mark them as title-based
             const existingIds = new Set(relatedItems.map(item => item.id));
-            const newResults = titleResults.filter(item => !existingIds.has(item.id));
+            const newResults = titleResults
+              .filter(item => !existingIds.has(item.id))
+              .map(item => ({ ...item, relationSource: 'title' as const, relationType: 'Similar Title' }));
             relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
             console.log('[AI Actions] Added', newResults.length, 'title-based results');
           } catch (error) {
