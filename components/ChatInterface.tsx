@@ -4,8 +4,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import MessageList from './MessageList';
 import CommandAutocomplete from './CommandAutocomplete';
+import TemplateInputBuilder from './TemplateInputBuilder';
 import FilterBar from './FilterBar';
-import { Message, Command, DynamicSuggestion, GlobalFilters, ViewPreferences } from '@/types';
+import { Message, Command, DynamicSuggestion, GlobalFilters, ViewPreferences, CommandTemplate } from '@/types';
+import { COMMAND_TEMPLATES } from '@/lib/command-templates';
 
 const COMMANDS: Command[] = [
   { name: 'project', description: 'Filter by project (auto-completes from your ADO)', icon: '📁', hasParam: true, isDynamic: true },
@@ -44,6 +46,9 @@ export default function ChatInterface() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
 
+  // Template state
+  const [activeTemplate, setActiveTemplate] = useState<CommandTemplate | null>(null);
+
   // Global filters
   const [globalFilters, setGlobalFilters] = useState<GlobalFilters>({
     ignoreClosed: false,
@@ -66,7 +71,8 @@ export default function ChatInterface() {
     if (input.startsWith('/')) {
       // Show autocomplete when typing "/" or a slash command
       if (input === '/') {
-        setFilteredCommands(COMMANDS);
+        // Show templates instead of old commands
+        setFilteredCommands([]);
         setDynamicSuggestions([]);
         setShowAutocomplete(true);
         setSelectedIndex(0);
@@ -520,9 +526,43 @@ export default function ChatInterface() {
       const helpMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
-        content: '🤖 AI-Powered Search:\nJust type naturally without any slash! Examples:\n• "show me all active user stories"\n• "find bugs assigned to john"\n• "what tasks were created this week?"\n\nSlash Commands:\n\n' + COMMANDS.map(cmd =>
-          `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
-        ).join('\n') + '\n\n💡 Start typing to get started!\n⌨️  Press Tab after any slash command to see all options',
+        content: `🤖 Welcome to ADO Explorer!
+
+💬 Natural Language Search (Recommended):
+Just type naturally! The AI will understand. Examples:
+• "show me all active bugs"
+• "find tasks assigned to john"
+• "what was updated this week?"
+• "show me ticket #12345"
+
+/ Guided Search Commands:
+Type / to see interactive search options with fill-in-the-blank style:
+
+👤 Show me all tickets created by [user dropdown]
+📌 Show me all tickets assigned to [user dropdown]
+📊 Show me all tickets with status [status dropdown]
+🏷️  Show me all [Bug/Task/Story dropdown] tickets
+📁 Show me all tickets for project [project dropdown]
+📋 Show me all tickets on board [board dropdown]
+🔖 Show me all tickets tagged with [tag multi-select]
+⏰ Show me recent tickets
+🎯 Show me ticket #[enter ID]
+
+🎯 How It Works:
+1. Type / to see all search options
+2. Click any option to fill in the blanks
+3. Select from dropdowns (use arrow keys ↑↓)
+4. Press Enter to search!
+
+💡 Pro Tips:
+• Use natural language for best results (no / needed!)
+• Type / for guided searches with dropdown help
+• Click "Discussion" tab in any work item to see all comments
+• Use filters at the top to refine results
+
+⚡ Quick Actions:
+• Type just a number (e.g., "12345") to open that ticket
+• Type / to explore all search options`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, helpMessage]);
@@ -705,6 +745,37 @@ export default function ChatInterface() {
 
     // Execute the command
     await processCommand(fullCommand);
+  };
+
+  const handleTemplateSelect = (template: CommandTemplate) => {
+    // Set the active template to show TemplateInputBuilder
+    setActiveTemplate(template);
+    setShowAutocomplete(false);
+    setInput(''); // Clear input
+  };
+
+  const handleTemplateExecute = async (command: string) => {
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: command,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Close template builder
+    setActiveTemplate(null);
+    setInput('');
+
+    // Execute the command
+    await processCommand(command);
+  };
+
+  const handleTemplateCancel = () => {
+    setActiveTemplate(null);
+    setInput('');
+    inputRef.current?.focus();
   };
 
   const handleToggleTag = (tag: string) => {
@@ -956,12 +1027,28 @@ export default function ChatInterface() {
       />
 
       <div className="relative p-4 border-t border-rh-border bg-rh-dark">
-        {showAutocomplete && (
+        {activeTemplate && (
+          <TemplateInputBuilder
+            template={activeTemplate}
+            onExecute={handleTemplateExecute}
+            onCancel={handleTemplateCancel}
+            projects={cachedProjects}
+            boards={cachedBoards}
+            users={cachedUsers}
+            states={cachedStates}
+            types={cachedTypes}
+            tags={cachedTags}
+          />
+        )}
+
+        {showAutocomplete && !activeTemplate && (
           <CommandAutocomplete
             commands={filteredCommands}
+            templates={input === '/' ? COMMAND_TEMPLATES : []}
             dynamicSuggestions={dynamicSuggestions}
             isLoadingDynamic={isLoadingDynamic}
             onSelect={handleCommandSelect}
+            onSelectTemplate={handleTemplateSelect}
             onSelectDynamic={handleDynamicSelect}
             selectedIndex={selectedIndex}
             isMultiSelectMode={isMultiSelectMode}

@@ -75,3 +75,22 @@ export interface Comment {
   modifiedByEmail?: string;
   modifiedDate?: string;
 }
+
+export type PlaceholderType = 'user' | 'project' | 'state' | 'type' | 'tag' | 'board' | 'text' | 'days';
+
+export interface Placeholder {
+  key: string; // unique key for this placeholder
+  type: PlaceholderType; // what kind of data to show
+  label: string; // display label (e.g., "created by")
+  required: boolean; // is this placeholder required?
+  multiSelect?: boolean; // allow multiple selections (for tags)
+}
+
+export interface CommandTemplate {
+  id: string;
+  displayText: string; // "Show me all tickets created by {user}"
+  description: string; // Short description
+  icon: string; // Emoji icon
+  placeholders: Placeholder[];
+  buildCommand: (values: Record<string, string | string[]>) => string; // Build the actual /command
+}

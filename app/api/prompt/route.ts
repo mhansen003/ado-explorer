@@ -9,8 +9,14 @@ export async function POST(request: NextRequest) {
   const pat = process.env.ADO_PAT;
   const openaiKey = process.env.OPENAI_API_KEY;
 
+  // Parse request outside try block so prompt is available in catch
+  let prompt = '';
+  let filters: GlobalFilters | undefined;
+
   try {
-    const { prompt, filters } = await request.json() as { prompt: string; filters?: GlobalFilters };
+    const body = await request.json() as { prompt: string; filters?: GlobalFilters };
+    prompt = body.prompt;
+    filters = body.filters;
 
     console.log('[ADO Prompt API] Configuration:', {
       organization,

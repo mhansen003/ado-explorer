@@ -1,11 +1,13 @@
-import { Command, DynamicSuggestion } from '@/types';
+import { Command, DynamicSuggestion, CommandTemplate } from '@/types';
 import { Loader2 } from 'lucide-react';
 
 interface CommandAutocompleteProps {
-  commands: Command[];
+  commands?: Command[];
+  templates?: CommandTemplate[];
   dynamicSuggestions?: DynamicSuggestion[];
   isLoadingDynamic?: boolean;
-  onSelect: (command: Command) => void;
+  onSelect?: (command: Command) => void;
+  onSelectTemplate?: (template: CommandTemplate) => void;
   onSelectDynamic?: (value: string) => void;
   selectedIndex?: number;
   isMultiSelectMode?: boolean;
@@ -13,20 +15,51 @@ interface CommandAutocompleteProps {
 }
 
 export default function CommandAutocomplete({
-  commands,
+  commands = [],
+  templates = [],
   dynamicSuggestions = [],
   isLoadingDynamic = false,
   onSelect,
+  onSelectTemplate,
   onSelectDynamic,
   selectedIndex = 0,
   isMultiSelectMode = false,
   selectedTags = []
 }: CommandAutocompleteProps) {
   const hasCommands = commands.length > 0;
+  const hasTemplates = templates.length > 0;
   const hasSuggestions = dynamicSuggestions.length > 0;
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-2 mx-4 bg-rh-card border border-rh-border rounded-lg shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+    <div className="absolute bottom-full left-0 right-0 mb-2 mx-4 bg-rh-card border border-rh-border rounded-lg shadow-2xl overflow-hidden max-h-80 overflow-y-auto z-50">
+      {/* Templates */}
+      {hasTemplates && templates.map((template, index) => (
+        <button
+          key={template.id}
+          onClick={() => onSelectTemplate?.(template)}
+          className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left ${
+            selectedIndex === index ? 'bg-rh-border' : ''
+          }`}
+        >
+          <span className="text-2xl">{template.icon}</span>
+          <div className="flex-1">
+            <div className="text-rh-text font-medium mb-1">
+              {template.displayText.split(/(\{\w+\})/).map((part, i) => {
+                if (part.match(/^\{\w+\}$/)) {
+                  return (
+                    <span key={i} className="text-rh-green">
+                      {part}
+                    </span>
+                  );
+                }
+                return <span key={i}>{part}</span>;
+              })}
+            </div>
+            <p className="text-xs text-rh-text-secondary">{template.description}</p>
+          </div>
+        </button>
+      ))}
+
       {/* Tab hint for commands with parameters */}
       {hasCommands && commands.some(cmd => cmd.hasParam) && !hasSuggestions && (
         <div className="px-4 py-2 bg-rh-border/30 border-b border-rh-border text-xs text-rh-text-secondary flex items-center gap-2">
@@ -35,13 +68,15 @@ export default function CommandAutocomplete({
         </div>
       )}
 
-      {/* Static Commands */}
-      {hasCommands && commands.map((command, index) => (
+      {/* Static Commands (Legacy) */}
+      {hasCommands && commands.map((command, index) => {
+        const itemIndex = templates.length + index;
+        return (
         <button
           key={command.name}
-          onClick={() => onSelect(command)}
+          onClick={() => onSelect?.(command)}
           className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left ${
-            selectedIndex === index ? 'bg-rh-border' : ''
+            selectedIndex === itemIndex ? 'bg-rh-border' : ''
           }`}
         >
           <span className="text-2xl">{command.icon}</span>
@@ -71,7 +106,7 @@ export default function CommandAutocomplete({
       {/* Dynamic Suggestions */}
       {hasSuggestions && (
         <>
-          {!hasCommands && (
+          {!hasCommands && !hasTemplates && (
             <div className="px-4 py-2 bg-rh-border/30 border-b border-rh-border text-xs text-rh-text-secondary flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <span className="text-rh-green">✓</span>
@@ -94,7 +129,7 @@ export default function CommandAutocomplete({
             </div>
           )}
           {dynamicSuggestions.map((suggestion, index) => {
-            const itemIndex = commands.length + index;
+            const itemIndex = templates.length + commands.length + index;
             const isSelected = isMultiSelectMode && selectedTags.includes(suggestion.value);
             return (
               <button
@@ -128,7 +163,7 @@ export default function CommandAutocomplete({
       )}
 
       {/* No Results */}
-      {!hasCommands && !hasSuggestions && !isLoadingDynamic && (
+      {!hasCommands && !hasTemplates && !hasSuggestions && !isLoadingDynamic && (
         <div className="px-4 py-3 text-sm text-rh-text-secondary text-center">
           No matches found
         </div>
