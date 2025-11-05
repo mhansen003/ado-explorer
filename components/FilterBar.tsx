@@ -264,16 +264,8 @@ export default function FilterBar({
               )}
             </div>
 
-            {/* Legacy Ignore Closed */}
-            <label className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/50 p-2 rounded transition-colors">
-              <input
-                type="checkbox"
-                checked={filters.ignoreClosed}
-                onChange={(e) => handleFilterChange('ignoreClosed', e.target.checked)}
-                className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
-              />
-              <span className="text-sm text-rh-text">Ignore closed tickets (legacy)</span>
-            </label>
+            {/* Divider */}
+            <div className="border-t border-rh-border my-2"></div>
 
             {/* Only My Tickets */}
             <div className="space-y-2">
