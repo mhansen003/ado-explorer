@@ -12,6 +12,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/nodemailer": "^7.0.3",
     "axios": "^1.7.0",
+    "html2canvas": "^1.4.1",
     "isomorphic-dompurify": "^2.31.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.344.0",

@@ -49,96 +49,64 @@ export async function sendOTPEmail(email: string, code: string): Promise<void> {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #0D0D0D;
+      color: #ffffff;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background-color: #0f1419;
-      color: #d1d5db;
     }
     .container {
       max-width: 600px;
-      margin: 0 auto;
-      padding: 40px 20px;
+      margin: 40px auto;
+      background: linear-gradient(to bottom right, #1a1a1a, #0d0d0d);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
     }
     .header {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      border-radius: 12px 12px 0 0;
-      padding: 32px;
+      padding: 30px;
       text-align: center;
     }
     .header h1 {
       margin: 0;
-      color: #ffffff;
-      font-size: 28px;
-      font-weight: 700;
-    }
-    .header p {
-      margin: 8px 0 0 0;
-      color: #d1fae5;
-      font-size: 14px;
+      color: #0D0D0D;
+      font-size: 24px;
+      font-weight: bold;
     }
     .content {
-      background-color: #1a1f2e;
-      border: 1px solid #2d3748;
-      border-top: none;
-      border-radius: 0 0 12px 12px;
-      padding: 40px 32px;
-    }
-    .greeting {
-      font-size: 16px;
-      margin-bottom: 24px;
-      color: #f3f4f6;
+      padding: 40px 30px;
     }
     .code-box {
-      background: linear-gradient(135deg, #1e3a28 0%, #1a2e26 100%);
+      background: rgba(16, 185, 129, 0.1);
       border: 2px solid #10b981;
-      border-radius: 12px;
-      padding: 32px;
+      border-radius: 8px;
+      padding: 20px;
       text-align: center;
-      margin: 32px 0;
+      margin: 30px 0;
     }
     .code {
-      font-size: 48px;
-      font-weight: 700;
+      font-size: 36px;
+      font-weight: bold;
       letter-spacing: 8px;
       color: #10b981;
       font-family: 'Courier New', monospace;
-      margin-bottom: 12px;
-    }
-    .expiry {
-      color: #9ca3af;
-      font-size: 14px;
-    }
-    .instructions {
-      font-size: 15px;
-      line-height: 1.6;
-      margin: 24px 0;
-      color: #d1d5db;
     }
     .warning {
-      background-color: #7c2d12;
-      border-left: 4px solid #ea580c;
-      padding: 16px;
-      border-radius: 8px;
-      margin: 24px 0;
-    }
-    .warning-title {
-      font-weight: 600;
-      color: #fed7aa;
-      margin-bottom: 8px;
-    }
-    .warning-text {
-      font-size: 14px;
-      color: #fed7aa;
-      line-height: 1.5;
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid #ef4444;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
     }
     .footer {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
       text-align: center;
-      padding: 24px;
-      color: #6b7280;
-      font-size: 13px;
+      font-size: 12px;
+      color: #999;
     }
-    .footer a {
+    a {
       color: #10b981;
       text-decoration: none;
     }
@@ -148,33 +116,33 @@ export async function sendOTPEmail(email: string, code: string): Promise<void> {
   <div class="container">
     <div class="header">
       <h1>🔐 ADO Explorer</h1>
-      <p>Secure Access Verification</p>
     </div>
     <div class="content">
-      <div class="greeting">
-        Hello,
-      </div>
-      <div class="instructions">
-        You requested access to <strong>ADO Explorer</strong>. Use the verification code below to complete your login:
-      </div>
+      <h2 style="color: #10b981; margin-top: 0;">Your Access Code</h2>
+      <p>Hello! Someone requested access to ADO Explorer using this email address.</p>
+
       <div class="code-box">
+        <div style="color: #999; font-size: 12px; margin-bottom: 10px;">VERIFICATION CODE</div>
         <div class="code">${code}</div>
-        <div class="expiry">Valid for ${AUTH_CONFIG.OTP_EXPIRY_MINUTES} minutes</div>
+        <div style="color: #999; font-size: 12px; margin-top: 10px;">Valid for ${AUTH_CONFIG.OTP_EXPIRY_MINUTES} minutes</div>
       </div>
-      <div class="instructions">
-        Enter this code in the login page to access your account. If you didn't request this code, you can safely ignore this email.
-      </div>
+
+      <p>Enter this code on the login page to access your dashboard.</p>
+
       <div class="warning">
-        <div class="warning-title">⚠️ Security Notice</div>
-        <div class="warning-text">
-          Never share this code with anyone. ADO Explorer staff will never ask for your verification code.
-        </div>
+        <strong>⚠️ Security Notice:</strong><br>
+        • This code expires in ${AUTH_CONFIG.OTP_EXPIRY_MINUTES} minutes<br>
+        • You have ${AUTH_CONFIG.MAX_ATTEMPTS} attempts to enter it correctly<br>
+        • If you didn't request this code, please ignore this email
       </div>
+
+      <p style="margin-top: 30px; color: #999; font-size: 14px;">
+        Questions? Contact your IT administrator.
+      </p>
     </div>
     <div class="footer">
-      This email was sent to <strong>${email}</strong><br>
-      ADO Explorer - Azure DevOps Work Item Management<br>
-      © ${new Date().getFullYear()} CMG Financial. All rights reserved.
+      <p>CMG Financial | ADO Explorer - Azure DevOps Work Item Management</p>
+      <p>This is an automated message. Please do not reply to this email.</p>
     </div>
   </div>
 </body>
