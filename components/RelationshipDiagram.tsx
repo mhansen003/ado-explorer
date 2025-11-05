@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useState } from 'react';
 import { WorkItem } from '@/types';
 import { ArrowUp, ArrowDown, Link2, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
-import { useState } from 'react';
 
 interface RelationshipDiagramProps {
   currentWorkItem: WorkItem;
@@ -221,7 +221,7 @@ export default function RelationshipDiagram({
     <div className="w-full h-full overflow-auto bg-gradient-to-br from-rh-dark via-rh-card to-rh-dark">
       <svg
         className="w-full"
-        style={{ minHeight: '600px', height: `${viewBoxHeight + 100}px` }}
+        style={{ minHeight: '400px', height: `${Math.min(viewBoxHeight + 100, 900)}px` }}
         viewBox={`${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`}
         preserveAspectRatio="xMidYMid meet"
       >
@@ -261,7 +261,7 @@ export default function RelationshipDiagram({
                   parent.y + CARD_HEIGHT / 2
                 )}
                 stroke={color}
-                strokeWidth="4"
+                strokeWidth="2"
                 fill="none"
                 opacity={hoveredId === parent.id || hoveredId === currentWorkItem.id ? 1 : 0.4}
                 className="transition-opacity duration-300"
@@ -285,7 +285,7 @@ export default function RelationshipDiagram({
                   child.y - CARD_HEIGHT / 2
                 )}
                 stroke={color}
-                strokeWidth="4"
+                strokeWidth="2"
                 fill="none"
                 opacity={hoveredId === child.id || hoveredId === currentWorkItem.id ? 1 : 0.4}
                 className="transition-opacity duration-300"
@@ -304,8 +304,8 @@ export default function RelationshipDiagram({
               <path
                 d={`M ${centerX + CARD_WIDTH / 2} ${centerY} L ${item.x - CARD_WIDTH / 2} ${item.y}`}
                 stroke={color}
-                strokeWidth="3"
-                strokeDasharray="6,6"
+                strokeWidth="2"
+                strokeDasharray="4,4"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -324,8 +324,8 @@ export default function RelationshipDiagram({
               <path
                 d={`M ${centerX - CARD_WIDTH / 2} ${centerY} L ${item.x + CARD_WIDTH / 2} ${item.y}`}
                 stroke={color}
-                strokeWidth="3"
-                strokeDasharray="6,6"
+                strokeWidth="2"
+                strokeDasharray="4,4"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -344,8 +344,8 @@ export default function RelationshipDiagram({
               <path
                 d={`M ${centerX + CARD_WIDTH / 2} ${centerY} L ${item.x - CARD_WIDTH / 2} ${item.y}`}
                 stroke={color}
-                strokeWidth="3"
-                strokeDasharray="6,6"
+                strokeWidth="2"
+                strokeDasharray="4,4"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -366,8 +366,8 @@ export default function RelationshipDiagram({
               <path
                 d={`M ${centerX - CARD_WIDTH / 2} ${centerY} L ${item.x + CARD_WIDTH / 2} ${item.y}`}
                 stroke={color}
-                strokeWidth="3"
-                strokeDasharray="8,4"
+                strokeWidth="2"
+                strokeDasharray="6,3"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -376,14 +376,14 @@ export default function RelationshipDiagram({
               {/* AI Suggestion label */}
               <text
                 x={midX}
-                y={midY - 10}
-                fontSize="12"
+                y={midY - 8}
+                fontSize="10"
                 fill={color}
                 textAnchor="middle"
                 className="font-medium pointer-events-none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.6}
               >
-                ✨ AI Suggestion
+                ✨ AI
               </text>
             </g>
           );
@@ -403,8 +403,8 @@ export default function RelationshipDiagram({
                   item.y - CARD_HEIGHT / 2
                 )}
                 stroke={color}
-                strokeWidth="3"
-                strokeDasharray="4,4"
+                strokeWidth="2"
+                strokeDasharray="3,3"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -423,7 +423,7 @@ export default function RelationshipDiagram({
           height={CARD_HEIGHT}
         >
           <div
-            className="w-full h-full p-6 border-4 border-rh-green bg-rh-green/20 rounded-lg shadow-2xl backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105"
+            className="w-full h-full p-3 border-3 border-rh-green bg-rh-green/20 rounded-lg shadow-xl backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105"
             onMouseEnter={() => {
               setHoveredId(currentWorkItem.id);
               setTooltipItem({ ...currentWorkItem, x: centerX, y: centerY, level: 0 });
@@ -435,21 +435,21 @@ export default function RelationshipDiagram({
               setTooltipPosition(null);
             }}
             style={{
-              boxShadow: '0 0 30px rgba(16, 185, 129, 0.5)',
+              boxShadow: '0 0 20px rgba(16, 185, 129, 0.4)',
             }}
           >
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg font-mono text-rh-green font-bold">#{currentWorkItem.id}</span>
-              <span className="text-sm px-3 py-1.5 rounded bg-rh-green/30 text-rh-green border border-rh-green/50 font-semibold">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-sm font-mono text-rh-green font-bold">#{currentWorkItem.id}</span>
+              <span className="text-xs px-2 py-0.5 rounded bg-rh-green/30 text-rh-green border border-rh-green/50 font-semibold">
                 CURRENT
               </span>
             </div>
-            <p className="text-base text-rh-text font-semibold line-clamp-3 mb-2">{currentWorkItem.title}</p>
-            <div className="flex gap-2 mt-3">
-              <span className="text-sm px-3 py-1 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
+            <p className="text-xs text-rh-text font-semibold line-clamp-2 mb-1.5">{currentWorkItem.title}</p>
+            <div className="flex gap-1.5 mt-1.5">
+              <span className="text-xs px-2 py-0.5 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
                 {currentWorkItem.type}
               </span>
-              <span className="text-sm px-3 py-1 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
+              <span className="text-xs px-2 py-0.5 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
                 {currentWorkItem.state}
               </span>
             </div>
@@ -471,7 +471,7 @@ export default function RelationshipDiagram({
               height={CARD_HEIGHT}
             >
               <div
-                className={`w-full h-full p-5 border-2 ${styles} rounded-lg shadow-lg backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+                className={`w-full h-full p-2.5 border-2 ${styles} rounded-lg shadow-md backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-lg`}
                 onClick={() => onNavigate(item)}
                 onMouseEnter={() => {
                   setHoveredId(item.id);
@@ -485,16 +485,16 @@ export default function RelationshipDiagram({
                   setTooltipPosition(null);
                 }}
                 style={{
-                  boxShadow: hoveredId === item.id ? `0 0 20px ${color}80` : undefined,
+                  boxShadow: hoveredId === item.id ? `0 0 15px ${color}80` : undefined,
                 }}
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-base font-mono font-semibold" style={{ color }}>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="text-xs font-mono font-semibold" style={{ color }}>
                     #{item.id}
                   </span>
                   {item.relationType && (
                     <span
-                      className="text-sm px-2.5 py-1 rounded flex items-center gap-1.5 font-medium"
+                      className="text-xs px-1.5 py-0.5 rounded flex items-center gap-1 font-medium"
                       style={{
                         backgroundColor: `${color}30`,
                         color: color,
@@ -502,17 +502,17 @@ export default function RelationshipDiagram({
                         borderWidth: '1px',
                       }}
                     >
-                      {icon}
-                      {item.relationType}
+                      {React.cloneElement(icon as React.ReactElement, { className: 'w-3 h-3' })}
+                      <span className="hidden sm:inline">{item.relationType}</span>
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-rh-text line-clamp-3 mb-3 leading-relaxed">{item.title}</p>
-                <div className="flex gap-2 flex-wrap">
-                  <span className="text-sm px-2.5 py-1 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary">
+                <p className="text-xs text-rh-text line-clamp-2 mb-1.5 leading-tight">{item.title}</p>
+                <div className="flex gap-1 flex-wrap">
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary truncate">
                     {item.type}
                   </span>
-                  <span className="text-sm px-2.5 py-1 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary">
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary truncate">
                     {item.state}
                   </span>
                 </div>
@@ -539,18 +539,18 @@ export default function RelationshipDiagram({
         if (presentTypes.length === 0) return null;
 
         return (
-          <div className="fixed bottom-6 right-6 bg-rh-card/95 backdrop-blur border border-rh-border rounded-lg p-5 shadow-xl">
-            <h4 className="text-sm font-semibold text-rh-text mb-4 uppercase tracking-wide">Relationship Types</h4>
-            <div className="space-y-3">
+          <div className="fixed bottom-4 right-4 bg-rh-card/95 backdrop-blur border border-rh-border rounded-lg p-3 shadow-xl">
+            <h4 className="text-xs font-semibold text-rh-text mb-2 uppercase tracking-wide">Relationships</h4>
+            <div className="space-y-2">
               {presentTypes.map(({ type, icon, color, count }) => (
-                <div key={type} className="flex items-center gap-3">
+                <div key={type} className="flex items-center gap-2">
                   <div
-                    className="w-6 h-6 rounded border-2 flex items-center justify-center"
+                    className="w-5 h-5 rounded border flex items-center justify-center"
                     style={{ borderColor: color, backgroundColor: `${color}20` }}
                   >
-                    <div style={{ color }}>{icon}</div>
+                    <div style={{ color }} className="scale-75">{icon}</div>
                   </div>
-                  <span className="text-sm text-rh-text-secondary font-medium">{type} ({count})</span>
+                  <span className="text-xs text-rh-text-secondary font-medium">{type} ({count})</span>
                 </div>
               ))}
             </div>

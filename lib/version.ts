@@ -1,4 +1,4 @@
-export const VERSION = 'v1.4.1';
+export const VERSION = 'v1.4.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.4.2',
+    date: '2025-01-12',
+    changes: [
+      {
+        category: 'Enhancement',
+        description: '🗺️ Compact Relationship Map - Reduced card sizes (60%) and spacing to fit entire relationship graph on one screen, rely on tooltips for details',
+      },
+    ],
+  },
   {
     version: 'v1.4.1',
     date: '2025-01-12',
