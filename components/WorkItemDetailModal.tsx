@@ -254,7 +254,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === 'details'
                 ? 'text-rh-green border-b-2 border-rh-green'
-                : 'text-rh-text-secondary hover:text-rh-text'
+                : 'text-blue-400 hover:text-blue-300'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -265,7 +265,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === 'discussion'
                 ? 'text-rh-green border-b-2 border-rh-green'
-                : 'text-rh-text-secondary hover:text-rh-text'
+                : 'text-blue-400 hover:text-blue-300'
             }`}
           >
             <MessageSquare className="w-4 h-4" />
