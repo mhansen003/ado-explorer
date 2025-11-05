@@ -89,13 +89,16 @@ export async function POST(request: NextRequest) {
             .slice(0, maxSimilarTitles)
             .map(item => ({ ...item, relationSource: 'title' as const, relationType: 'Similar Title' }));
 
-          if (newResults.length > 0) {
-            relatedItems.push(...newResults);
-            console.log('[AI Actions] Added', newResults.length, 'similar title suggestions (max 5)');
+            if (newResults.length > 0) {
+              relatedItems.push(...newResults);
+              console.log('[AI Actions] Added', newResults.length, 'similar title suggestions (max 5)');
+            }
+          } catch (error) {
+            console.error('[AI Actions] Title similarity search error:', error);
           }
-        } catch (error) {
-          console.error('[AI Actions] Title similarity search error:', error);
         }
+      } else {
+        console.log('[AI Actions] Skipping title similarity search - no project available for WIQL');
       }
 
       // Return ALL related work items - no limit on actual ADO relationships
