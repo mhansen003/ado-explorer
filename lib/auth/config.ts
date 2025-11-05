@@ -33,7 +33,7 @@ export const AUTH_CONFIG = {
  * Email configuration from environment
  */
 export const EMAIL_CONFIG = {
-  SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+  SMTP_HOST: process.env.SMTP_HOST || 'smtp-mail.outlook.com',
   SMTP_PORT: parseInt(process.env.SMTP_PORT || '587'),
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
