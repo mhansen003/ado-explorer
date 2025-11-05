@@ -254,8 +254,16 @@ Type **/help** for more info`,
 
       // FIRST: Load filters from localStorage BEFORE anything else
       try {
+        const FILTER_VERSION = '1.0'; // Increment when filter structure changes
+        const savedVersion = localStorage.getItem('ado-explorer-filters-version');
         const savedFilters = localStorage.getItem('ado-explorer-filters');
-        if (savedFilters) {
+
+        // Clear old filters if version mismatch
+        if (savedVersion !== FILTER_VERSION && savedFilters) {
+          console.log('[ChatInterface] Filter version mismatch, clearing old filters');
+          localStorage.removeItem('ado-explorer-filters');
+          localStorage.setItem('ado-explorer-filters-version', FILTER_VERSION);
+        } else if (savedFilters) {
           const parsedFilters = JSON.parse(savedFilters);
           // Merge with defaults to ensure new fields exist
           const mergedFilters: GlobalFilters = {
@@ -268,6 +276,9 @@ Type **/help** for more info`,
           };
           setGlobalFilters(mergedFilters);
           console.log('[ChatInterface] Loaded filters from localStorage:', mergedFilters);
+        } else {
+          // No saved filters, set the version for future saves
+          localStorage.setItem('ado-explorer-filters-version', FILTER_VERSION);
         }
       } catch (error) {
         console.error('[ChatInterface] Failed to load filters from localStorage:', error);
@@ -1316,6 +1327,7 @@ Just type naturally - I understand questions like:
             states={cachedStates}
             types={cachedTypes}
             tags={cachedTags}
+            queries={cachedQueries}
           />
         )}
 

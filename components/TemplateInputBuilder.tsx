@@ -15,6 +15,7 @@ interface TemplateInputBuilderProps {
   states: DynamicSuggestion[];
   types: DynamicSuggestion[];
   tags: DynamicSuggestion[];
+  queries: DynamicSuggestion[];
 }
 
 export default function TemplateInputBuilder({
@@ -27,6 +28,7 @@ export default function TemplateInputBuilder({
   states,
   types,
   tags,
+  queries,
 }: TemplateInputBuilderProps) {
   const [values, setValues] = useState<Record<string, string | string[]>>({});
   const [activePlaceholder, setActivePlaceholder] = useState<string | null>(
@@ -48,6 +50,7 @@ export default function TemplateInputBuilder({
       case 'state': return states;
       case 'type': return types;
       case 'tag': return tags;
+      case 'query': return queries;
       default: return [];
     }
   };
@@ -58,7 +61,8 @@ export default function TemplateInputBuilder({
     if (!filterText.trim()) return dataSource;
 
     return dataSource.filter(item =>
-      item.value.toLowerCase().includes(filterText.toLowerCase())
+      item.value.toLowerCase().includes(filterText.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(filterText.toLowerCase()))
     );
   };
 

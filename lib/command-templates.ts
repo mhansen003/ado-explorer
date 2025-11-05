@@ -88,6 +88,18 @@ export const COMMAND_TEMPLATES: CommandTemplate[] = [
     }
   },
 
+  // By Saved Query
+  {
+    id: 'by-query',
+    displayText: 'Show me all tickets based on query {query}',
+    description: 'Run a saved Azure DevOps query',
+    icon: '🔍',
+    placeholders: [
+      { key: 'query', type: 'query', label: 'saved query', required: true }
+    ],
+    buildCommand: (values) => `/query ${values.query}`
+  },
+
   // Recent tickets
   {
     id: 'recent',

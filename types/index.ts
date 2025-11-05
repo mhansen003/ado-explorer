@@ -78,7 +78,7 @@ export interface Comment {
   modifiedDate?: string;
 }
 
-export type PlaceholderType = 'user' | 'project' | 'state' | 'type' | 'tag' | 'board' | 'text' | 'days';
+export type PlaceholderType = 'user' | 'project' | 'state' | 'type' | 'tag' | 'board' | 'text' | 'days' | 'query';
 
 export interface Placeholder {
   key: string; // unique key for this placeholder
