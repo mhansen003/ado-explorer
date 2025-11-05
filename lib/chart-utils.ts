@@ -9,14 +9,30 @@ const STATE_COLORS: Record<string, string> = {
   'Removed': '#EF4444',
 };
 
-// Color mapping for common work item types
+/**
+ * Color mapping for common work item types
+ * Aligned with ADO color scheme for mental consistency:
+ * - Epics: Orange
+ * - Features: Purple
+ * - User Stories: Blue
+ * - Tasks: Gray
+ * - Test Cases: Green
+ * - Spikes: Dark Green (emerald)
+ * - Defects: Yellow
+ * - Bugs: Red
+ */
 const TYPE_COLORS: Record<string, string> = {
-  'Bug': '#EF4444',
-  'Task': '#3B82F6',
-  'User Story': '#10B981',
-  'Epic': '#8B5CF6',
-  'Feature': '#F59E0B',
-  'Issue': '#EC4899',
+  'Bug': '#EF4444',              // Red
+  'Defect': '#EAB308',           // Yellow
+  'Issue': '#EAB308',            // Yellow (treat as defect)
+  'Task': '#9CA3AF',             // Gray
+  'User Story': '#3B82F6',       // Blue
+  'Story': '#3B82F6',            // Blue (alias)
+  'Feature': '#A855F7',          // Purple
+  'Epic': '#F97316',             // Orange
+  'Test Case': '#10B981',        // Green
+  'Test': '#10B981',             // Green (alias)
+  'Spike': '#059669',            // Dark Green (emerald-600)
 };
 
 // Color mapping for priorities

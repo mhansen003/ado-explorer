@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import RelationshipDiagram from './RelationshipDiagram';
 import RelationshipModal from './RelationshipModal';
+import { getTypeColorDetailed, getStateColor } from '@/lib/colors';
 
 interface WorkItemDetailModalProps {
   workItem: WorkItem;
@@ -426,17 +427,17 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-sm font-mono text-cyan-400 font-semibold">#{workItem.id}</span>
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-2 py-1 text-xs font-medium rounded bg-blue-500/20 text-blue-400 border border-blue-500/40">
+                    <span className={`px-2 py-1 text-xs font-medium rounded ${getTypeColorDetailed(workItem.type).bg} ${getTypeColorDetailed(workItem.type).text} border ${getTypeColorDetailed(workItem.type).border}`}>
                       {workItem.type}
                     </span>
-                    <span className="px-2 py-1 text-xs font-medium rounded bg-purple-500/20 text-purple-400 border border-purple-500/40">
+                    <span className={`px-2 py-1 text-xs font-medium rounded bg-gray-500/10 ${getStateColor(workItem.state)} border border-gray-500/30`}>
                       {workItem.state}
                     </span>
                     <span className="px-2 py-1 text-xs font-medium rounded bg-orange-500/20 text-orange-400 border border-orange-500/40">
                       P{workItem.priority}
                     </span>
                     {workItem.storyPoints !== undefined && (
-                      <span className="px-2 py-1 text-xs font-medium rounded bg-green-500/20 text-green-400 border border-green-500/40">
+                      <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
                         {workItem.storyPoints} pts
                       </span>
                     )}
