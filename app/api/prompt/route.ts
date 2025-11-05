@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ADOService } from '@/lib/ado-api';
 import { GlobalFilters } from '@/types';
+import { callOpenAIWithRetry, isRateLimitError, formatRateLimitError } from '@/lib/openai-utils';
 
 export async function POST(request: NextRequest) {
   // Get environment variables outside try block so they're available in catch
@@ -126,7 +127,7 @@ Respond ONLY with the WIQL query, nothing else.`,
       content: prompt,
     });
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openaiResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -138,13 +139,17 @@ Respond ONLY with the WIQL query, nothing else.`,
         temperature: 0.3,
         max_tokens: 200,
       }),
-    });
+    }, 3); // Max 3 retries
 
     const openaiData = await openaiResponse.json();
     console.log('[ADO Prompt API] OpenAI response:', openaiData);
 
     if (!openaiResponse.ok) {
-      throw new Error(openaiData.error?.message || 'OpenAI API error');
+      const errorMessage = openaiData.error?.message || 'OpenAI API error';
+      if (isRateLimitError(openaiData)) {
+        throw new Error(`RATE_LIMIT:${errorMessage}`);
+      }
+      throw new Error(errorMessage);
     }
 
     const wiqlQuery = openaiData.choices[0].message.content.trim();
@@ -190,7 +195,7 @@ Respond ONLY with the WIQL query, nothing else.`,
     }
 
     // Determine if we should provide a conversational answer
-    const shouldAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const shouldAnswerResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -211,7 +216,7 @@ Respond ONLY with the WIQL query, nothing else.`,
         temperature: 0.3,
         max_tokens: 10,
       }),
-    });
+    }, 3);
 
     const shouldAnswerData = await shouldAnswerResponse.json();
     const responseType = shouldAnswerData.choices[0].message.content.trim().toUpperCase();
@@ -279,7 +284,7 @@ ${itemsList}
 Based on this context, provide a helpful, conversational answer to the user's question. If asked about priorities or urgency, focus on P1 and P2 items. Be specific and reference actual work item IDs when relevant.`,
       });
 
-      const answerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const answerResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -291,7 +296,7 @@ Based on this context, provide a helpful, conversational answer to the user's qu
           temperature: 0.7,
           max_tokens: 800,
         }),
-      });
+      }, 3);
 
       const answerData = await answerResponse.json();
       conversationalAnswer = answerData.choices[0].message.content.trim();
@@ -314,49 +319,71 @@ Based on this context, provide a helpful, conversational answer to the user's qu
       response: error.response?.data,
     });
 
-    // Use AI to provide a conversational error response
-    try {
-      const errorResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an Azure DevOps assistant. The system encountered an error while trying to fetch work items. Provide a helpful, conversational response explaining what might have gone wrong and suggesting alternatives.',
-            },
-            {
-              role: 'user',
-              content: `User question: "${prompt}"\n\nError: ${error.message}\n\nPlease provide a helpful response to the user.`,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 300,
-        }),
-      });
+    // Check if it's a rate limit error
+    if (error.message?.startsWith('RATE_LIMIT:') || isRateLimitError(error.message)) {
+      const errorMessage = error.message.replace('RATE_LIMIT:', '');
+      const conversationalError = formatRateLimitError(errorMessage);
 
-      if (errorResponse.ok) {
-        const errorData = await errorResponse.json();
-        const conversationalError = errorData.choices[0].message.content.trim();
-
-        return NextResponse.json({
+      return NextResponse.json(
+        {
           workItems: [],
-          searchScope: 'Error occurred',
-          error: error.message,
+          searchScope: 'Rate limit encountered',
+          error: 'OpenAI rate limit',
           conversationalAnswer: conversationalError,
           aiGenerated: true,
           originalPrompt: prompt,
-        });
-      }
-    } catch (aiError) {
-      console.error('[ADO Prompt API] AI error response failed:', aiError);
+          rateLimitError: true,
+        },
+        { status: 429 }
+      );
     }
 
-    // Fallback to generic error if AI fails
+    // For non-rate-limit errors, try to use AI for a helpful response
+    // But only if we have the API key and it's not a rate limit issue
+    if (openaiKey) {
+      try {
+        const errorResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an Azure DevOps assistant. The system encountered an error while trying to fetch work items. Provide a helpful, conversational response explaining what might have gone wrong and suggesting alternatives.',
+              },
+              {
+                role: 'user',
+                content: `User question: "${prompt}"\n\nError: ${error.message}\n\nPlease provide a helpful response to the user.`,
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 300,
+          }),
+        }, 2); // Fewer retries for error handling
+
+        if (errorResponse.ok) {
+          const errorData = await errorResponse.json();
+          const conversationalError = errorData.choices[0].message.content.trim();
+
+          return NextResponse.json({
+            workItems: [],
+            searchScope: 'Error occurred',
+            error: error.message,
+            conversationalAnswer: conversationalError,
+            aiGenerated: true,
+            originalPrompt: prompt,
+          });
+        }
+      } catch (aiError) {
+        console.error('[ADO Prompt API] AI error response failed:', aiError);
+      }
+    }
+
+    // Fallback to generic error if AI fails or unavailable
     return NextResponse.json(
       {
         error: error.message || 'Failed to process prompt',

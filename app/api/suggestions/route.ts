@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WorkItem } from '@/types';
+import { callOpenAIWithRetry, isRateLimitError, formatRateLimitError } from '@/lib/openai-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,33 +49,44 @@ Example: ["show me only the bugs", "filter by high priority items", "show items 
 
 Keep queries short (5-8 words) and actionable.`;
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`,
+    const openaiResponse = await callOpenAIWithRetry(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful Azure DevOps assistant that generates follow-up query suggestions. Always respond with valid JSON arrays only.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        }),
       },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful Azure DevOps assistant that generates follow-up query suggestions. Always respond with valid JSON arrays only.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 200,
-      }),
-    });
+      3 // Max 3 retries
+    );
 
     const openaiData = await openaiResponse.json();
 
     if (!openaiResponse.ok) {
-      throw new Error(openaiData.error?.message || 'OpenAI API error');
+      const errorMessage = openaiData.error?.message || 'OpenAI API error';
+
+      // Check if it's a rate limit error
+      if (isRateLimitError(openaiData)) {
+        throw new Error(`RATE_LIMIT:${errorMessage}`);
+      }
+
+      throw new Error(errorMessage);
     }
 
     const suggestionsText = openaiData.choices[0].message.content.trim();
@@ -96,6 +108,23 @@ Keep queries short (5-8 words) and actionable.`;
     return NextResponse.json({ suggestions: suggestions.slice(0, 4) });
   } catch (error: any) {
     console.error('[Suggestions API] Error:', error.message);
+
+    // Check if it's a rate limit error
+    if (error.message?.startsWith('RATE_LIMIT:') || isRateLimitError(error.message)) {
+      const errorMessage = error.message.replace('RATE_LIMIT:', '');
+      const conversationalError = formatRateLimitError(errorMessage);
+
+      return NextResponse.json(
+        {
+          suggestions: [],
+          error: 'OpenAI rate limit',
+          rateLimitError: true,
+          message: conversationalError,
+        },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || 'Failed to generate suggestions' },
       { status: 500 }
