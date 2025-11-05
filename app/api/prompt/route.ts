@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ADOService } from '@/lib/ado-api';
 import { GlobalFilters } from '@/types';
 import { callOpenAIWithRetry, isRateLimitError, formatRateLimitError } from '@/lib/openai-utils';
+import {
+  prepareAnalyticsSummary,
+  calculateSprintVelocity,
+  calculateTeamMetrics,
+  analyzeVelocityTrends,
+  calculateCycleTime,
+} from '@/lib/analytics-utils';
 
 export async function POST(request: NextRequest) {
   // Get environment variables outside try block so they're available in catch
@@ -50,6 +57,42 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Step 1: Detect if this is an analytical query (velocity, trends, insights) vs a search query
+    const analyticsDetectionResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model: simpleTaskModel,
+        messages: [
+          {
+            role: 'system',
+            content: `You are analyzing user queries to Azure DevOps. Determine if the user wants:
+1. "SEARCH" - Find and list specific work items (bugs, tasks, stories)
+2. "ANALYTICS" - Analyze metrics, trends, velocity, performance, insights
+
+Analytical queries include words like: velocity, trend, performance, how fast, how many, analysis, metrics, throughput, cycle time, team performance, sprint progress, burn rate, comparison
+
+Respond with ONLY "SEARCH" or "ANALYTICS".`,
+          },
+          {
+            role: 'user',
+            content: `Query: "${prompt}"`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 10,
+      }),
+    }, 3);
+
+    const analyticsDetectionData = await analyticsDetectionResponse.json();
+    const queryType = analyticsDetectionData.choices[0].message.content.trim().toUpperCase();
+    const isAnalyticsQuery = queryType === 'ANALYTICS';
+
+    console.log('[ADO Prompt API] Query type detected:', queryType);
 
     // Call OpenAI to interpret the prompt
     const messages = [
@@ -181,6 +224,77 @@ Respond ONLY with the WIQL query, nothing else.`,
     // Execute the filtered WIQL query
     const workItems = await adoService.searchWorkItems(filteredQuery);
     console.log('[ADO Prompt API] Found work items:', workItems.length);
+
+    // If this is an analytics query, perform analysis and return insights
+    if (isAnalyticsQuery && workItems.length > 0) {
+      console.log('[ADO Prompt API] Performing analytics analysis...');
+
+      // Calculate metrics
+      const analyticsSummary = prepareAnalyticsSummary(workItems);
+      const velocities = calculateSprintVelocity(workItems);
+      const teamMetrics = calculateTeamMetrics(workItems);
+      const velocityTrends = analyzeVelocityTrends(velocities);
+      const cycleTime = calculateCycleTime(workItems);
+
+      // Have AI analyze the metrics and answer the user's question
+      const analyticsResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: complexTaskModel, // Use gpt-4o for complex analysis
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert Agile/Scrum analytics consultant. Analyze Azure DevOps metrics and provide actionable insights.
+
+When answering:
+1. Directly address the user's question
+2. Cite specific numbers from the data
+3. Identify trends and patterns
+4. Provide 2-3 actionable recommendations
+5. Use clear, business-friendly language
+6. Format with markdown for readability (use **bold** for numbers, bullet points for lists)
+
+Keep your response focused and concise (3-5 paragraphs maximum).`,
+            },
+            {
+              role: 'user',
+              content: `User Question: "${prompt}"
+
+${analyticsSummary}
+
+Please analyze this data and answer the user's question with specific insights and recommendations.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+        }),
+      }, 3);
+
+      const analyticsData = await analyticsResponse.json();
+      const analyticsAnswer = analyticsData.choices[0].message.content.trim();
+
+      // Return analytics response with metrics for visualization
+      return NextResponse.json({
+        workItems,
+        searchScope: `Analyzed ${workItems.length} work items`,
+        wiqlQuery: filteredQuery,
+        conversationalAnswer: analyticsAnswer,
+        aiGenerated: true,
+        originalPrompt: prompt,
+        suggestions: [],
+        isAnalytics: true,
+        analyticsData: {
+          velocities,
+          teamMetrics,
+          velocityTrends,
+          cycleTime,
+        },
+      });
+    }
 
     // Generate AI suggestions asynchronously (don't wait for it)
     let suggestions: string[] = [];

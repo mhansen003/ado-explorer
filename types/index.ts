@@ -8,6 +8,37 @@ export interface ChartData {
   }>;
 }
 
+export interface AnalyticsData {
+  velocities: Array<{
+    iteration: string;
+    iterationPath: string;
+    storyPointsCompleted: number;
+    storyPointsPlanned: number;
+    itemsCompleted: number;
+    itemsPlanned: number;
+    completionRate: number;
+  }>;
+  teamMetrics: {
+    totalStoryPoints: number;
+    completedStoryPoints: number;
+    averageVelocity: number;
+    teamMembers: string[];
+    workItemsByMember: Record<string, number>;
+    storyPointsByMember: Record<string, number>;
+  };
+  velocityTrends: {
+    trend: 'increasing' | 'decreasing' | 'stable' | 'volatile';
+    changePercentage: number;
+    consistency: number;
+    recommendations: string[];
+  };
+  cycleTime: {
+    averageDays: number;
+    medianDays: number;
+    byType: Record<string, number>;
+  };
+}
+
 export interface Message {
   id: string;
   type: 'user' | 'system' | 'results';
@@ -19,6 +50,8 @@ export interface Message {
   responseType?: 'TICKETS' | 'ANSWER';
   suggestions?: string[];
   chartData?: ChartData;
+  isAnalytics?: boolean;
+  analyticsData?: AnalyticsData;
 }
 
 export interface WorkItem {
@@ -31,6 +64,7 @@ export interface WorkItem {
   createdBy: string;
   createdByEmail?: string;
   createdDate: string;
+  closedDate?: string;
   priority: number;
   description?: string;
   tags?: string[];

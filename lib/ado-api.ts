@@ -77,7 +77,7 @@ export class ADOService {
         const detailsResponse = await this.orgClient.get('/wit/workitems', {
           params: {
             ids: batchIds.join(','),
-            fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,System.ChangedDate,System.ChangedBy,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,Microsoft.VSTS.Common.AcceptanceCriteria',
+            fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,System.ChangedDate,System.ChangedBy,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,Microsoft.VSTS.Common.AcceptanceCriteria,Microsoft.VSTS.Common.ClosedDate',
           },
         });
 
@@ -126,7 +126,7 @@ export class ADOService {
         const detailsResponse = await this.orgClient.get('/wit/workitems', {
           params: {
             ids: batchIds.join(','),
-            fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,Microsoft.VSTS.Common.Priority,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints',
+            fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,Microsoft.VSTS.Common.Priority,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,System.CreatedBy,System.CreatedDate,System.ChangedDate,Microsoft.VSTS.Common.ClosedDate',
           },
         });
         batches.push(...detailsResponse.data.value.map((item: any) => this.mapToWorkItem(item)));
@@ -353,6 +353,7 @@ export class ADOService {
       createdBy: fields['System.CreatedBy']?.displayName || 'Unknown',
       createdByEmail: fields['System.CreatedBy']?.uniqueName,
       createdDate: fields['System.CreatedDate'] || new Date().toISOString(),
+      closedDate: fields['Microsoft.VSTS.Common.ClosedDate'],
       priority: fields['Microsoft.VSTS.Common.Priority'] || 3,
       description: fields['System.Description'] || '',
       tags: fields['System.Tags'] ? fields['System.Tags'].split(';').map((t: string) => t.trim()) : [],

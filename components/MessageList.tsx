@@ -2,6 +2,7 @@ import { Message, ViewPreferences, GlobalFilters } from '@/types';
 import WorkItemCard from './WorkItemCard';
 import WorkItemGrid from './WorkItemGrid';
 import WorkItemChart from './WorkItemChart';
+import AnalyticsInsights from './AnalyticsInsights';
 import { Bot, User, Download, Table, BarChart3, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ResultsModal from './ResultsModal';
@@ -225,7 +226,15 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                 <WorkItemChart chartData={message.chartData} workItems={message.workItems} />
               )}
 
-              {message.type === 'results' && message.workItems ? (
+              {/* Analytics Display */}
+              {message.isAnalytics && message.analyticsData && (
+                <AnalyticsInsights
+                  data={message.analyticsData}
+                  conversationalAnswer={message.conversationalAnswer}
+                />
+              )}
+
+              {message.type === 'results' && message.workItems && !message.isAnalytics ? (
                 <div className="space-y-2 mt-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex flex-col gap-1">
