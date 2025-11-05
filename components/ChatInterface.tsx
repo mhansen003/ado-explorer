@@ -563,6 +563,12 @@ Type **/help** for more info`,
 
     // If input doesn't start with '/', treat it as an AI prompt
     if (!command.startsWith('/')) {
+      // Get last 10 messages for conversation context
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      }));
+
       const loadingMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
