@@ -202,13 +202,31 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
               <div className="flex items-center gap-2 text-sm">
                 <User className="w-4 h-4 text-rh-text-secondary" />
                 <span className="text-rh-text-secondary">Assigned to:</span>
-                <span className="text-rh-text font-medium">{workItem.assignedTo}</span>
+                {workItem.assignedToEmail ? (
+                  <a
+                    href={`mailto:${workItem.assignedToEmail}`}
+                    className="text-rh-text font-medium hover:text-rh-green transition-colors hover:underline"
+                  >
+                    {workItem.assignedTo}
+                  </a>
+                ) : (
+                  <span className="text-rh-text font-medium">{workItem.assignedTo}</span>
+                )}
               </div>
 
               <div className="flex items-center gap-2 text-sm">
                 <User className="w-4 h-4 text-rh-text-secondary" />
                 <span className="text-rh-text-secondary">Created by:</span>
-                <span className="text-rh-text font-medium">{workItem.createdBy}</span>
+                {workItem.createdByEmail ? (
+                  <a
+                    href={`mailto:${workItem.createdByEmail}`}
+                    className="text-rh-text font-medium hover:text-rh-green transition-colors hover:underline"
+                  >
+                    {workItem.createdBy}
+                  </a>
+                ) : (
+                  <span className="text-rh-text font-medium">{workItem.createdBy}</span>
+                )}
               </div>
 
               <div className="flex items-center gap-2 text-sm">
@@ -223,7 +241,16 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
                 <div className="flex items-center gap-2 text-sm">
                   <User className="w-4 h-4 text-rh-text-secondary" />
                   <span className="text-rh-text-secondary">Last changed by:</span>
-                  <span className="text-rh-text font-medium">{workItem.changedBy}</span>
+                  {workItem.changedByEmail ? (
+                    <a
+                      href={`mailto:${workItem.changedByEmail}`}
+                      className="text-rh-text font-medium hover:text-rh-green transition-colors hover:underline"
+                    >
+                      {workItem.changedBy}
+                    </a>
+                  ) : (
+                    <span className="text-rh-text font-medium">{workItem.changedBy}</span>
+                  )}
                 </div>
               )}
 

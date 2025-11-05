@@ -15,7 +15,9 @@ export interface WorkItem {
   type: string;
   state: string;
   assignedTo: string;
+  assignedToEmail?: string;
   createdBy: string;
+  createdByEmail?: string;
   createdDate: string;
   priority: number;
   description?: string;
@@ -23,6 +25,7 @@ export interface WorkItem {
   project?: string;
   changedDate?: string;
   changedBy?: string;
+  changedByEmail?: string;
   iterationPath?: string;
   areaPath?: string;
   storyPoints?: number;
