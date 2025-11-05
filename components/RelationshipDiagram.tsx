@@ -34,10 +34,10 @@ export default function RelationshipDiagram({
   );
 
   // Calculate positions for hierarchical layout
-  const CARD_WIDTH = 280;
-  const CARD_HEIGHT = 120;
-  const VERTICAL_GAP = 100;
-  const HORIZONTAL_GAP = 40;
+  const CARD_WIDTH = 420;
+  const CARD_HEIGHT = 200;
+  const VERTICAL_GAP = 140;
+  const HORIZONTAL_GAP = 60;
 
   // Position current item in the center
   const centerX = 400;
@@ -142,11 +142,11 @@ export default function RelationshipDiagram({
   // Helper function to get relationship icon
   const getRelationshipIcon = (relationType?: string) => {
     switch (relationType) {
-      case 'Parent': return <ArrowUp className="w-4 h-4" />;
-      case 'Child': return <ArrowDown className="w-4 h-4" />;
-      case 'Successor': return <ArrowRight className="w-4 h-4" />;
-      case 'Predecessor': return <ArrowLeft className="w-4 h-4" />;
-      default: return <Link2 className="w-4 h-4" />;
+      case 'Parent': return <ArrowUp className="w-5 h-5" />;
+      case 'Child': return <ArrowDown className="w-5 h-5" />;
+      case 'Successor': return <ArrowRight className="w-5 h-5" />;
+      case 'Predecessor': return <ArrowLeft className="w-5 h-5" />;
+      default: return <Link2 className="w-5 h-5" />;
     }
   };
 
@@ -345,23 +345,23 @@ export default function RelationshipDiagram({
           height={CARD_HEIGHT}
         >
           <div
-            className="w-full h-full p-4 border-4 border-rh-green bg-rh-green/20 rounded-lg shadow-2xl backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105"
+            className="w-full h-full p-6 border-4 border-rh-green bg-rh-green/20 rounded-lg shadow-2xl backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105"
             style={{
               boxShadow: '0 0 30px rgba(16, 185, 129, 0.5)',
             }}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-mono text-rh-green font-bold">#{currentWorkItem.id}</span>
-              <span className="text-xs px-2 py-1 rounded bg-rh-green/30 text-rh-green border border-rh-green/50">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg font-mono text-rh-green font-bold">#{currentWorkItem.id}</span>
+              <span className="text-sm px-3 py-1.5 rounded bg-rh-green/30 text-rh-green border border-rh-green/50 font-semibold">
                 CURRENT
               </span>
             </div>
-            <p className="text-sm text-rh-text font-semibold line-clamp-2 mb-1">{currentWorkItem.title}</p>
-            <div className="flex gap-2 mt-2">
-              <span className="text-xs px-2 py-0.5 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
+            <p className="text-base text-rh-text font-semibold line-clamp-3 mb-2">{currentWorkItem.title}</p>
+            <div className="flex gap-2 mt-3">
+              <span className="text-sm px-3 py-1 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
                 {currentWorkItem.type}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
+              <span className="text-sm px-3 py-1 rounded bg-rh-card border border-rh-border text-rh-text-secondary">
                 {currentWorkItem.state}
               </span>
             </div>
@@ -383,7 +383,7 @@ export default function RelationshipDiagram({
               height={CARD_HEIGHT}
             >
               <div
-                className={`w-full h-full p-3 border-2 ${styles} rounded-lg shadow-lg backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+                className={`w-full h-full p-5 border-2 ${styles} rounded-lg shadow-lg backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}
                 onClick={() => onNavigate(item)}
                 onMouseEnter={() => setHoveredId(item.id)}
                 onMouseLeave={() => setHoveredId(null)}
@@ -391,13 +391,13 @@ export default function RelationshipDiagram({
                   boxShadow: hoveredId === item.id ? `0 0 20px ${color}80` : undefined,
                 }}
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-mono font-semibold" style={{ color }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-base font-mono font-semibold" style={{ color }}>
                     #{item.id}
                   </span>
                   {item.relationType && (
                     <span
-                      className="text-xs px-2 py-0.5 rounded flex items-center gap-1 font-medium"
+                      className="text-sm px-2.5 py-1 rounded flex items-center gap-1.5 font-medium"
                       style={{
                         backgroundColor: `${color}30`,
                         color: color,
@@ -410,12 +410,12 @@ export default function RelationshipDiagram({
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-rh-text line-clamp-2 mb-2">{item.title}</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary">
+                <p className="text-sm text-rh-text line-clamp-3 mb-3 leading-relaxed">{item.title}</p>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-sm px-2.5 py-1 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary">
                     {item.type}
                   </span>
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary">
+                  <span className="text-sm px-2.5 py-1 rounded bg-rh-card/70 border border-rh-border text-rh-text-secondary">
                     {item.state}
                   </span>
                 </div>

@@ -223,14 +223,14 @@ export class ADOService {
     }
 
     // New multi-select ignore states filter
-    if (filters.ignoreStates && filters.ignoreStates.length > 0) {
+    if (Array.isArray(filters.ignoreStates) && filters.ignoreStates.length > 0) {
       console.log('[ADO Service] Adding ignoreStates condition:', filters.ignoreStates);
       const stateConditions = filters.ignoreStates.map(state => `[System.State] <> '${state}'`).join(' AND ');
       conditions.push(`(${stateConditions})`);
     }
 
     // New multi-select ignore created by filter
-    if (filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0) {
+    if (Array.isArray(filters.ignoreCreatedBy) && filters.ignoreCreatedBy.length > 0) {
       console.log('[ADO Service] Adding ignoreCreatedBy condition:', filters.ignoreCreatedBy);
       const createdByConditions = filters.ignoreCreatedBy.map(user => `[System.CreatedBy] <> '${user}'`).join(' AND ');
       conditions.push(`(${createdByConditions})`);

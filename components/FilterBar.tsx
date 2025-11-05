@@ -98,7 +98,7 @@ export default function FilterBar({
   };
 
   const toggleState = (state: string) => {
-    const currentStates = filters.ignoreStates || [];
+    const currentStates = Array.isArray(filters.ignoreStates) ? filters.ignoreStates : [];
     const newStates = currentStates.includes(state)
       ? currentStates.filter(s => s !== state)
       : [...currentStates, state];
@@ -106,7 +106,7 @@ export default function FilterBar({
   };
 
   const toggleCreatedBy = (user: string) => {
-    const currentUsers = filters.ignoreCreatedBy || [];
+    const currentUsers = Array.isArray(filters.ignoreCreatedBy) ? filters.ignoreCreatedBy : [];
     const newUsers = currentUsers.includes(user)
       ? currentUsers.filter(u => u !== user)
       : [...currentUsers, user];
@@ -117,8 +117,8 @@ export default function FilterBar({
     filters.ignoreClosed,
     filters.onlyMyTickets,
     filters.ignoreOlderThanDays !== null,
-    (filters.ignoreStates && filters.ignoreStates.length > 0),
-    (filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0),
+    (Array.isArray(filters.ignoreStates) && filters.ignoreStates.length > 0),
+    (Array.isArray(filters.ignoreCreatedBy) && filters.ignoreCreatedBy.length > 0),
   ].filter(Boolean).length;
 
   return (
@@ -150,7 +150,7 @@ export default function FilterBar({
                     className="w-full px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
                   >
                     <span className="truncate">
-                      {filters.ignoreStates && filters.ignoreStates.length > 0
+                      {Array.isArray(filters.ignoreStates) && filters.ignoreStates.length > 0
                         ? `${filters.ignoreStates.length} selected`
                         : 'Select states to ignore'}
                     </span>
@@ -177,7 +177,7 @@ export default function FilterBar({
                   </div>
                 </div>
               </div>
-              {filters.ignoreStates && filters.ignoreStates.length > 0 && (
+              {Array.isArray(filters.ignoreStates) && filters.ignoreStates.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {filters.ignoreStates.map(state => (
                     <span
@@ -207,7 +207,7 @@ export default function FilterBar({
                     className="w-full px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
                   >
                     <span className="truncate">
-                      {filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0
+                      {Array.isArray(filters.ignoreCreatedBy) && filters.ignoreCreatedBy.length > 0
                         ? `${filters.ignoreCreatedBy.length} selected`
                         : 'Select users to ignore'}
                     </span>
@@ -234,7 +234,7 @@ export default function FilterBar({
                   </div>
                 </div>
               </div>
-              {filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0 && (
+              {Array.isArray(filters.ignoreCreatedBy) && filters.ignoreCreatedBy.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {filters.ignoreCreatedBy.map(user => (
                     <span
