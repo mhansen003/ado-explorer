@@ -387,8 +387,17 @@ export default function RelationshipDiagram({
               <div
                 className={`w-full h-full p-5 border-2 ${styles} rounded-lg shadow-lg backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}
                 onClick={() => onNavigate(item)}
-                onMouseEnter={() => setHoveredId(item.id)}
-                onMouseLeave={() => setHoveredId(null)}
+                onMouseEnter={(e) => {
+                  setHoveredId(item.id);
+                  setTooltipItem(item);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltipPosition({ x: rect.right + 10, y: rect.top });
+                }}
+                onMouseLeave={() => {
+                  setHoveredId(null);
+                  setTooltipItem(null);
+                  setTooltipPosition(null);
+                }}
                 style={{
                   boxShadow: hoveredId === item.id ? `0 0 20px ${color}80` : undefined,
                 }}
@@ -450,6 +459,122 @@ export default function RelationshipDiagram({
           ))}
         </div>
       </div>
+
+      {/* Detailed Tooltip */}
+      {tooltipItem && tooltipPosition && (
+        <div
+          className="fixed z-[200] w-96 bg-rh-dark/98 backdrop-blur-xl border-2 border-rh-green rounded-xl shadow-2xl p-6 pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }}
+        >
+          {/* Header */}
+          <div className="mb-4 pb-4 border-b border-rh-border">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl font-mono font-bold text-rh-green">#{tooltipItem.id}</span>
+              <span className="px-2 py-1 text-xs rounded bg-rh-green/20 text-rh-green border border-rh-green/50 font-semibold">
+                {tooltipItem.relationType}
+              </span>
+            </div>
+            <h3 className="text-base font-semibold text-rh-text leading-tight">{tooltipItem.title}</h3>
+          </div>
+
+          {/* Metadata Grid */}
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-rh-text-secondary min-w-24">Type:</span>
+              <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 border border-blue-500/40 font-medium">
+                {tooltipItem.type}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-rh-text-secondary min-w-24">State:</span>
+              <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 border border-purple-500/40 font-medium">
+                {tooltipItem.state}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-rh-text-secondary min-w-24">Priority:</span>
+              <span className="px-2 py-1 rounded bg-orange-500/20 text-orange-400 border border-orange-500/40 font-medium">
+                P{tooltipItem.priority}
+              </span>
+            </div>
+
+            {tooltipItem.storyPoints !== undefined && (
+              <div className="flex items-center gap-2">
+                <span className="text-rh-text-secondary min-w-24">Story Points:</span>
+                <span className="px-2 py-1 rounded bg-green-500/20 text-green-400 border border-green-500/40 font-medium">
+                  {tooltipItem.storyPoints} pts
+                </span>
+              </div>
+            )}
+
+            {tooltipItem.assignedTo && (
+              <div className="flex items-start gap-2">
+                <span className="text-rh-text-secondary min-w-24">Assigned To:</span>
+                <span className="text-rh-text">{tooltipItem.assignedTo}</span>
+              </div>
+            )}
+
+            {tooltipItem.project && (
+              <div className="flex items-start gap-2">
+                <span className="text-rh-text-secondary min-w-24">Project:</span>
+                <span className="text-rh-text">{tooltipItem.project}</span>
+              </div>
+            )}
+
+            {tooltipItem.areaPath && (
+              <div className="flex items-start gap-2">
+                <span className="text-rh-text-secondary min-w-24">Area:</span>
+                <span className="text-rh-text text-xs">{tooltipItem.areaPath}</span>
+              </div>
+            )}
+
+            {tooltipItem.iterationPath && (
+              <div className="flex items-start gap-2">
+                <span className="text-rh-text-secondary min-w-24">Iteration:</span>
+                <span className="text-rh-text text-xs">{tooltipItem.iterationPath}</span>
+              </div>
+            )}
+
+            {tooltipItem.tags && tooltipItem.tags.length > 0 && (
+              <div className="flex items-start gap-2">
+                <span className="text-rh-text-secondary min-w-24">Tags:</span>
+                <div className="flex flex-wrap gap-1">
+                  {tooltipItem.tags.map((tag, idx) => (
+                    <span key={idx} className="px-2 py-0.5 text-xs rounded bg-rh-card border border-rh-border text-rh-text-secondary">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tooltipItem.changedDate && (
+              <div className="flex items-start gap-2">
+                <span className="text-rh-text-secondary min-w-24">Last Updated:</span>
+                <span className="text-rh-text text-xs">{new Date(tooltipItem.changedDate).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          {tooltipItem.description && (
+            <div className="mt-4 pt-4 border-t border-rh-border">
+              <span className="text-sm text-rh-text-secondary font-semibold mb-2 block">Description:</span>
+              <div
+                className="text-sm text-rh-text-secondary leading-relaxed line-clamp-4"
+                dangerouslySetInnerHTML={{ __html: tooltipItem.description }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
