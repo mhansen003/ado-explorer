@@ -52,6 +52,24 @@ export async function POST(request: NextRequest) {
 
     console.log('[ADO API] Parsed command:', { mainCommand, param, filters });
 
+    // Handle special /current-sprint command
+    if (mainCommand === '/current-sprint' || mainCommand === '/current_sprint') {
+      console.log('[ADO API] Handling current sprint query');
+      const workItems = await adoService.getCurrentSprintWorkItems(targetProject, undefined, filters);
+      console.log('[ADO API] Found work items in current sprint:', workItems.length);
+
+      return NextResponse.json({
+        workItems,
+        searchScope: `Project: ${targetProject} - Current Sprint`,
+        debug: {
+          organization,
+          project: targetProject,
+          command: 'current-sprint',
+          count: workItems.length,
+        }
+      });
+    }
+
     // Build and execute query with global filters
     const query = adoService.buildQuery(mainCommand, param, filters);
     console.log('[ADO API] WIQL Query:', query);

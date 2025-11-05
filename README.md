@@ -6,8 +6,10 @@ A next-generation Azure DevOps browser with a powerful command-line interface an
 
 - 💬 **Chat-based Interface**: Natural conversation flow for searching and exploring work items
 - ⚡ **Slash Commands**: Quick access to powerful search filters with autocomplete
+- 🏃 **Sprint Support**: Query work items by sprint/iteration, including current sprint
+- 📊 **Chart Visualizations**: Create pie, bar, line, and area charts from search results
 - 🎨 **Robinhood-style Design**: Clean, modern, dark interface
-- 📊 **Compact Card View**: Efficient display of search results
+- 📋 **Compact Card View**: Efficient display of search results
 - 🔍 **Global Search**: Search across ALL projects or filter to one specific project
 - 🌐 **Multi-Project Support**: Query across your entire Azure DevOps organization
 - 📱 **Responsive**: Works on desktop and mobile devices
@@ -21,8 +23,66 @@ A next-generation Azure DevOps browser with a powerful command-line interface an
 - `/type <type>` - Filter by work item type (Bug, Task, Story)
 - `/project <name>` - Filter by project name
 - `/tag <tag>` - Filter by tag
+- `/sprint <path>` - Filter by sprint/iteration path
+- `/current-sprint` - Show items in the current/active sprint
+- `/chart <type> <dimension>` - Create a chart from the last search results
 - `/recent` - Show recently updated items
 - `/help` - Show available commands
+
+## Chart Visualizations
+
+ADO Explorer can visualize your work items with interactive charts. After running a search query, you can create charts to analyze the data.
+
+### Chart Types
+- **Pie Chart** - Perfect for showing distribution (states, types, priorities)
+- **Bar Chart** - Great for comparing values across categories
+- **Line Chart** - Ideal for showing trends
+- **Area Chart** - Similar to line charts with filled areas
+
+### Chart Dimensions
+- **state** - Group by work item state (New, Active, Resolved, Closed)
+- **type** - Group by work item type (Bug, Task, User Story, Epic)
+- **priority** - Group by priority (P1, P2, P3, P4)
+- **assignedTo** - Group by assigned person
+- **createdBy** - Group by creator
+
+### Usage Examples
+
+1. **Using the Template**: Type `/` and select "Create a {chartType} chart showing {chartDimension}"
+   - Choose chart type from dropdown (pie, bar, line, area)
+   - Choose dimension from dropdown (state, type, priority, etc.)
+
+2. **Direct Command**: After running a search, type:
+   - `/chart pie state` - Shows distribution of work items by state
+   - `/chart bar type` - Shows count of work items by type
+   - `/chart pie priority` - Shows breakdown by priority
+
+### Workflow
+```
+1. Run a search query: "show me all active bugs"
+2. View the results
+3. Create a chart: "Create a pie chart showing type"
+4. Analyze the visualization!
+```
+
+## Sprint Queries
+
+ADO Explorer supports powerful sprint/iteration queries:
+
+### Natural Language
+- "show me items in the current sprint"
+- "what are we working on this sprint?"
+- "show me bugs in Sprint 5"
+- "what's in the latest sprint?"
+
+### Slash Commands
+- `/current-sprint` - View all work items in the active sprint
+- `/sprint <name>` - View work items for a specific sprint (e.g., `/sprint Sprint 5`)
+
+### Notes
+- Sprint data is automatically detected from your Azure DevOps team settings
+- The system identifies the current sprint based on today's date and sprint start/end dates
+- Sprint queries respect global filters (like ignoring closed tickets)
 
 ## Getting Started
 
@@ -107,6 +167,7 @@ This project is optimized for deployment on Vercel:
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
+- **Charts**: Recharts
 - **Icons**: Lucide React
 - **API**: Azure DevOps REST API
 

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { WorkItem, Comment } from '@/types';
-import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network, Maximize2, Copy, Check } from 'lucide-react';
+import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network, Maximize2, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -33,6 +33,8 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [showFullScreenRelationships, setShowFullScreenRelationships] = useState(false);
   const [copiedDescription, setCopiedDescription] = useState(false);
   const [copiedCriteria, setCopiedCriteria] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [criteriaExpanded, setCriteriaExpanded] = useState(false);
 
   // Relationship type filters
   const [relationshipFilters, setRelationshipFilters] = useState({
@@ -331,9 +333,9 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={handleClose}>
-      <div className="bg-rh-card border border-rh-border rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-rh-card border border-rh-border rounded-xl max-w-5xl w-full max-h-[85vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-rh-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-rh-border">
           <div className="flex items-center gap-3">
             <span className="text-lg font-mono text-rh-green">{workItem.id}</span>
             <span className="px-3 py-1 rounded-full text-sm font-medium bg-rh-green/10 text-rh-green">
@@ -350,7 +352,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
         {/* Breadcrumb Navigation */}
         {breadcrumbTrail.length > 0 && (
-          <div className="px-6 py-3 bg-rh-dark border-b border-rh-border">
+          <div className="px-5 py-2 bg-rh-dark border-b border-rh-border">
             <div className="flex items-center gap-2 text-sm flex-wrap">
               {breadcrumbTrail.map((item, index) => (
                 <div key={item.id} className="flex items-center gap-2">
@@ -372,7 +374,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
         <div className="flex border-b border-rh-border">
           <button
             onClick={() => setActiveTab('details')}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-colors ${
               activeTab === 'details'
                 ? 'text-rh-green border-b-2 border-rh-green'
                 : 'text-blue-400 hover:text-blue-300'
@@ -383,7 +385,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           </button>
           <button
             onClick={() => setActiveTab('discussion')}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-colors ${
               activeTab === 'discussion'
                 ? 'text-rh-green border-b-2 border-rh-green'
                 : 'text-blue-400 hover:text-blue-300'
@@ -399,7 +401,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           </button>
           <button
             onClick={() => setActiveTab('relationships')}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-colors ${
               activeTab === 'relationships'
                 ? 'text-rh-green border-b-2 border-rh-green'
                 : 'text-blue-400 hover:text-blue-300'
@@ -416,7 +418,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
         </div>
 
         {/* Content */}
-        <div className={`${activeTab === 'relationships' ? 'p-0' : 'p-6'} overflow-y-auto max-h-[calc(90vh-176px)]`}>
+        <div className={`${activeTab === 'relationships' ? 'p-0' : 'px-5 py-4'} overflow-y-auto max-h-[calc(85vh-155px)]`}>
           {activeTab === 'details' ? (
             <>
               {/* Compact Header with Badges */}
@@ -446,8 +448,8 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
               </div>
 
           {/* Compact Metadata - Single Column */}
-          <div className="bg-rh-dark/50 border border-rh-border rounded-lg p-4 mb-4 space-y-2">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <div className="bg-rh-dark/50 border border-rh-border rounded-lg p-3 mb-3 space-y-1.5">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
               <div className="flex items-center gap-2">
                 <User className="w-3.5 h-3.5 text-rh-text-secondary flex-shrink-0" />
                 <span className="text-rh-text-secondary text-xs">Assigned:</span>
@@ -505,47 +507,62 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             </div>
           </div>
 
-          {/* Description */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
+          {/* Description - Collapsible */}
+          <div className="mb-3">
+            <button
+              onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+              className="flex items-center justify-between w-full mb-2 hover:bg-rh-border/30 p-2 rounded-lg transition-colors"
+            >
               <h3 className="text-sm font-semibold text-rh-text">Description</h3>
-              {workItem.description && (
-                <button
-                  onClick={copyDescription}
-                  className="flex items-center gap-1.5 px-2 py-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors rounded hover:bg-rh-border/50"
-                >
-                  {copiedDescription ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      Copy
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-            <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-48 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
-              {sanitizedDescription ? (
-                <div dangerouslySetInnerHTML={{ __html: sanitizedDescription }} />
-              ) : (
-                <p className="text-rh-text-secondary italic">No description available.</p>
-              )}
-            </div>
+              <div className="flex items-center gap-2">
+                {workItem.description && descriptionExpanded && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyDescription();
+                    }}
+                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors rounded hover:bg-rh-border/50"
+                  >
+                    {copiedDescription ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                )}
+                {descriptionExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-rh-text-secondary" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-rh-text-secondary" />
+                )}
+              </div>
+            </button>
+            {descriptionExpanded && (
+              <div className="bg-rh-dark border border-rh-border rounded-lg p-3 text-sm max-h-64 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
+                {sanitizedDescription ? (
+                  <div dangerouslySetInnerHTML={{ __html: sanitizedDescription }} />
+                ) : (
+                  <p className="text-rh-text-secondary italic">No description available.</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Tags */}
           {workItem.tags && workItem.tags.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-3">
               <h3 className="text-sm font-semibold text-rh-text mb-2">Tags</h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {workItem.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="px-3 py-1 bg-rh-dark border border-rh-border rounded-full text-xs text-rh-text"
+                    className="px-2.5 py-0.5 bg-rh-dark border border-rh-border rounded-full text-xs text-rh-text"
                   >
                     {tag}
                   </span>
@@ -554,41 +571,58 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             </div>
           )}
 
-          {/* Acceptance Criteria */}
+          {/* Acceptance Criteria - Collapsible */}
           {workItem.acceptanceCriteria && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mb-3">
+              <button
+                onClick={() => setCriteriaExpanded(!criteriaExpanded)}
+                className="flex items-center justify-between w-full mb-2 hover:bg-rh-border/30 p-2 rounded-lg transition-colors"
+              >
                 <h3 className="text-sm font-semibold text-rh-text">Acceptance Criteria</h3>
-                <button
-                  onClick={copyCriteria}
-                  className="flex items-center gap-1.5 px-2 py-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors rounded hover:bg-rh-border/50"
-                >
-                  {copiedCriteria ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      Copy
-                    </>
+                <div className="flex items-center gap-2">
+                  {criteriaExpanded && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyCriteria();
+                      }}
+                      className="flex items-center gap-1.5 px-2 py-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors rounded hover:bg-rh-border/50"
+                    >
+                      {copiedCriteria ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
-              </div>
-              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-48 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
-                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(workItem.acceptanceCriteria, {
-                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
-                  ALLOWED_ATTR: ['class'],
-                }) }} />
-              </div>
+                  {criteriaExpanded ? (
+                    <ChevronUp className="w-4 h-4 text-rh-text-secondary" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-rh-text-secondary" />
+                  )}
+                </div>
+              </button>
+              {criteriaExpanded && (
+                <div className="bg-rh-dark border border-rh-border rounded-lg p-3 text-sm max-h-64 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(workItem.acceptanceCriteria, {
+                    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
+                    ALLOWED_ATTR: ['class'],
+                  }) }} />
+                </div>
+              )}
             </div>
           )}
 
           {/* AI Actions */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 text-rh-green" />
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-rh-green" />
               <h3 className="text-sm font-semibold text-rh-text">AI-Powered Actions</h3>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -616,7 +650,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
           {/* AI Result */}
           {(loading || aiResult) && (
-            <div className="mb-6">
+            <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-rh-text">AI Result</h3>
                 {aiResult && !loading && !relatedWorkItems && (
@@ -628,7 +662,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                   </button>
                 )}
               </div>
-              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-96 overflow-y-auto">
+              <div className="bg-rh-dark border border-rh-border rounded-lg p-3 text-sm max-h-80 overflow-y-auto">
                 {loading ? (
                   <div className="flex items-center gap-2 text-rh-text-secondary">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-rh-green border-t-transparent"></div>
@@ -655,8 +689,8 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             const presentTypes = Array.from(new Set(relatedWorkItems.map(item => item.relationType).filter(Boolean)));
 
             return (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-rh-text">
                   Related Work Items ({filteredItems.length}/{relatedWorkItems.length})
                 </h3>
@@ -664,7 +698,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
               {/* Filter Checkboxes */}
               {presentTypes.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-rh-dark/50 rounded-lg border border-rh-border">
+                <div className="flex flex-wrap gap-2 mb-2 p-2 bg-rh-dark/50 rounded-lg border border-rh-border">
                   {presentTypes.map(type => {
                     const count = relatedWorkItems.filter(item => item.relationType === type).length;
                     return (
@@ -704,7 +738,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
                 {filteredItems.map((item) => (
                   <button
                     key={item.id}

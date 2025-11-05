@@ -35,6 +35,7 @@ export default function ChatInterface() {
   const [cachedTypes, setCachedTypes] = useState<DynamicSuggestion[]>([]);
   const [cachedTags, setCachedTags] = useState<DynamicSuggestion[]>([]);
   const [cachedQueries, setCachedQueries] = useState<DynamicSuggestion[]>([]);
+  const [cachedSprints, setCachedSprints] = useState<DynamicSuggestion[]>([]);
 
   // Multi-select state for tags
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -92,7 +93,7 @@ export default function ChatInterface() {
       );
 
       // Check if we need to fetch dynamic suggestions or show cached data
-      const isDynamicCommand = ['project', 'board', 'created_by', 'assigned_to', 'state', 'type', 'tag', 'query'].includes(commandName);
+      const isDynamicCommand = ['project', 'board', 'created_by', 'assigned_to', 'state', 'type', 'tag', 'query', 'sprint'].includes(commandName);
 
       if (param && isDynamicCommand) {
         // Fetch filtered results when user is typing
@@ -118,6 +119,9 @@ export default function ChatInterface() {
             break;
           case 'query':
             fetchQueries(param);
+            break;
+          case 'sprint':
+            fetchSprints(param);
             break;
         }
       } else if (!param && isDynamicCommand) {
@@ -147,6 +151,9 @@ export default function ChatInterface() {
             break;
           case 'query':
             cachedData = cachedQueries;
+            break;
+          case 'sprint':
+            cachedData = cachedSprints;
             break;
         }
         setDynamicSuggestions(cachedData);
@@ -445,6 +452,34 @@ Type **/help** for more info`,
       } catch (err) {
         console.warn('[ChatInterface] Could not pre-load queries:', err);
       }
+
+      // Pre-load sprints
+      try {
+        console.log('[ChatInterface] Fetching sprints...');
+        const response = await fetch('/api/sprints');
+        const data = await response.json();
+        console.log('[ChatInterface] Sprints response:', { ok: response.ok, data });
+        if (response.ok && data.sprints) {
+          setCachedSprints(data.sprints.map((s: any) => ({
+            value: s.path,
+            description: `${s.name}${s.timeFrame === 'current' ? ' (Current)' : ''}`,
+            metadata: JSON.stringify({ id: s.id, startDate: s.startDate, finishDate: s.finishDate, timeFrame: s.timeFrame }),
+          })));
+          console.log('[ChatInterface] Pre-loaded sprints:', data.sprints.length);
+        } else if (response.ok && Array.isArray(data)) {
+          // API returns array directly
+          setCachedSprints(data.map((s: any) => ({
+            value: s.path,
+            description: `${s.name}${s.timeFrame === 'current' ? ' (Current)' : ''}`,
+            metadata: JSON.stringify({ id: s.id, startDate: s.startDate, finishDate: s.finishDate, timeFrame: s.timeFrame }),
+          })));
+          console.log('[ChatInterface] Pre-loaded sprints (array format):', data.length);
+        } else {
+          console.warn('[ChatInterface] Sprints API returned error:', data);
+        }
+      } catch (err) {
+        console.warn('[ChatInterface] Could not pre-load sprints:', err);
+      }
     };
 
     preloadData();
@@ -632,6 +667,32 @@ Type **/help** for more info`,
     }
   };
 
+  const fetchSprints = async (searchTerm: string) => {
+    try {
+      setIsLoadingDynamic(true);
+      const response = await fetch('/api/sprints');
+      const data = await response.json();
+
+      if (response.ok && data.sprints) {
+        const filtered = data.sprints
+          .filter((s: any) =>
+            s.name.toLowerCase().includes(searchTerm) ||
+            s.path.toLowerCase().includes(searchTerm)
+          )
+          .map((s: any) => ({
+            value: s.path,
+            description: `${s.name}${s.timeFrame === 'current' ? ' (Current)' : ''}`,
+            metadata: JSON.stringify({ id: s.id, startDate: s.startDate, finishDate: s.finishDate, timeFrame: s.timeFrame }),
+          }));
+        setDynamicSuggestions(filtered);
+      }
+    } catch (error) {
+      console.error('Error fetching sprints:', error);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -793,6 +854,45 @@ Just type naturally - I understand questions like:
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, helpMessage]);
+      return;
+    }
+
+    // Handle /chart command
+    if (command.startsWith('/chart ')) {
+      const parts = command.split(' ');
+      const chartType = parts[1] as 'pie' | 'bar' | 'line' | 'area';
+      const dataKey = parts[2] as 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy';
+
+      // Find the most recent results message with work items
+      const lastResultsMessage = [...messages].reverse().find(m => m.type === 'results' && m.workItems && m.workItems.length > 0);
+
+      if (!lastResultsMessage || !lastResultsMessage.workItems) {
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          type: 'system',
+          content: '❌ No work items found to chart. Please run a search first.',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        return;
+      }
+
+      // Import the chart processing function dynamically
+      const { processWorkItemsToChartData, getDataKeyLabel } = await import('@/lib/chart-utils');
+
+      // Generate chart data
+      const chartData = processWorkItemsToChartData(lastResultsMessage.workItems, chartType, dataKey);
+
+      const chartMessage: Message = {
+        id: Date.now().toString(),
+        type: 'results',
+        content: `📊 ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart - ${getDataKeyLabel(dataKey)}`,
+        timestamp: new Date(),
+        chartData,
+        workItems: lastResultsMessage.workItems, // Include work items for reference
+      };
+
+      setMessages(prev => [...prev, chartMessage]);
       return;
     }
 
@@ -1260,6 +1360,9 @@ Just type naturally - I understand questions like:
             case 'query':
               cachedData = cachedQueries;
               break;
+            case 'sprint':
+              cachedData = cachedSprints;
+              break;
           }
 
           console.log('[Tab Handler] Showing cached data for', commandName, ':', cachedData.length, 'items');
@@ -1324,6 +1427,7 @@ Just type naturally - I understand questions like:
             types={cachedTypes}
             tags={cachedTags}
             queries={cachedQueries}
+            sprints={cachedSprints}
           />
         )}
 

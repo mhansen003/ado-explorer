@@ -1,6 +1,7 @@
 import { Message, ViewPreferences, GlobalFilters } from '@/types';
 import WorkItemCard from './WorkItemCard';
 import WorkItemGrid from './WorkItemGrid';
+import WorkItemChart from './WorkItemChart';
 import { Bot, User, Download, Table } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ResultsModal from './ResultsModal';
@@ -142,6 +143,11 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Chart Visualization */}
+              {message.chartData && (
+                <WorkItemChart chartData={message.chartData} />
               )}
 
               {message.type === 'results' && message.workItems ? (

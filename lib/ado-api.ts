@@ -319,6 +319,19 @@ export class ADOService {
       return applyFilters(`${baseQuery} WHERE [System.ChangedDate] >= @Today - 7 ORDER BY [System.ChangedDate] DESC`);
     }
 
+    if (command.startsWith('/sprint') && param) {
+      // Search by sprint/iteration path
+      // Use UNDER operator for hierarchical matching
+      return applyFilters(`${baseQuery} WHERE [System.IterationPath] UNDER '${param}' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC`);
+    }
+
+    if (command.startsWith('/current-sprint') || command.startsWith('/current_sprint')) {
+      // Special command to query current sprint
+      // This requires getting the current sprint first, which we'll handle in the API layer
+      // For now, return a query that the API can detect and replace with the actual sprint path
+      return applyFilters(`${baseQuery} WHERE [System.State] <> 'Removed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC`);
+    }
+
     // Default: search in title and description
     const searchTerm = command.startsWith('/') ? command.slice(1).split(' ')[0] : command;
     return applyFilters(`${baseQuery} WHERE [System.Title] CONTAINS '${searchTerm}' OR [System.Description] CONTAINS '${searchTerm}' ORDER BY [System.ChangedDate] DESC`);
@@ -916,6 +929,134 @@ export class ADOService {
         data: error.response?.data,
       });
       throw error;
+    }
+  }
+
+  /**
+   * Get all sprints/iterations for a team
+   */
+  async getSprints(projectName?: string, teamName?: string): Promise<any[]> {
+    try {
+      const targetProject = projectName || this.project;
+
+      if (!targetProject) {
+        console.warn('[ADO getSprints] Project required for sprints, returning empty array');
+        return [];
+      }
+
+      console.log('[ADO getSprints] Fetching sprints for project:', targetProject);
+
+      // If no team specified, get sprints from the default team
+      let targetTeam = teamName;
+      if (!targetTeam) {
+        // Get the first team for the project
+        const teams = await this.getTeams(targetProject);
+        if (teams.length === 0) {
+          console.warn('[ADO getSprints] No teams found for project:', targetProject);
+          return [];
+        }
+        targetTeam = teams[0].name;
+        console.log('[ADO getSprints] Using default team:', targetTeam);
+      }
+
+      // Use the Work API to get team iterations
+      // https://dev.azure.com/{organization}/{project}/{team}/_apis/work/teamsettings/iterations
+      const url = `https://dev.azure.com/${this.organization}/${encodeURIComponent(targetProject)}/${encodeURIComponent(targetTeam)}/_apis/work/teamsettings/iterations`;
+
+      console.log('[ADO getSprints] Fetching from URL:', url);
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: this.orgClient.defaults.headers.Authorization as string,
+          'Content-Type': 'application/json',
+        },
+        params: {
+          'api-version': '7.1',
+        },
+      });
+
+      const sprints = response.data.value.map((sprint: any) => ({
+        id: sprint.id,
+        name: sprint.name,
+        path: sprint.path,
+        startDate: sprint.attributes?.startDate,
+        finishDate: sprint.attributes?.finishDate,
+        timeFrame: sprint.attributes?.timeFrame, // 'past', 'current', or 'future'
+      }));
+
+      console.log('[ADO getSprints] Found', sprints.length, 'sprints');
+      return sprints;
+    } catch (error: any) {
+      console.error('[ADO getSprints] Error fetching sprints:', {
+        project: projectName || this.project,
+        team: teamName,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.message,
+        url: error.config?.url,
+        responseData: error.response?.data,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Get the current sprint for a team
+   */
+  async getCurrentSprint(projectName?: string, teamName?: string): Promise<any | null> {
+    try {
+      const sprints = await this.getSprints(projectName, teamName);
+
+      // Find the sprint marked as 'current' by ADO
+      const currentSprint = sprints.find(sprint => sprint.timeFrame === 'current');
+
+      if (currentSprint) {
+        console.log('[ADO getCurrentSprint] Current sprint:', currentSprint.name);
+        return currentSprint;
+      }
+
+      // Fallback: find sprint where today is between start and finish dates
+      const today = new Date();
+      const fallbackSprint = sprints.find(sprint => {
+        if (!sprint.startDate || !sprint.finishDate) return false;
+        const start = new Date(sprint.startDate);
+        const finish = new Date(sprint.finishDate);
+        return today >= start && today <= finish;
+      });
+
+      if (fallbackSprint) {
+        console.log('[ADO getCurrentSprint] Current sprint (fallback):', fallbackSprint.name);
+        return fallbackSprint;
+      }
+
+      console.log('[ADO getCurrentSprint] No current sprint found');
+      return null;
+    } catch (error: any) {
+      console.error('[ADO getCurrentSprint] Error:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Get work items for the current sprint
+   */
+  async getCurrentSprintWorkItems(projectName?: string, teamName?: string, filters?: GlobalFilters): Promise<WorkItem[]> {
+    try {
+      const currentSprint = await this.getCurrentSprint(projectName, teamName);
+
+      if (!currentSprint) {
+        console.log('[ADO getCurrentSprintWorkItems] No current sprint found');
+        return [];
+      }
+
+      console.log('[ADO getCurrentSprintWorkItems] Querying items for sprint:', currentSprint.name);
+
+      // Build query using the sprint's iteration path
+      const query = this.buildQuery(`/sprint ${currentSprint.path}`, currentSprint.path, filters);
+      return await this.searchWorkItems(query);
+    } catch (error: any) {
+      console.error('[ADO getCurrentSprintWorkItems] Error:', error.message);
+      return [];
     }
   }
 

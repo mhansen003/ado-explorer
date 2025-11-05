@@ -100,6 +100,28 @@ export const COMMAND_TEMPLATES: CommandTemplate[] = [
     buildCommand: (values) => `/query ${values.query}`
   },
 
+  // Current Sprint
+  {
+    id: 'current-sprint',
+    displayText: 'Show me items in the current sprint',
+    description: 'View all work items in the active sprint',
+    icon: '🏃',
+    placeholders: [],
+    buildCommand: () => `/current-sprint`
+  },
+
+  // By Sprint
+  {
+    id: 'by-sprint',
+    displayText: 'Show me all tickets in {sprint}',
+    description: 'View work items for a specific sprint/iteration',
+    icon: '📅',
+    placeholders: [
+      { key: 'sprint', type: 'sprint', label: 'sprint', required: true }
+    ],
+    buildCommand: (values) => `/sprint ${values.sprint}`
+  },
+
   // Recent tickets
   {
     id: 'recent',
@@ -120,6 +142,19 @@ export const COMMAND_TEMPLATES: CommandTemplate[] = [
       { key: 'id', type: 'text', label: 'ticket ID', required: true }
     ],
     buildCommand: (values) => `/id ${values.id}`
+  },
+
+  // Chart
+  {
+    id: 'create-chart',
+    displayText: 'Create a {chartType} chart showing {chartDimension}',
+    description: 'Visualize work items with charts',
+    icon: '📊',
+    placeholders: [
+      { key: 'chartType', type: 'chartType', label: 'chart type', required: true },
+      { key: 'chartDimension', type: 'chartDimension', label: 'dimension', required: true }
+    ],
+    buildCommand: (values) => `/chart ${values.chartType} ${values.chartDimension}`
   },
 
   // Help

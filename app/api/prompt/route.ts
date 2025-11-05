@@ -72,6 +72,12 @@ Common Fields (in order of usefulness):
 - System.IterationPath - Sprint/Iteration (use CONTAINS or UNDER for hierarchical search)
 - System.AreaPath - Team/Area (use CONTAINS or UNDER for hierarchical search)
 
+IMPORTANT - Sprint/Iteration Queries:
+- When users ask about "sprint", "iteration", or "current sprint", use System.IterationPath
+- For "current sprint" or "latest sprint" queries, use: [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed'
+- For specific sprint: [System.IterationPath] UNDER 'ProjectName\\Sprint X'
+- Sprint paths follow format: ProjectName\\Sprint X or ProjectName\\Release Y\\Sprint X
+
 Operators:
 - CONTAINS - For text search in Title, Description, AssignedTo, CreatedBy, Tags
 - = - Exact match for State, WorkItemType, Priority
@@ -99,7 +105,16 @@ Q: "Show me all P1 bugs"
 A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [Microsoft.VSTS.Common.Priority] = 1 ORDER BY [System.ChangedDate] DESC
 
 Q: "What are we working on this sprint?"
-A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.State] = 'Active' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' AND [System.State] <> 'Removed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+
+Q: "Show me items in the current sprint"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+
+Q: "What's in Sprint 5?"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Sprint 5' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+
+Q: "Show bugs in the latest sprint"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
 
 Respond ONLY with the WIQL query, nothing else.`,
       },

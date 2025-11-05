@@ -1,3 +1,13 @@
+export interface ChartData {
+  chartType: 'pie' | 'bar' | 'line' | 'area';
+  dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy';
+  data: Array<{
+    name: string;
+    value: number;
+    color?: string;
+  }>;
+}
+
 export interface Message {
   id: string;
   type: 'user' | 'system' | 'results';
@@ -8,6 +18,7 @@ export interface Message {
   conversationalAnswer?: string;
   responseType?: 'TICKETS' | 'ANSWER';
   suggestions?: string[];
+  chartData?: ChartData;
 }
 
 export interface WorkItem {
@@ -79,7 +90,7 @@ export interface Comment {
   modifiedDate?: string;
 }
 
-export type PlaceholderType = 'user' | 'project' | 'state' | 'type' | 'tag' | 'board' | 'text' | 'days' | 'query';
+export type PlaceholderType = 'user' | 'project' | 'state' | 'type' | 'tag' | 'board' | 'text' | 'days' | 'query' | 'sprint' | 'chartType' | 'chartDimension';
 
 export interface Placeholder {
   key: string; // unique key for this placeholder

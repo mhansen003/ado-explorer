@@ -561,47 +561,68 @@ export default function RelationshipDiagram({
       {/* Detailed Tooltip */}
       {tooltipItem && tooltipPosition && (() => {
         const tooltipWidth = 384; // w-96 = 24rem = 384px
-        const tooltipMaxHeight = window.innerHeight * 0.8; // 80vh
+        const tooltipHeight = 600; // Approximate max height for calculations
+        const padding = 20; // Padding from viewport edges
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        // Calculate position relative to the card in SVG
-        // Try to place to the right of the card first
-        const svgX = tooltipPosition.x + CARD_WIDTH / 2 + 20; // Right edge of card + spacing
-        const svgY = tooltipPosition.y - CARD_HEIGHT / 2; // Top of card
-
-        // Convert SVG coordinates to screen coordinates (rough approximation)
-        // The SVG scales to fit, so we need to account for viewport positioning
+        // Convert SVG coordinates to screen coordinates
         const svgRect = document.querySelector('svg')?.getBoundingClientRect();
         const svgViewBox = document.querySelector('svg')?.getAttribute('viewBox')?.split(' ').map(Number);
 
-        let left = viewportWidth / 2 + 200; // Default to right side
-        let top = viewportHeight / 2 - 100; // Default to middle
+        let left = 0;
+        let top = 0;
+        let preferRight = true; // Prefer showing tooltip to the right of the card
 
         if (svgRect && svgViewBox) {
           const [vbX, vbY, vbW, vbH] = svgViewBox;
           const scaleX = svgRect.width / vbW;
           const scaleY = svgRect.height / vbH;
 
-          left = svgRect.left + (svgX - vbX) * scaleX;
-          top = svgRect.top + (svgY - vbY) * scaleY;
-        }
+          // Calculate screen position of the card's center
+          const cardCenterX = svgRect.left + (tooltipPosition.x - vbX) * scaleX;
+          const cardCenterY = svgRect.top + (tooltipPosition.y - vbY) * scaleY;
 
-        // Check if tooltip would go off-screen to the right
-        if (left + tooltipWidth > viewportWidth - 20) {
-          // Position to the left of the card instead
-          left = left - tooltipWidth - (CARD_WIDTH * 0.5) - 40;
-        }
+          // Calculate card dimensions in screen space
+          const cardScreenWidth = CARD_WIDTH * scaleX;
+          const cardScreenHeight = CARD_HEIGHT * scaleY;
 
-        // Ensure tooltip doesn't go off left edge
-        left = Math.max(10, left);
+          // Try positioning to the right of the card first
+          left = cardCenterX + cardScreenWidth / 2 + padding;
+          top = cardCenterY - tooltipHeight / 2; // Center vertically on card
 
-        // Check if tooltip would go off-screen vertically
-        if (top + tooltipMaxHeight > viewportHeight - 20) {
-          // Adjust upward to fit on screen
-          top = viewportHeight - tooltipMaxHeight - 20;
+          // Check if tooltip would overflow viewport on the right
+          if (left + tooltipWidth > viewportWidth - padding) {
+            // Position to the left of the card instead
+            left = cardCenterX - cardScreenWidth / 2 - tooltipWidth - padding;
+            preferRight = false;
+          }
+
+          // Ensure tooltip doesn't overflow on the left
+          if (left < padding) {
+            left = padding;
+          }
+
+          // Ensure tooltip doesn't overflow on top
+          if (top < padding) {
+            top = padding;
+          }
+
+          // Ensure tooltip doesn't overflow on bottom
+          if (top + tooltipHeight > viewportHeight - padding) {
+            top = viewportHeight - tooltipHeight - padding;
+          }
+
+          // Final bounds check - keep within safe viewport area
+          left = Math.max(padding, Math.min(left, viewportWidth - tooltipWidth - padding));
+          top = Math.max(padding, Math.min(top, viewportHeight - tooltipHeight - padding));
+        } else {
+          // Fallback positioning if SVG measurements fail
+          left = viewportWidth / 2 + 200;
+          top = viewportHeight / 2 - 200;
+          left = Math.max(padding, Math.min(left, viewportWidth - tooltipWidth - padding));
+          top = Math.max(padding, Math.min(top, viewportHeight - tooltipHeight - padding));
         }
-        top = Math.max(10, top);
 
         // Use green for current work item, otherwise use relationship color
         const tooltipColor = tooltipItem.id === currentWorkItem.id
@@ -610,13 +631,13 @@ export default function RelationshipDiagram({
 
         return (
           <div
-            className="fixed z-[200] w-96 bg-rh-dark/98 backdrop-blur-xl border-2 rounded-xl shadow-2xl p-6 pointer-events-none"
+            className="fixed z-[200] w-96 bg-rh-dark/98 backdrop-blur-xl border-2 rounded-xl shadow-2xl p-6 pointer-events-none overflow-y-auto"
             style={{
               left: `${left}px`,
               top: `${top}px`,
-              maxHeight: '80vh',
-              overflowY: 'auto',
+              maxHeight: `${Math.min(tooltipHeight, viewportHeight - 2 * padding)}px`,
               borderColor: tooltipColor,
+              boxShadow: `0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px ${tooltipColor}40`,
             }}
           >
 

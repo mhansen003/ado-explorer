@@ -16,6 +16,7 @@ interface TemplateInputBuilderProps {
   types: DynamicSuggestion[];
   tags: DynamicSuggestion[];
   queries: DynamicSuggestion[];
+  sprints: DynamicSuggestion[];
 }
 
 export default function TemplateInputBuilder({
@@ -29,6 +30,7 @@ export default function TemplateInputBuilder({
   types,
   tags,
   queries,
+  sprints,
 }: TemplateInputBuilderProps) {
   const [values, setValues] = useState<Record<string, string | string[]>>({});
   const [activePlaceholder, setActivePlaceholder] = useState<string | null>(
@@ -51,6 +53,20 @@ export default function TemplateInputBuilder({
       case 'type': return types;
       case 'tag': return tags;
       case 'query': return queries;
+      case 'sprint': return sprints;
+      case 'chartType': return [
+        { value: 'pie', description: 'Pie chart - circular segments' },
+        { value: 'bar', description: 'Bar chart - vertical bars' },
+        { value: 'line', description: 'Line chart - connected points' },
+        { value: 'area', description: 'Area chart - filled line' },
+      ];
+      case 'chartDimension': return [
+        { value: 'state', description: 'Group by work item state' },
+        { value: 'type', description: 'Group by work item type' },
+        { value: 'priority', description: 'Group by priority' },
+        { value: 'assignedTo', description: 'Group by assigned person' },
+        { value: 'createdBy', description: 'Group by creator' },
+      ];
       default: return [];
     }
   };
