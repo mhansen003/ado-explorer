@@ -69,7 +69,7 @@ export class ADOService {
       const detailsResponse = await this.orgClient.get('/wit/workitems', {
         params: {
           ids: limitedIds.join(','),
-          fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject',
+          fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,System.ChangedDate,System.ChangedBy,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,Microsoft.VSTS.Common.AcceptanceCriteria',
         },
       });
 
@@ -149,6 +149,12 @@ export class ADOService {
       description: fields['System.Description'] || '',
       tags: fields['System.Tags'] ? fields['System.Tags'].split(';').map((t: string) => t.trim()) : [],
       project: fields['System.TeamProject'] || this.project || 'Unknown',
+      changedDate: fields['System.ChangedDate'],
+      changedBy: fields['System.ChangedBy']?.displayName,
+      iterationPath: fields['System.IterationPath'],
+      areaPath: fields['System.AreaPath'],
+      storyPoints: fields['Microsoft.VSTS.Scheduling.StoryPoints'],
+      acceptanceCriteria: fields['Microsoft.VSTS.Common.AcceptanceCriteria'],
     };
   }
 

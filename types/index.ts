@@ -21,6 +21,12 @@ export interface WorkItem {
   description?: string;
   tags?: string[];
   project?: string;
+  changedDate?: string;
+  changedBy?: string;
+  iterationPath?: string;
+  areaPath?: string;
+  storyPoints?: number;
+  acceptanceCriteria?: string;
 }
 
 export interface Command {

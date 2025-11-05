@@ -210,9 +210,7 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
                 <span className="text-rh-text-secondary">Created by:</span>
                 <span className="text-rh-text font-medium">{workItem.createdBy}</span>
               </div>
-            </div>
 
-            <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="w-4 h-4 text-rh-text-secondary" />
                 <span className="text-rh-text-secondary">Created:</span>
@@ -221,6 +219,23 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
                 </span>
               </div>
 
+              {workItem.changedBy && (
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="w-4 h-4 text-rh-text-secondary" />
+                  <span className="text-rh-text-secondary">Last changed by:</span>
+                  <span className="text-rh-text font-medium">{workItem.changedBy}</span>
+                </div>
+              )}
+
+              {workItem.areaPath && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-rh-text-secondary">Area:</span>
+                  <span className="text-rh-text font-medium text-xs">{workItem.areaPath}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <Tag className="w-4 h-4 text-rh-text-secondary" />
                 <span className="text-rh-text-secondary">Priority:</span>
@@ -231,6 +246,30 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-rh-text-secondary">Project:</span>
                   <span className="text-rh-text font-medium">{workItem.project}</span>
+                </div>
+              )}
+
+              {workItem.changedDate && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-rh-text-secondary" />
+                  <span className="text-rh-text-secondary">Last changed:</span>
+                  <span className="text-rh-text font-medium">
+                    {new Date(workItem.changedDate).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+
+              {workItem.storyPoints !== undefined && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-rh-text-secondary">Story Points:</span>
+                  <span className="text-rh-text font-medium">{workItem.storyPoints}</span>
+                </div>
+              )}
+
+              {workItem.iterationPath && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-rh-text-secondary">Iteration:</span>
+                  <span className="text-rh-text font-medium text-xs">{workItem.iterationPath}</span>
                 </div>
               )}
             </div>
@@ -261,6 +300,19 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
                     {tag}
                   </span>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Acceptance Criteria */}
+          {workItem.acceptanceCriteria && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-rh-text mb-2">Acceptance Criteria</h3>
+              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm text-rh-text-secondary max-h-40 overflow-y-auto prose prose-invert prose-sm max-w-none">
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(workItem.acceptanceCriteria, {
+                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'div', 'span'],
+                  ALLOWED_ATTR: [],
+                }) }} />
               </div>
             </div>
           )}
