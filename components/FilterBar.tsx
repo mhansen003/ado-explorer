@@ -45,10 +45,15 @@ export default function FilterBar({
       setLoadingStates(true);
       try {
         const response = await fetch('/api/states');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         const data = await response.json();
-        setStates(data || []);
+        // Ensure we always set an array
+        setStates(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch states:', error);
+        setStates([]); // Set empty array on error
       } finally {
         setLoadingStates(false);
       }
@@ -58,10 +63,15 @@ export default function FilterBar({
       setLoadingUsers(true);
       try {
         const response = await fetch('/api/users');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         const data = await response.json();
-        setUsers(data || []);
+        // Ensure we always set an array
+        setUsers(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch users:', error);
+        setUsers([]); // Set empty array on error
       } finally {
         setLoadingUsers(false);
       }

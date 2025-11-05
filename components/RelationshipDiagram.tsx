@@ -165,10 +165,10 @@ export default function RelationshipDiagram({
 
   if (relatedWorkItems.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Link2 className="w-16 h-16 text-rh-text-secondary mb-4 opacity-50" />
-        <p className="text-rh-text-secondary text-lg">No relationships found</p>
-        <p className="text-rh-text-secondary text-sm mt-2">This work item has no linked relationships in Azure DevOps</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <Link2 className="w-20 h-20 text-rh-text-secondary mb-6 opacity-50" />
+        <p className="text-rh-text-secondary text-xl font-medium">No relationships found</p>
+        <p className="text-rh-text-secondary text-base mt-3">This work item has no linked relationships in Azure DevOps</p>
       </div>
     );
   }
@@ -217,7 +217,7 @@ export default function RelationshipDiagram({
                   parent.y + CARD_HEIGHT / 2
                 )}
                 stroke={color}
-                strokeWidth="3"
+                strokeWidth="4"
                 fill="none"
                 opacity={hoveredId === parent.id || hoveredId === currentWorkItem.id ? 1 : 0.4}
                 className="transition-opacity duration-300"
@@ -241,7 +241,7 @@ export default function RelationshipDiagram({
                   child.y - CARD_HEIGHT / 2
                 )}
                 stroke={color}
-                strokeWidth="3"
+                strokeWidth="4"
                 fill="none"
                 opacity={hoveredId === child.id || hoveredId === currentWorkItem.id ? 1 : 0.4}
                 className="transition-opacity duration-300"
@@ -260,8 +260,8 @@ export default function RelationshipDiagram({
               <path
                 d={`M ${centerX + CARD_WIDTH / 2} ${centerY} L ${item.x - CARD_WIDTH / 2} ${item.y}`}
                 stroke={color}
-                strokeWidth="2"
-                strokeDasharray="5,5"
+                strokeWidth="3"
+                strokeDasharray="6,6"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -280,8 +280,8 @@ export default function RelationshipDiagram({
               <path
                 d={`M ${centerX - CARD_WIDTH / 2} ${centerY} L ${item.x + CARD_WIDTH / 2} ${item.y}`}
                 stroke={color}
-                strokeWidth="2"
-                strokeDasharray="5,5"
+                strokeWidth="3"
+                strokeDasharray="6,6"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -300,8 +300,8 @@ export default function RelationshipDiagram({
               <path
                 d={`M ${centerX + CARD_WIDTH / 2} ${centerY} L ${item.x - CARD_WIDTH / 2} ${item.y}`}
                 stroke={color}
-                strokeWidth="2"
-                strokeDasharray="5,5"
+                strokeWidth="3"
+                strokeDasharray="6,6"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
@@ -426,24 +426,24 @@ export default function RelationshipDiagram({
       </svg>
 
       {/* Legend */}
-      <div className="fixed bottom-4 right-4 bg-rh-card/95 backdrop-blur border border-rh-border rounded-lg p-4 shadow-xl">
-        <h4 className="text-xs font-semibold text-rh-text mb-3 uppercase tracking-wide">Relationship Types</h4>
-        <div className="space-y-2">
+      <div className="fixed bottom-6 right-6 bg-rh-card/95 backdrop-blur border border-rh-border rounded-lg p-5 shadow-xl">
+        <h4 className="text-sm font-semibold text-rh-text mb-4 uppercase tracking-wide">Relationship Types</h4>
+        <div className="space-y-3">
           {[
-            { type: 'Parent', icon: <ArrowUp className="w-3 h-3" />, color: '#34d399' },
-            { type: 'Child', icon: <ArrowDown className="w-3 h-3" />, color: '#fbbf24' },
-            { type: 'Related', icon: <Link2 className="w-3 h-3" />, color: '#22d3ee' },
-            { type: 'Predecessor', icon: <ArrowLeft className="w-3 h-3" />, color: '#fb923c' },
-            { type: 'Successor', icon: <ArrowRight className="w-3 h-3" />, color: '#a78bfa' },
+            { type: 'Parent', icon: <ArrowUp className="w-4 h-4" />, color: '#34d399' },
+            { type: 'Child', icon: <ArrowDown className="w-4 h-4" />, color: '#fbbf24' },
+            { type: 'Related', icon: <Link2 className="w-4 h-4" />, color: '#22d3ee' },
+            { type: 'Predecessor', icon: <ArrowLeft className="w-4 h-4" />, color: '#fb923c' },
+            { type: 'Successor', icon: <ArrowRight className="w-4 h-4" />, color: '#a78bfa' },
           ].map(({ type, icon, color }) => (
-            <div key={type} className="flex items-center gap-2">
+            <div key={type} className="flex items-center gap-3">
               <div
-                className="w-4 h-4 rounded border-2 flex items-center justify-center"
+                className="w-6 h-6 rounded border-2 flex items-center justify-center"
                 style={{ borderColor: color, backgroundColor: `${color}20` }}
               >
                 <div style={{ color }}>{icon}</div>
               </div>
-              <span className="text-xs text-rh-text-secondary">{type}</span>
+              <span className="text-sm text-rh-text-secondary font-medium">{type}</span>
             </div>
           ))}
         </div>
