@@ -297,63 +297,100 @@ Type **/help** for more info`,
 
       // Pre-load boards
       try {
+        console.log('[ChatInterface] Fetching boards...');
         const response = await fetch('/api/boards');
         const data = await response.json();
+        console.log('[ChatInterface] Boards response:', { ok: response.ok, data });
         if (response.ok && data.teams) {
           setCachedBoards(data.teams.map((t: any) => ({
             value: t.name,
             description: t.projectName ? `Project: ${t.projectName}` : undefined,
           })));
+          console.log('[ChatInterface] Pre-loaded boards:', data.teams.length);
+        } else {
+          console.warn('[ChatInterface] Boards API returned error:', data);
         }
       } catch (err) {
-        console.warn('Could not pre-load boards');
+        console.warn('[ChatInterface] Could not pre-load boards:', err);
       }
 
       // Pre-load users
       try {
+        console.log('[ChatInterface] Fetching users...');
         const response = await fetch('/api/users');
         const data = await response.json();
+        console.log('[ChatInterface] Users response:', { ok: response.ok, data });
         if (response.ok && data.users) {
           setCachedUsers(data.users.map((u: any) => ({
             value: u.displayName,
             description: u.uniqueName || undefined,
           })));
+          console.log('[ChatInterface] Pre-loaded users:', data.users.length);
+        } else {
+          console.warn('[ChatInterface] Users API returned error:', data);
         }
       } catch (err) {
-        console.warn('Could not pre-load users');
+        console.warn('[ChatInterface] Could not pre-load users:', err);
       }
 
       // Pre-load states
       try {
+        console.log('[ChatInterface] Fetching states...');
         const response = await fetch('/api/states');
         const data = await response.json();
+        console.log('[ChatInterface] States response:', { ok: response.ok, data });
         if (response.ok && data.states) {
           setCachedStates(data.states.map((s: string) => ({ value: s })));
+          console.log('[ChatInterface] Pre-loaded states:', data.states.length);
+        } else if (response.ok && Array.isArray(data)) {
+          // API returns array directly
+          setCachedStates(data.map((s: string) => ({ value: s })));
+          console.log('[ChatInterface] Pre-loaded states (array format):', data.length);
+        } else {
+          console.warn('[ChatInterface] States API returned error:', data);
         }
       } catch (err) {
-        console.warn('Could not pre-load states');
+        console.warn('[ChatInterface] Could not pre-load states:', err);
       }
 
       // Pre-load types
       try {
+        console.log('[ChatInterface] Fetching types...');
         const response = await fetch('/api/types');
         const data = await response.json();
+        console.log('[ChatInterface] Types response:', { ok: response.ok, data });
         if (response.ok && data.types) {
           setCachedTypes(data.types.map((t: string) => ({ value: t })));
+          console.log('[ChatInterface] Pre-loaded types:', data.types.length);
+        } else if (response.ok && Array.isArray(data)) {
+          // API returns array directly
+          setCachedTypes(data.map((t: string) => ({ value: t })));
+          console.log('[ChatInterface] Pre-loaded types (array format):', data.length);
+        } else {
+          console.warn('[ChatInterface] Types API returned error:', data);
         }
       } catch (err) {
-        console.warn('Could not pre-load types');
+        console.warn('[ChatInterface] Could not pre-load types:', err);
       }
 
       // Pre-load tags
       try {
+        console.log('[ChatInterface] Fetching tags...');
         const response = await fetch('/api/tags');
         const data = await response.json();
+        console.log('[ChatInterface] Tags response:', { ok: response.ok, data });
         if (response.ok && data.tags) {
           setCachedTags(data.tags.map((t: string) => ({ value: t })));
+          console.log('[ChatInterface] Pre-loaded tags:', data.tags.length);
+        } else if (response.ok && Array.isArray(data)) {
+          // API returns array directly
+          setCachedTags(data.map((t: string) => ({ value: t })));
+          console.log('[ChatInterface] Pre-loaded tags (array format):', data.length);
+        } else {
+          console.warn('[ChatInterface] Tags API returned error:', data);
         }
       } catch (err) {
-        console.warn('Could not pre-load tags');
+        console.warn('[ChatInterface] Could not pre-load tags:', err);
       }
     };
 
