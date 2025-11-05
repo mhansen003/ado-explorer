@@ -5,6 +5,47 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-01-05
+
+### ✨ Added
+- **Automatic relationship detection in search results** - Work items now automatically show parent/child relationships
+  - When you search for items (e.g., "get all marketing items"), the system detects relationships between items
+  - Parent/child relationships are automatically identified and populated
+  - Hierarchical tree view displays automatically when relationships exist
+  - No need to click individual items to discover related work items
+
+### 🔧 Technical Implementation
+- **New enrichWorkItemsWithRelationships() method** in ADOService
+  - Fetches relations for all work items in parallel for performance
+  - Checks if related work item IDs exist within the result set
+  - Populates relationType field (Parent, Child, Related, Predecessor, Successor)
+  - Sets relationSource to 'linked' for auto-detected relationships
+  - Gracefully falls back to flat list if enrichment fails
+
+### 🚀 Applied To
+- **Search API** (`/api/search`) - All slash command searches now include relationships
+- **Prompt API** (`/api/prompt`) - AI-powered natural language queries include relationships
+- **Current sprint queries** - Sprint work items show hierarchical structure
+- **All query types** - Benefits all search mechanisms across the application
+
+### 🎯 Impact
+- **Immediate visualization** - See relationships without extra clicks
+- **Better context** - Understand how work items relate at a glance
+- **Collapsible hierarchy** - Parent items with expand/collapse functionality
+- **Performance optimized** - Parallel fetching keeps searches fast
+- **Backward compatible** - Falls back to flat list when no relationships exist
+
+### 💡 Example
+When you query "get all marketing items" and the results include:
+- Epic #5318 (Parent)
+  - User Story #5319 (Child)
+  - User Story #5320 (Child)
+  - Task #5321 (Child)
+
+The results will automatically display in a collapsible tree structure showing the parent-child relationships!
+
+---
+
 ## [0.1.5] - 2025-01-05
 
 ### 🎨 Enhanced
