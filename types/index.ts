@@ -1,6 +1,6 @@
 export interface ChartData {
   chartType: 'pie' | 'bar' | 'line' | 'area';
-  dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy';
+  dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy' | 'project' | 'areaPath' | 'changedBy' | 'iterationPath' | 'storyPoints' | 'tags';
   data: Array<{
     name: string;
     value: number;

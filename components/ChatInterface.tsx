@@ -1463,7 +1463,7 @@ Just type naturally - I understand questions like:
   // Handle chart creation from existing results
   const handleCreateChart = async (
     chartType: 'pie' | 'bar' | 'line' | 'area',
-    dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy',
+    dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy' | 'project' | 'areaPath' | 'changedBy' | 'iterationPath' | 'storyPoints' | 'tags',
     workItems: any[]
   ) => {
     // Import the chart processing function dynamically

@@ -66,6 +66,12 @@ export default function TemplateInputBuilder({
         { value: 'priority', description: 'Group by priority' },
         { value: 'assignedTo', description: 'Group by assigned person' },
         { value: 'createdBy', description: 'Group by creator' },
+        { value: 'project', description: 'Group by project' },
+        { value: 'areaPath', description: 'Group by area path' },
+        { value: 'changedBy', description: 'Group by who last changed' },
+        { value: 'iterationPath', description: 'Group by sprint/iteration' },
+        { value: 'storyPoints', description: 'Group by story points' },
+        { value: 'tags', description: 'Group by tags' },
       ];
       default: return [];
     }

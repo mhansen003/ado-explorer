@@ -14,7 +14,7 @@ interface MessageListProps {
   globalFilters: GlobalFilters;
   onOpenFilters?: () => void;
   onChangelogClick?: () => void;
-  onCreateChart?: (chartType: 'pie' | 'bar' | 'line' | 'area', dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy', workItems: any[]) => void;
+  onCreateChart?: (chartType: 'pie' | 'bar' | 'line' | 'area', dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy' | 'project' | 'areaPath' | 'changedBy' | 'iterationPath' | 'storyPoints' | 'tags', workItems: any[]) => void;
 }
 
 export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters, onOpenFilters, onChangelogClick, onCreateChart }: MessageListProps) {

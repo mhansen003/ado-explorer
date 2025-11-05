@@ -164,7 +164,7 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
   };
 
   // Create chart from filtered work items
-  const handleCreateChart = async (chartType: 'pie' | 'bar' | 'line' | 'area', dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy') => {
+  const handleCreateChart = async (chartType: 'pie' | 'bar' | 'line' | 'area', dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy' | 'project' | 'areaPath' | 'changedBy' | 'iterationPath' | 'storyPoints' | 'tags') => {
     if (filteredWorkItems.length === 0) return;
 
     // Import chart utilities dynamically

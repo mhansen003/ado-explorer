@@ -40,7 +40,7 @@ const COLORS = [
 
 export default function WorkItemChart({ chartData, workItems }: WorkItemChartProps) {
   const { chartType, dataKey: initialDataKey } = chartData;
-  const [currentDataKey, setCurrentDataKey] = useState<'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy'>(initialDataKey);
+  const [currentDataKey, setCurrentDataKey] = useState<'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy' | 'project' | 'areaPath' | 'changedBy' | 'iterationPath' | 'storyPoints' | 'tags'>(initialDataKey);
   const [currentData, setCurrentData] = useState(chartData.data);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -51,6 +51,12 @@ export default function WorkItemChart({ chartData, workItems }: WorkItemChartPro
     { value: 'priority', label: 'Priority' },
     { value: 'assignedTo', label: 'Assigned To' },
     { value: 'createdBy', label: 'Created By' },
+    { value: 'project', label: 'Project' },
+    { value: 'areaPath', label: 'Area' },
+    { value: 'changedBy', label: 'Changed By' },
+    { value: 'iterationPath', label: 'Sprint/Iteration' },
+    { value: 'storyPoints', label: 'Story Points' },
+    { value: 'tags', label: 'Tags' },
   ];
 
   // Recalculate chart data when pivot point changes

@@ -33,35 +33,62 @@ const PRIORITY_COLORS: Record<number, string> = {
 export function processWorkItemsToChartData(
   workItems: WorkItem[],
   chartType: 'pie' | 'bar' | 'line' | 'area',
-  dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy'
+  dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy' | 'project' | 'areaPath' | 'changedBy' | 'iterationPath' | 'storyPoints' | 'tags'
 ): ChartData {
   // Group work items by the specified key
   const grouped: Record<string, number> = {};
 
   workItems.forEach(item => {
-    let key: string;
+    let keys: string[] = [];
 
     switch (dataKey) {
       case 'state':
-        key = item.state;
+        keys = [item.state];
         break;
       case 'type':
-        key = item.type;
+        keys = [item.type];
         break;
       case 'priority':
-        key = `P${item.priority}`;
+        keys = [`P${item.priority}`];
         break;
       case 'assignedTo':
-        key = item.assignedTo;
+        keys = [item.assignedTo || 'Unassigned'];
         break;
       case 'createdBy':
-        key = item.createdBy;
+        keys = [item.createdBy];
+        break;
+      case 'project':
+        keys = [item.project || 'No Project'];
+        break;
+      case 'areaPath':
+        // Extract last part of area path for cleaner display
+        const areaPath = item.areaPath || 'No Area';
+        keys = [areaPath.split('\\').pop() || areaPath];
+        break;
+      case 'changedBy':
+        keys = [item.changedBy || 'Unknown'];
+        break;
+      case 'iterationPath':
+        // Extract last part of iteration path (sprint name)
+        const iterPath = item.iterationPath || 'No Sprint';
+        keys = [iterPath.split('\\').pop() || iterPath];
+        break;
+      case 'storyPoints':
+        const points = item.storyPoints ?? 0;
+        keys = [points === 0 ? 'No Story Points' : `${points} SP`];
+        break;
+      case 'tags':
+        // For tags, count each tag separately
+        keys = item.tags && item.tags.length > 0 ? item.tags : ['No Tags'];
         break;
       default:
-        key = 'Unknown';
+        keys = ['Unknown'];
     }
 
-    grouped[key] = (grouped[key] || 0) + 1;
+    // Count each key (handles both single values and arrays like tags)
+    keys.forEach(key => {
+      grouped[key] = (grouped[key] || 0) + 1;
+    });
   });
 
   // Convert to chart data format
@@ -105,6 +132,12 @@ export function getDataKeyLabel(dataKey: string): string {
     priority: 'Priority',
     assignedTo: 'Assigned To',
     createdBy: 'Created By',
+    project: 'Project',
+    areaPath: 'Area',
+    changedBy: 'Changed By',
+    iterationPath: 'Sprint/Iteration',
+    storyPoints: 'Story Points',
+    tags: 'Tags',
   };
 
   return labels[dataKey] || dataKey;
