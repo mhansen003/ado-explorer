@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { WorkItem } from '@/types';
 import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2 } from 'lucide-react';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface WorkItemDetailModalProps {
   workItem: WorkItem;
@@ -15,6 +16,15 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<AIAction | null>(null);
+
+  // Sanitize the HTML description to prevent XSS attacks
+  const sanitizedDescription = useMemo(() => {
+    if (!workItem.description) return null;
+    return DOMPurify.sanitize(workItem.description, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre', 'div', 'span'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+    });
+  }, [workItem.description]);
 
   // Build Azure DevOps URL
   const getAdoUrl = () => {
@@ -145,8 +155,12 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
           {/* Description */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-rh-text mb-2">Description</h3>
-            <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm text-rh-text-secondary max-h-40 overflow-y-auto">
-              {workItem.description || 'No description available.'}
+            <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm text-rh-text-secondary max-h-40 overflow-y-auto prose prose-invert prose-sm max-w-none">
+              {sanitizedDescription ? (
+                <div dangerouslySetInnerHTML={{ __html: sanitizedDescription }} />
+              ) : (
+                <p className="text-rh-text-secondary italic">No description available.</p>
+              )}
             </div>
           </div>
 
