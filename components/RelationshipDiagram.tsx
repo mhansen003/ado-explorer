@@ -374,11 +374,10 @@ export default function RelationshipDiagram({
         >
           <div
             className="w-full h-full p-6 border-4 border-rh-green bg-rh-green/20 rounded-lg shadow-2xl backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105"
-            onMouseEnter={(e) => {
+            onMouseEnter={() => {
               setHoveredId(currentWorkItem.id);
               setTooltipItem({ ...currentWorkItem, x: centerX, y: centerY, level: 0 });
-              const rect = e.currentTarget.getBoundingClientRect();
-              setTooltipPosition({ x: rect.right + 10, y: rect.top });
+              setTooltipPosition({ x: centerX, y: centerY });
             }}
             onMouseLeave={() => {
               setHoveredId(null);
@@ -424,11 +423,11 @@ export default function RelationshipDiagram({
               <div
                 className={`w-full h-full p-5 border-2 ${styles} rounded-lg shadow-lg backdrop-blur cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}
                 onClick={() => onNavigate(item)}
-                onMouseEnter={(e) => {
+                onMouseEnter={() => {
                   setHoveredId(item.id);
                   setTooltipItem(item);
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setTooltipPosition({ x: rect.right + 10, y: rect.top });
+                  // Position tooltip relative to SVG coordinates
+                  setTooltipPosition({ x: item.x, y: item.y });
                 }}
                 onMouseLeave={() => {
                   setHoveredId(null);
@@ -473,29 +472,40 @@ export default function RelationshipDiagram({
         })}
       </svg>
 
-      {/* Legend */}
-      <div className="fixed bottom-6 right-6 bg-rh-card/95 backdrop-blur border border-rh-border rounded-lg p-5 shadow-xl">
-        <h4 className="text-sm font-semibold text-rh-text mb-4 uppercase tracking-wide">Relationship Types</h4>
-        <div className="space-y-3">
-          {[
-            { type: 'Parent', icon: <ArrowUp className="w-4 h-4" />, color: '#34d399' },
-            { type: 'Child', icon: <ArrowDown className="w-4 h-4" />, color: '#fbbf24' },
-            { type: 'Related', icon: <Link2 className="w-4 h-4" />, color: '#22d3ee' },
-            { type: 'Predecessor', icon: <ArrowLeft className="w-4 h-4" />, color: '#fb923c' },
-            { type: 'Successor', icon: <ArrowRight className="w-4 h-4" />, color: '#a78bfa' },
-          ].map(({ type, icon, color }) => (
-            <div key={type} className="flex items-center gap-3">
-              <div
-                className="w-6 h-6 rounded border-2 flex items-center justify-center"
-                style={{ borderColor: color, backgroundColor: `${color}20` }}
-              >
-                <div style={{ color }}>{icon}</div>
-              </div>
-              <span className="text-sm text-rh-text-secondary font-medium">{type}</span>
+      {/* Legend - Only show types that are present */}
+      {(() => {
+        const allTypes = [
+          { type: 'Parent', icon: <ArrowUp className="w-4 h-4" />, color: '#34d399', count: parents.length },
+          { type: 'Child', icon: <ArrowDown className="w-4 h-4" />, color: '#fbbf24', count: children.length },
+          { type: 'Related', icon: <Link2 className="w-4 h-4" />, color: '#22d3ee', count: related.length },
+          { type: 'Predecessor', icon: <ArrowLeft className="w-4 h-4" />, color: '#fb923c', count: predecessors.length },
+          { type: 'Successor', icon: <ArrowRight className="w-4 h-4" />, color: '#a78bfa', count: successors.length },
+        ];
+
+        // Only show types that have items
+        const presentTypes = allTypes.filter(t => t.count > 0);
+
+        if (presentTypes.length === 0) return null;
+
+        return (
+          <div className="fixed bottom-6 right-6 bg-rh-card/95 backdrop-blur border border-rh-border rounded-lg p-5 shadow-xl">
+            <h4 className="text-sm font-semibold text-rh-text mb-4 uppercase tracking-wide">Relationship Types</h4>
+            <div className="space-y-3">
+              {presentTypes.map(({ type, icon, color, count }) => (
+                <div key={type} className="flex items-center gap-3">
+                  <div
+                    className="w-6 h-6 rounded border-2 flex items-center justify-center"
+                    style={{ borderColor: color, backgroundColor: `${color}20` }}
+                  >
+                    <div style={{ color }}>{icon}</div>
+                  </div>
+                  <span className="text-sm text-rh-text-secondary font-medium">{type} ({count})</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        );
+      })()}
 
       {/* Detailed Tooltip */}
       {tooltipItem && tooltipPosition && (() => {
@@ -504,18 +514,38 @@ export default function RelationshipDiagram({
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
+        // Calculate position relative to the card in SVG
+        // Try to place to the right of the card first
+        const svgX = tooltipPosition.x + CARD_WIDTH / 2 + 20; // Right edge of card + spacing
+        const svgY = tooltipPosition.y - CARD_HEIGHT / 2; // Top of card
+
+        // Convert SVG coordinates to screen coordinates (rough approximation)
+        // The SVG scales to fit, so we need to account for viewport positioning
+        const svgRect = document.querySelector('svg')?.getBoundingClientRect();
+        const svgViewBox = document.querySelector('svg')?.getAttribute('viewBox')?.split(' ').map(Number);
+
+        let left = viewportWidth / 2 + 200; // Default to right side
+        let top = viewportHeight / 2 - 100; // Default to middle
+
+        if (svgRect && svgViewBox) {
+          const [vbX, vbY, vbW, vbH] = svgViewBox;
+          const scaleX = svgRect.width / vbW;
+          const scaleY = svgRect.height / vbH;
+
+          left = svgRect.left + (svgX - vbX) * scaleX;
+          top = svgRect.top + (svgY - vbY) * scaleY;
+        }
+
         // Check if tooltip would go off-screen to the right
-        let left = tooltipPosition.x;
         if (left + tooltipWidth > viewportWidth - 20) {
           // Position to the left of the card instead
-          left = tooltipPosition.x - tooltipWidth - 20;
+          left = left - tooltipWidth - (CARD_WIDTH * 0.5) - 40;
         }
 
         // Ensure tooltip doesn't go off left edge
         left = Math.max(10, left);
 
         // Check if tooltip would go off-screen vertically
-        let top = tooltipPosition.y;
         if (top + tooltipMaxHeight > viewportHeight - 20) {
           // Adjust upward to fit on screen
           top = viewportHeight - tooltipMaxHeight - 20;

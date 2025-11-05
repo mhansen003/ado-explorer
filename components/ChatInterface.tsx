@@ -97,8 +97,11 @@ export default function ChatInterface() {
         cmd.name.toLowerCase().includes(commandName)
       );
 
-      // Check if we need to fetch dynamic suggestions
-      if (param) {
+      // Check if we need to fetch dynamic suggestions or show cached data
+      const isDynamicCommand = ['project', 'board', 'created_by', 'assigned_to', 'state', 'type', 'tag'].includes(commandName);
+
+      if (param && isDynamicCommand) {
+        // Fetch filtered results when user is typing
         switch (commandName) {
           case 'project':
             fetchProjects(param);
@@ -119,9 +122,34 @@ export default function ChatInterface() {
           case 'tag':
             fetchTags(param);
             break;
-          default:
-            setDynamicSuggestions([]);
         }
+      } else if (!param && isDynamicCommand) {
+        // Show cached data when command has space but no parameter yet
+        let cachedData: DynamicSuggestion[] = [];
+        switch (commandName) {
+          case 'project':
+            cachedData = cachedProjects;
+            break;
+          case 'board':
+            cachedData = cachedBoards;
+            break;
+          case 'created_by':
+          case 'assigned_to':
+            cachedData = cachedUsers;
+            break;
+          case 'state':
+            cachedData = cachedStates;
+            break;
+          case 'type':
+            cachedData = cachedTypes;
+            break;
+          case 'tag':
+            cachedData = cachedTags;
+            setIsMultiSelectMode(true);
+            setSelectedTags([]);
+            break;
+        }
+        setDynamicSuggestions(cachedData);
       } else {
         setDynamicSuggestions([]);
       }
@@ -163,6 +191,8 @@ Just type naturally! Examples:
 
 **/ Guided Search:**
 Type / for fill-in-the-blank searches with dropdowns
+
+**Tip:** Press ↑ (up arrow) to recall previous commands
 
 Type **/help** for more info`,
       timestamp: new Date(),
@@ -537,6 +567,8 @@ Just type naturally! Examples:
 **/ Guided Search:**
 Type / for fill-in-the-blank searches with dropdowns
 
+**Tip:** Press ↑ (up arrow) to recall previous commands
+
 Type **/help** for more info`,
       timestamp: new Date(),
     };
@@ -640,9 +672,10 @@ Type / for interactive fill-in-the-blank searches:
 📁 Project • 📋 Board • 🔖 Tags • ⏰ Recent • 🎯 By ID
 
 **Tips:**
-• Use ↑↓ arrows to recall searches
-• Use filters at top to refine results
-• Click "Discussion" tab for comments`,
+• Press ↑ (up arrow) to recall previous commands
+• Use global filters (right side) to refine results
+• Click "Discussion" tab for comments
+• Type /clear to start fresh`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, helpMessage]);
