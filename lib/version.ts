@@ -1,4 +1,4 @@
-export const VERSION = 'v1.4.3';
+export const VERSION = 'v1.5';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.5',
+    date: '2025-01-12',
+    changes: [
+      {
+        category: 'Feature',
+        description: '📧 Preload Discussion & Relationships - Work item modal now loads comments and relationships immediately on open, ensuring email reports include all data',
+      },
+      {
+        category: 'Feature',
+        description: '🗺️ Relationship Map in Emails - Email reports now include high-resolution relationship diagram image showing visual hierarchy of work items',
+      },
+    ],
+  },
   {
     version: 'v1.4.3',
     date: '2025-01-12',
