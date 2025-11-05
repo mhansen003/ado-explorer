@@ -91,7 +91,9 @@ export class ADOService {
     }
 
     if (command.startsWith('/board') && param) {
-      return `${baseQuery} WHERE [System.AreaPath] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`;
+      // Use UNDER operator for AreaPath - Azure DevOps doesn't support CONTAINS with area path fields
+      // UNDER matches the area and all child areas hierarchically
+      return `${baseQuery} WHERE [System.AreaPath] UNDER '${param}' ORDER BY [System.ChangedDate] DESC`;
     }
 
     if (command.startsWith('/created_by') && param) {
