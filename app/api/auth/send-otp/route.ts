@@ -4,10 +4,29 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
 import { generateOTP, sendOTPEmail } from '@/lib/auth/email';
 import { isValidCMGEmail } from '@/lib/auth/jwt';
 import { AUTH_CONFIG } from '@/lib/auth/config';
+
+// Lazy load Redis client
+const getRedis = async () => {
+  if (!process.env.REDIS_URL) {
+    throw new Error('REDIS_URL not configured');
+  }
+
+  try {
+    const client = createClient({
+      url: process.env.REDIS_URL,
+    });
+
+    await client.connect();
+    return client;
+  } catch (error) {
+    console.error('Failed to connect to Redis:', error);
+    throw error;
+  }
+};
 
 interface OTPData {
   code: string;
@@ -32,6 +51,8 @@ function getRateLimitKey(email: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  let redis = null;
+
   try {
     const body = await request.json();
     const { email } = body;
@@ -46,8 +67,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const emailLower = email.toLowerCase().trim();
+
     // Validate CMG domain
-    if (!isValidCMGEmail(email)) {
+    if (!isValidCMGEmail(emailLower)) {
       console.log('[Send OTP] Invalid domain:', email);
       return NextResponse.json(
         { success: false, error: `Only @${AUTH_CONFIG.ALLOWED_DOMAIN} emails are allowed` },
@@ -55,11 +78,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check rate limiting
-    const rateLimitKey = getRateLimitKey(email);
-    const requestCount = await kv.get<number>(rateLimitKey);
+    redis = await getRedis();
 
-    if (requestCount && requestCount >= AUTH_CONFIG.MAX_REQUESTS_PER_WINDOW) {
+    // Check rate limiting
+    const rateLimitKey = getRateLimitKey(emailLower);
+    const requestCount = await redis.get(rateLimitKey);
+
+    if (requestCount && parseInt(requestCount) >= AUTH_CONFIG.MAX_REQUESTS_PER_WINDOW) {
       console.log('[Send OTP] Rate limit exceeded:', email);
       return NextResponse.json(
         {
@@ -71,58 +96,71 @@ export async function POST(request: NextRequest) {
     }
 
     // Increment rate limit counter
-    const newCount = (requestCount || 0) + 1;
-    await kv.set(rateLimitKey, newCount, {
-      ex: AUTH_CONFIG.RATE_LIMIT_WINDOW_MINUTES * 60, // Convert to seconds
-    });
+    const newCount = requestCount ? parseInt(requestCount) + 1 : 1;
+    await redis.set(
+      rateLimitKey,
+      newCount.toString(),
+      { EX: AUTH_CONFIG.RATE_LIMIT_WINDOW_MINUTES * 60 }
+    );
 
     // Generate OTP
     const code = generateOTP();
     console.log('[Send OTP] Generated code for:', email);
 
     // Store OTP in Redis
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60 * 1000);
+
     const otpData: OTPData = {
       code,
-      email,
+      email: emailLower,
       attempts: 0,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60 * 1000).toISOString(),
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
     };
 
-    await kv.set(getOTPKey(email), JSON.stringify(otpData), {
-      ex: AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60, // Convert to seconds
-    });
+    await redis.set(
+      getOTPKey(emailLower),
+      JSON.stringify(otpData),
+      { EX: AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60 }
+    );
 
     // Send email
-    await sendOTPEmail(email, code);
-
-    console.log('[Send OTP] Email sent successfully to:', email);
-
-    return NextResponse.json({
-      success: true,
-      message: `Verification code sent to ${email}`,
-    });
-
-  } catch (error: any) {
-    console.error('[Send OTP] Error:', error);
-
-    // Check if it's an SMTP error
-    if (error.message?.includes('SMTP') || error.message?.includes('send')) {
+    try {
+      await sendOTPEmail(emailLower, code);
+      console.log('[Send OTP] Email sent successfully to:', email);
+    } catch (emailError) {
+      console.error('[Send OTP] Failed to send email:', emailError);
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to send verification email. Please check your email configuration.',
+          error: 'Failed to send verification email. Please check your SMTP configuration.',
         },
         { status: 500 }
       );
     }
 
+    return NextResponse.json({
+      success: true,
+      message: `Verification code sent to ${emailLower}`,
+    });
+
+  } catch (error: any) {
+    console.error('[Send OTP] Error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to send verification code',
+        error: error.message || 'Internal server error',
       },
       { status: 500 }
     );
+  } finally {
+    if (redis) {
+      try {
+        await redis.quit();
+      } catch (err) {
+        console.error('[Send OTP] Error closing Redis connection:', err);
+      }
+    }
   }
 }

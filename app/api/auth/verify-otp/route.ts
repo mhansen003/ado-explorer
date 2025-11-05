@@ -4,9 +4,28 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
 import { createAuthToken } from '@/lib/auth/jwt';
 import { AUTH_CONFIG } from '@/lib/auth/config';
+
+// Lazy load Redis client
+const getRedis = async () => {
+  if (!process.env.REDIS_URL) {
+    throw new Error('REDIS_URL not configured');
+  }
+
+  try {
+    const client = createClient({
+      url: process.env.REDIS_URL,
+    });
+
+    await client.connect();
+    return client;
+  } catch (error) {
+    console.error('Failed to connect to Redis:', error);
+    throw error;
+  }
+};
 
 interface OTPData {
   code: string;
@@ -24,6 +43,8 @@ function getOTPKey(email: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  let redis = null;
+
   try {
     const body = await request.json();
     const { email, code } = body;
@@ -38,9 +59,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const emailLower = email.toLowerCase().trim();
+
+    redis = await getRedis();
+
     // Get OTP data from Redis
-    const otpKey = getOTPKey(email);
-    const otpDataStr = await kv.get<string>(otpKey);
+    const otpKey = getOTPKey(emailLower);
+    const otpDataStr = await redis.get(otpKey);
 
     if (!otpDataStr) {
       console.log('[Verify OTP] Code not found or expired:', email);
@@ -57,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Check if code has expired
     if (new Date(otpData.expiresAt) < new Date()) {
-      await kv.del(otpKey);
+      await redis.del(otpKey);
       console.log('[Verify OTP] Code expired:', email);
       return NextResponse.json(
         {
@@ -70,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Check maximum attempts
     if (otpData.attempts >= AUTH_CONFIG.MAX_ATTEMPTS) {
-      await kv.del(otpKey);
+      await redis.del(otpKey);
       console.log('[Verify OTP] Max attempts exceeded:', email);
       return NextResponse.json(
         {
@@ -85,9 +110,11 @@ export async function POST(request: NextRequest) {
     if (otpData.code !== code.trim()) {
       // Increment attempts
       otpData.attempts += 1;
-      await kv.set(otpKey, JSON.stringify(otpData), {
-        ex: AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60,
-      });
+      await redis.set(
+        otpKey,
+        JSON.stringify(otpData),
+        { EX: AUTH_CONFIG.OTP_EXPIRY_MINUTES * 60 }
+      );
 
       const attemptsRemaining = AUTH_CONFIG.MAX_ATTEMPTS - otpData.attempts;
       console.log('[Verify OTP] Invalid code:', email, `Attempts remaining: ${attemptsRemaining}`);
@@ -102,17 +129,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Success! Delete OTP and create session
-    await kv.del(otpKey);
+    await redis.del(otpKey);
     console.log('[Verify OTP] Verification successful:', email);
 
     // Create JWT token
-    const token = createAuthToken(email);
+    const token = createAuthToken(emailLower);
 
     // Create response with cookie
     const response = NextResponse.json({
       success: true,
       message: 'Authentication successful',
-      email,
+      email: emailLower,
     });
 
     // Set httpOnly cookie
@@ -137,5 +164,13 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    if (redis) {
+      try {
+        await redis.quit();
+      } catch (err) {
+        console.error('[Verify OTP] Error closing Redis connection:', err);
+      }
+    }
   }
 }
