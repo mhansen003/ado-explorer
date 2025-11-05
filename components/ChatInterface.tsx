@@ -493,6 +493,7 @@ Type /help anytime to see this guide again!`,
     setHistoryIndex(-1);
     setTemporaryInput('');
     setShowAutocomplete(false);
+    setIsFilterExpanded(false); // Close filter dropdown when executing search
 
     // Process command
     await processCommand(trimmedInput);
@@ -849,6 +850,7 @@ Type / to see interactive search options with fill-in-the-blank style:
     setDynamicSuggestions([]);
     setShowAutocomplete(false);
     setIsShowingTabAutocomplete(false);
+    setIsFilterExpanded(false); // Close filter dropdown when executing search
 
     // Execute the command
     await processCommand(fullCommand);
@@ -874,6 +876,7 @@ Type / to see interactive search options with fill-in-the-blank style:
     // Close template builder
     setActiveTemplate(null);
     setInput('');
+    setIsFilterExpanded(false); // Close filter dropdown when executing search
 
     // Execute the command
     await processCommand(command);
@@ -925,6 +928,9 @@ Type / to see interactive search options with fill-in-the-blank style:
     };
     setMessages(prev => [...prev, userMessage]);
 
+    // Close filter dropdown when executing search
+    setIsFilterExpanded(false);
+
     // Process the command
     await processCommand(command);
   };
@@ -938,6 +944,9 @@ Type / to see interactive search options with fill-in-the-blank style:
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
+
+    // Close filter dropdown when executing search
+    setIsFilterExpanded(false);
 
     // Process the suggestion as a new query
     await processCommand(suggestion);
