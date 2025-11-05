@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       hasPAT: !!pat,
       hasOpenAI: !!openaiKey,
       prompt,
+      filters: filters || 'NO FILTERS PROVIDED',
     });
 
     if (!organization || !pat) {

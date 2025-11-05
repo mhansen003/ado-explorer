@@ -85,38 +85,58 @@ export class ADOService {
    * Public method to allow applying filters to AI-generated queries
    */
   applyFiltersToQuery(query: string, filters?: GlobalFilters): string {
+    console.log('[ADO Service] applyFiltersToQuery called with:', { query, filters });
     const globalFilterConditions = this.buildGlobalFilterConditions(filters);
-    if (!globalFilterConditions) return query;
+    console.log('[ADO Service] Built filter conditions:', globalFilterConditions);
+
+    if (!globalFilterConditions) {
+      console.log('[ADO Service] No filter conditions, returning original query');
+      return query;
+    }
 
     // If query has WHERE, append with AND, otherwise add WHERE
+    let modifiedQuery: string;
     if (query.includes(' WHERE ')) {
-      return query.replace(' ORDER BY ', ` AND ${globalFilterConditions} ORDER BY `);
+      modifiedQuery = query.replace(' ORDER BY ', ` AND ${globalFilterConditions} ORDER BY `);
     } else {
-      return query.replace(' ORDER BY ', ` WHERE ${globalFilterConditions} ORDER BY `);
+      modifiedQuery = query.replace(' ORDER BY ', ` WHERE ${globalFilterConditions} ORDER BY `);
     }
+
+    console.log('[ADO Service] Modified query:', modifiedQuery);
+    return modifiedQuery;
   }
 
   /**
    * Build global filter conditions to be added to WHERE clause
    */
   private buildGlobalFilterConditions(filters?: GlobalFilters): string {
-    if (!filters) return '';
+    console.log('[ADO Service] buildGlobalFilterConditions called with:', filters);
+
+    if (!filters) {
+      console.log('[ADO Service] No filters provided');
+      return '';
+    }
 
     const conditions: string[] = [];
 
     if (filters.ignoreClosed) {
+      console.log('[ADO Service] Adding ignoreClosed condition');
       conditions.push(`[System.State] <> 'Closed'`);
     }
 
     if (filters.onlyMyTickets && filters.currentUser) {
+      console.log('[ADO Service] Adding onlyMyTickets condition for:', filters.currentUser);
       conditions.push(`[System.AssignedTo] CONTAINS '${filters.currentUser}'`);
     }
 
     if (filters.ignoreOlderThanDays) {
+      console.log('[ADO Service] Adding ignoreOlderThanDays condition:', filters.ignoreOlderThanDays);
       conditions.push(`[System.ChangedDate] >= @Today - ${filters.ignoreOlderThanDays}`);
     }
 
-    return conditions.length > 0 ? conditions.join(' AND ') : '';
+    const result = conditions.length > 0 ? conditions.join(' AND ') : '';
+    console.log('[ADO Service] Final filter conditions:', result);
+    return result;
   }
 
   /**
