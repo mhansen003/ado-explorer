@@ -46,6 +46,7 @@ export interface Command {
 export interface DynamicSuggestion {
   value: string;
   description?: string;
+  metadata?: string; // Additional info like full path for queries
 }
 
 export interface ADOConfig {

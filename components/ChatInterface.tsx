@@ -427,14 +427,16 @@ Type **/help** for more info`,
         if (response.ok && data.queries) {
           setCachedQueries(data.queries.map((q: any) => ({
             value: q.id,
-            description: q.path,
+            description: q.name, // Use name for display/filtering instead of path
+            metadata: q.path, // Store full path as metadata if needed
           })));
           console.log('[ChatInterface] Pre-loaded queries:', data.queries.length);
         } else if (response.ok && Array.isArray(data)) {
           // API returns array directly
           setCachedQueries(data.map((q: any) => ({
             value: q.id,
-            description: q.path,
+            description: q.name, // Use name for display/filtering instead of path
+            metadata: q.path, // Store full path as metadata if needed
           })));
           console.log('[ChatInterface] Pre-loaded queries (array format):', data.length);
         } else {
@@ -618,7 +620,8 @@ Type **/help** for more info`,
           )
           .map((q: any) => ({
             value: q.id,
-            description: q.path,
+            description: q.name, // Use name for display/filtering instead of path
+            metadata: q.path, // Store full path as metadata if needed
           }));
         setDynamicSuggestions(filtered);
       }
@@ -932,21 +935,14 @@ Just type naturally - I understand questions like:
       return;
     }
 
-    // For query command, find the query name from cached queries
-    let displayValue = value;
-    if (commandName === 'query') {
-      const query = cachedQueries.find(q => q.value === value);
-      displayValue = query?.description || value;
-    }
-
     // Build the full command
     const fullCommand = `/${commandName} ${value}`;
 
-    // Add user message (show the friendly name for queries)
+    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: commandName === 'query' ? `/query ${displayValue}` : fullCommand,
+      content: fullCommand,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
