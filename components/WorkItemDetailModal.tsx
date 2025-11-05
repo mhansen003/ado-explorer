@@ -11,11 +11,12 @@ interface WorkItemDetailModalProps {
   workItem: WorkItem;
   onClose: () => void;
   breadcrumbTrail?: WorkItem[]; // Trail of work items navigated through
+  onCloseAll?: () => void; // Close all modals in the stack
 }
 
 type AIAction = 'releaseNotes' | 'summary' | 'testCases' | 'acceptanceCriteria' | 'complexity' | 'relatedItems';
 
-export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail = [] }: WorkItemDetailModalProps) {
+export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail = [], onCloseAll }: WorkItemDetailModalProps) {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<AIAction | null>(null);
@@ -171,8 +172,11 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     },
   ];
 
+  // Use onCloseAll to close entire modal stack, or onClose for single level
+  const handleClose = onCloseAll || onClose;
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={handleClose}>
       <div className="bg-rh-card border border-rh-border rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-rh-border">
@@ -183,7 +187,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             </span>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-rh-border rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-rh-text-secondary" />
@@ -495,6 +499,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
         <WorkItemDetailModal
           workItem={selectedRelatedItem}
           onClose={() => setSelectedRelatedItem(null)}
+          onCloseAll={handleClose}
           breadcrumbTrail={currentTrail}
         />
       )}
