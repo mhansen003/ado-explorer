@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { WorkItem } from '@/types';
-import { Calendar, User, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, User, AlertCircle, CheckCircle, Clock, Tag, MapPin, Zap, UserPlus } from 'lucide-react';
 import WorkItemDetailModal from './WorkItemDetailModal';
 import { getTypeColor, getStateColor } from '@/lib/colors';
 
@@ -49,17 +49,64 @@ export default function WorkItemCard({ workItem }: WorkItemCardProps) {
               {workItem.title}
             </h3>
 
-            <div className="flex items-center gap-4 text-xs text-rh-text-secondary">
-              <div className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                <span>{workItem.assignedTo}</span>
+            {/* Tags */}
+            {workItem.tags && workItem.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {workItem.tags.slice(0, 3).map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-purple-500/10 border border-purple-500/30 text-purple-300 rounded"
+                  >
+                    <Tag className="w-2.5 h-2.5" />
+                    {tag}
+                  </span>
+                ))}
+                {workItem.tags.length > 3 && (
+                  <span className="text-xs text-rh-text-secondary">+{workItem.tags.length - 3}</span>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                <span>{new Date(workItem.createdDate).toLocaleDateString()}</span>
+            )}
+
+            <div className="space-y-1">
+              {/* Row 1: Assigned To, Changed Date, Priority */}
+              <div className="flex items-center gap-3 text-xs text-rh-text-secondary">
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  <span className="truncate max-w-[120px]">{workItem.assignedTo}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span title={`Last modified: ${workItem.changedDate ? new Date(workItem.changedDate).toLocaleString() : 'Unknown'}`}>
+                    {workItem.changedDate ? new Date(workItem.changedDate).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">P{workItem.priority}</span>
+                </div>
+                {workItem.storyPoints !== undefined && workItem.storyPoints !== null && (
+                  <div className="flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-yellow-400" />
+                    <span className="font-medium text-yellow-400">{workItem.storyPoints}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <span className="font-medium">P{workItem.priority}</span>
+
+              {/* Row 2: Area Path and Created By */}
+              <div className="flex items-center gap-3 text-xs text-rh-text-secondary">
+                {workItem.areaPath && (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    <span className="truncate max-w-[150px]" title={workItem.areaPath}>
+                      {workItem.areaPath.split('\\').pop()}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <UserPlus className="w-3 h-3" />
+                  <span className="truncate max-w-[120px]" title={`Created by: ${workItem.createdBy}`}>
+                    {workItem.createdBy}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
