@@ -1,4 +1,4 @@
-export const VERSION = 'v1.1';
+export const VERSION = 'v1.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,40 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.2',
+    date: '2025-01-06',
+    changes: [
+      {
+        category: 'Feature',
+        description: 'Interactive Chart Creation - Create charts directly from search results with one-click Chart button and dropdown menu',
+      },
+      {
+        category: 'Feature',
+        description: 'Dynamic Pivot Selection - Change chart grouping on-the-fly between State, Type, Priority, Assigned To, and Created By',
+      },
+      {
+        category: 'Feature',
+        description: 'Project-Based Charts - Chart command now supports project selection to visualize specific project data',
+      },
+      {
+        category: 'Feature',
+        description: 'Grid Modal Charts - Create charts from filtered results in the grid modal with dedicated chart popup view',
+      },
+      {
+        category: 'Enhancement',
+        description: 'Improved dropdown visibility - Sprint and all dropdowns now show friendly names instead of GUIDs',
+      },
+      {
+        category: 'Enhancement',
+        description: 'Wider dropdown menus (256px → 384px) for better readability of long project and sprint names',
+      },
+      {
+        category: 'Enhancement',
+        description: 'Blue chart buttons for improved visibility and easier discovery of chart features',
+      },
+    ],
+  },
   {
     version: 'v1.1',
     date: '2025-01-05',
