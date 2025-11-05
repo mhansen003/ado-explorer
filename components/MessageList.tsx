@@ -3,11 +3,13 @@ import WorkItemCard from './WorkItemCard';
 import WorkItemGrid from './WorkItemGrid';
 import WorkItemChart from './WorkItemChart';
 import AnalyticsInsights from './AnalyticsInsights';
+import HierarchicalWorkItemList from './HierarchicalWorkItemList';
 import { Bot, User, Download, Table, BarChart3, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ResultsModal from './ResultsModal';
 import EmailButton from './EmailButton';
 import { sendEmailReport } from '@/lib/email-utils';
+import { buildHierarchy, hasHierarchicalRelations } from '@/lib/hierarchy-utils';
 
 interface MessageListProps {
   messages: Message[];
@@ -395,22 +397,38 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                     </div>
                   ) : (
                     <>
-                      {/* Show first 5 items or all if <= 5 for card view */}
-                      {message.workItems.slice(0, message.workItems.length <= 5 ? message.workItems.length : 5).map((item) => (
-                        <WorkItemCard key={item.id} workItem={item} />
-                      ))}
+                      {/* Check if work items have hierarchical relationships */}
+                      {(() => {
+                        const hasHierarchy = hasHierarchicalRelations(message.workItems);
 
-                      {/* Show "and X more" message if > 5 for card view */}
-                      {message.workItems.length > 5 && (
-                        <div className="text-center py-3">
-                          <button
-                            onClick={() => setModalMessage(message)}
-                            className="text-sm text-rh-green hover:text-green-400 transition-colors"
-                          >
-                            ... and {message.workItems.length - 5} more items (click &quot;View All&quot; to see them)
-                          </button>
-                        </div>
-                      )}
+                        if (hasHierarchy) {
+                          // Use hierarchical display
+                          const { roots } = buildHierarchy(message.workItems);
+                          return <HierarchicalWorkItemList items={roots} maxInitialItems={5} />;
+                        } else {
+                          // Use flat list display
+                          return (
+                            <>
+                              {/* Show first 5 items or all if <= 5 for card view */}
+                              {message.workItems.slice(0, message.workItems.length <= 5 ? message.workItems.length : 5).map((item) => (
+                                <WorkItemCard key={item.id} workItem={item} />
+                              ))}
+
+                              {/* Show "and X more" message if > 5 for card view */}
+                              {message.workItems.length > 5 && (
+                                <div className="text-center py-3">
+                                  <button
+                                    onClick={() => setModalMessage(message)}
+                                    className="text-sm text-rh-green hover:text-green-400 transition-colors"
+                                  >
+                                    ... and {message.workItems.length - 5} more items (click &quot;View All&quot; to see them)
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          );
+                        }
+                      })()}
                     </>
                   )}
                 </div>

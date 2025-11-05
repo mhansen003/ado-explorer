@@ -1,4 +1,4 @@
-export const VERSION = 'v1.4';
+export const VERSION = 'v1.4.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,20 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.4.1',
+    date: '2025-01-12',
+    changes: [
+      {
+        category: 'Feature',
+        description: '🔔 Toast Notifications - Elegant slide-in notifications for email sends with success/error feedback',
+      },
+      {
+        category: 'Enhancement',
+        description: '✉️ Email Template Redesign - Sleek black Robinhood-style email reports (#0D0D0D background) with refined typography and spacing',
+      },
+    ],
+  },
   {
     version: 'v1.4',
     date: '2025-01-11',

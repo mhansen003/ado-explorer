@@ -5,6 +5,44 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-01-05
+
+### ✨ Added
+- **Hierarchical work item display** - Related items now display in a collapsible tree structure
+  - Automatically detects parent/child relationships in work items
+  - Collapsible sections with expand/collapse buttons (ChevronDown/ChevronRight icons)
+  - Visual connection lines showing parent-child relationships
+  - Relation type badges (Parent/Child/Related) for clear identification
+  - Indented display (24px per level) for visual hierarchy
+  - Falls back gracefully to flat list display when no hierarchical relationships exist
+
+### 🚀 Enhanced
+- **Card view improvements** - Intelligently switches between hierarchical and flat display
+  - Checks work items for hierarchical relationships automatically
+  - Maintains "show more/less" functionality for long lists
+  - Preserves existing flat list behavior for non-hierarchical results
+  - Grid view continues to use existing layout
+
+### 🛠️ Technical Details
+- Added `lib/hierarchy-utils.ts` - Utility functions for building and analyzing work item hierarchies
+  - `buildHierarchy()` - Converts flat work item arrays to tree structures
+  - `hasHierarchicalRelations()` - Detects parent/child relationships
+  - `HierarchicalWorkItem` interface with `children`, `level`, `hasChildren` fields
+- Added `components/HierarchicalWorkItemList.tsx` - New React component for tree display
+  - Uses `useState` for expand/collapse state management
+  - Recursive rendering for nested children
+  - Supports maxInitialItems prop for pagination
+- Modified `components/MessageList.tsx` - Conditional rendering logic
+  - Checks for hierarchical relations before rendering
+  - Seamless fallback to existing display for backward compatibility
+
+### 🎯 Impact
+- **Better visualization of complex work item relationships** - Users can now see how work items relate to each other
+- **Improved navigation** - Collapse/expand functionality reduces clutter for large result sets
+- **100% backward compatible** - No breaking changes, flat display preserved when no hierarchy exists
+
+---
+
 ## [0.1.3] - 2025-01-05
 
 ### 📝 Updated
