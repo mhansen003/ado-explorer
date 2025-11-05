@@ -843,8 +843,9 @@ export class ADOService {
             if (item.children) {
               extractQueries(item.children, folderPath);
             }
-          } else if (item.isPublic !== false) {
-            // Only include public/shared queries, skip private queries
+          } else if (item.isPublic !== false && item.wiql) {
+            // Only include public/shared queries that have WIQL
+            // This filters out folders and link queries
             queries.push({
               id: item.id,
               name: item.name,
@@ -887,11 +888,19 @@ export class ADOService {
       console.log('[ADO runQuery] Running query:', queryId);
 
       // Get the query details to extract the WIQL
-      const queryResponse = await this.client.get(`/wit/queries/${queryId}`);
+      // Need to expand to get the WIQL
+      const queryResponse = await this.client.get(`/wit/queries/${queryId}`, {
+        params: {
+          '$expand': 'wiql',
+        },
+      });
+
+      console.log('[ADO runQuery] Query response:', queryResponse.data);
+
       const wiql = queryResponse.data.wiql;
 
       if (!wiql) {
-        throw new Error('Query does not contain WIQL');
+        throw new Error('Query does not contain WIQL. The query might be a folder or a query that references another query.');
       }
 
       console.log('[ADO runQuery] Query WIQL:', wiql);
@@ -904,6 +913,7 @@ export class ADOService {
         project: this.project,
         status: error.response?.status,
         message: error.message,
+        data: error.response?.data,
       });
       throw error;
     }
