@@ -217,6 +217,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                   <div className="text-rh-text whitespace-pre-wrap text-sm mb-3">
                     {message.content}
                   </div>
+                  {console.log('[MessageList] Rendering list items:', message.listItems.length, 'items')}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
                     {message.listItems.map((item, index) => (
                       <button
