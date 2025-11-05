@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Filter, X } from 'lucide-react';
-import { GlobalFilters } from '@/types';
+import { Filter, X, LayoutGrid, LayoutList } from 'lucide-react';
+import { GlobalFilters, ViewPreferences } from '@/types';
 
 interface FilterBarProps {
   filters: GlobalFilters;
   onFiltersChange: (filters: GlobalFilters) => void;
+  viewPreferences: ViewPreferences;
+  onViewPreferencesChange: (preferences: ViewPreferences) => void;
 }
 
-export default function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
+export default function FilterBar({ filters, onFiltersChange, viewPreferences, onViewPreferencesChange }: FilterBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [daysInput, setDaysInput] = useState(filters.ignoreOlderThanDays?.toString() || '30');
   const [usernameInput, setUsernameInput] = useState(filters.currentUser || '');
@@ -29,6 +31,17 @@ export default function FilterBar({ filters, onFiltersChange }: FilterBarProps) 
         }
       } catch (error) {
         console.error('Failed to load filters from localStorage:', error);
+      }
+    }
+
+    // Load view preferences from localStorage
+    const savedPrefs = localStorage.getItem('ado-explorer-view-preferences');
+    if (savedPrefs) {
+      try {
+        const savedViewPrefs = JSON.parse(savedPrefs);
+        onViewPreferencesChange(savedViewPrefs);
+      } catch (error) {
+        console.error('Failed to load view preferences from localStorage:', error);
       }
     }
   }, []);
@@ -147,6 +160,30 @@ export default function FilterBar({ filters, onFiltersChange }: FilterBarProps) 
                 className="w-16 px-2 py-1 bg-rh-dark border border-rh-border rounded text-sm text-rh-text focus:outline-none focus:border-rh-green disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span className="text-sm text-rh-text-secondary">days</span>
+            </div>
+
+            {/* Grid View Toggle */}
+            <div className="pt-2 mt-2 border-t border-rh-border">
+              <label className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/50 p-2 rounded transition-colors">
+                <input
+                  type="checkbox"
+                  checked={viewPreferences.useGridView}
+                  onChange={(e) => {
+                    const newPrefs = { useGridView: e.target.checked };
+                    onViewPreferencesChange(newPrefs);
+                    localStorage.setItem('ado-explorer-view-preferences', JSON.stringify(newPrefs));
+                  }}
+                  className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
+                />
+                <div className="flex items-center gap-2">
+                  {viewPreferences.useGridView ? (
+                    <LayoutGrid className="w-4 h-4 text-rh-green" />
+                  ) : (
+                    <LayoutList className="w-4 h-4 text-rh-text-secondary" />
+                  )}
+                  <span className="text-sm text-rh-text">Use grid view (compact table)</span>
+                </div>
+              </label>
             </div>
 
             {/* Clear All Filters */}

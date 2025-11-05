@@ -5,7 +5,7 @@ import { Send } from 'lucide-react';
 import MessageList from './MessageList';
 import CommandAutocomplete from './CommandAutocomplete';
 import FilterBar from './FilterBar';
-import { Message, Command, DynamicSuggestion, GlobalFilters } from '@/types';
+import { Message, Command, DynamicSuggestion, GlobalFilters, ViewPreferences } from '@/types';
 
 const COMMANDS: Command[] = [
   { name: 'project', description: 'Filter by project (auto-completes from your ADO)', icon: '📁', hasParam: true, isDynamic: true },
@@ -49,6 +49,11 @@ export default function ChatInterface() {
     ignoreClosed: false,
     onlyMyTickets: false,
     ignoreOlderThanDays: null,
+  });
+
+  // View preferences
+  const [viewPreferences, setViewPreferences] = useState<ViewPreferences>({
+    useGridView: false,
   });
 
   useEffect(() => {
@@ -903,9 +908,15 @@ export default function ChatInterface() {
         messages={messages}
         onListItemClick={handleListItemClick}
         onSuggestionClick={handleSuggestionClick}
+        viewPreferences={viewPreferences}
       />
 
-      <FilterBar filters={globalFilters} onFiltersChange={setGlobalFilters} />
+      <FilterBar
+        filters={globalFilters}
+        onFiltersChange={setGlobalFilters}
+        viewPreferences={viewPreferences}
+        onViewPreferencesChange={setViewPreferences}
+      />
 
       <div className="relative p-4 border-t border-rh-border bg-rh-dark">
         {showAutocomplete && (

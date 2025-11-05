@@ -58,3 +58,7 @@ export interface GlobalFilters {
   ignoreOlderThanDays: number | null;
   currentUser?: string;
 }
+
+export interface ViewPreferences {
+  useGridView: boolean;
+}
