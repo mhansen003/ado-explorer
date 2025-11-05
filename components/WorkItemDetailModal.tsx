@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { WorkItem, Comment } from '@/types';
-import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network, Maximize2 } from 'lucide-react';
+import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network, Maximize2, Copy, Check } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -31,6 +31,8 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [loadingRelationships, setLoadingRelationships] = useState(false);
   const [hasFetchedRelationships, setHasFetchedRelationships] = useState(false);
   const [showFullScreenRelationships, setShowFullScreenRelationships] = useState(false);
+  const [copiedDescription, setCopiedDescription] = useState(false);
+  const [copiedCriteria, setCopiedCriteria] = useState(false);
 
   // Current trail includes all previous items plus this one
   const currentTrail = [...breadcrumbTrail, workItem];
@@ -197,6 +199,30 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const copyToClipboard = () => {
     if (aiResult) {
       navigator.clipboard.writeText(aiResult);
+    }
+  };
+
+  const copyDescription = async () => {
+    if (workItem.description) {
+      // Strip HTML tags for plain text copy
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = workItem.description;
+      const plainText = tempDiv.textContent || tempDiv.innerText || '';
+      await navigator.clipboard.writeText(plainText);
+      setCopiedDescription(true);
+      setTimeout(() => setCopiedDescription(false), 2000);
+    }
+  };
+
+  const copyCriteria = async () => {
+    if (workItem.acceptanceCriteria) {
+      // Strip HTML tags for plain text copy
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = workItem.acceptanceCriteria;
+      const plainText = tempDiv.textContent || tempDiv.innerText || '';
+      await navigator.clipboard.writeText(plainText);
+      setCopiedCriteria(true);
+      setTimeout(() => setCopiedCriteria(false), 2000);
     }
   };
 
@@ -374,126 +400,116 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
         <div className={`${activeTab === 'relationships' ? 'p-0' : 'p-6'} overflow-y-auto max-h-[calc(90vh-176px)]`}>
           {activeTab === 'details' ? (
             <>
-              <h2 className="text-2xl font-semibold text-rh-text mb-6">
-                {workItem.title}
-              </h2>
-
-          {/* Metadata Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <AlertCircle className="w-4 h-4 text-rh-text-secondary" />
-                <span className="text-rh-text-secondary">State:</span>
-                <span className="text-rh-text font-medium">{workItem.state}</span>
+              {/* Compact Header with Badges */}
+              <div className="mb-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-sm font-mono text-cyan-400 font-semibold">#{workItem.id}</span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-1 text-xs font-medium rounded bg-blue-500/20 text-blue-400 border border-blue-500/40">
+                      {workItem.type}
+                    </span>
+                    <span className="px-2 py-1 text-xs font-medium rounded bg-purple-500/20 text-purple-400 border border-purple-500/40">
+                      {workItem.state}
+                    </span>
+                    <span className="px-2 py-1 text-xs font-medium rounded bg-orange-500/20 text-orange-400 border border-orange-500/40">
+                      P{workItem.priority}
+                    </span>
+                    {workItem.storyPoints !== undefined && (
+                      <span className="px-2 py-1 text-xs font-medium rounded bg-green-500/20 text-green-400 border border-green-500/40">
+                        {workItem.storyPoints} pts
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <h2 className="text-xl font-semibold text-rh-text leading-tight">
+                  {workItem.title}
+                </h2>
               </div>
 
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-rh-text-secondary" />
-                <span className="text-rh-text-secondary">Assigned to:</span>
+          {/* Compact Metadata - Single Column */}
+          <div className="bg-rh-dark/50 border border-rh-border rounded-lg p-4 mb-4 space-y-2">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-rh-text-secondary flex-shrink-0" />
+                <span className="text-rh-text-secondary text-xs">Assigned:</span>
                 {workItem.assignedToEmail ? (
                   <a
                     href={`mailto:${workItem.assignedToEmail}`}
-                    className="text-rh-text font-medium hover:text-rh-green transition-colors hover:underline"
+                    className="text-rh-text text-xs hover:text-rh-green transition-colors hover:underline truncate"
                   >
                     {workItem.assignedTo}
                   </a>
                 ) : (
-                  <span className="text-rh-text font-medium">{workItem.assignedTo}</span>
+                  <span className="text-rh-text text-xs truncate">{workItem.assignedTo}</span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-rh-text-secondary" />
-                <span className="text-rh-text-secondary">Created by:</span>
-                {workItem.createdByEmail ? (
-                  <a
-                    href={`mailto:${workItem.createdByEmail}`}
-                    className="text-rh-text font-medium hover:text-rh-green transition-colors hover:underline"
-                  >
-                    {workItem.createdBy}
-                  </a>
-                ) : (
-                  <span className="text-rh-text font-medium">{workItem.createdBy}</span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-rh-text-secondary" />
-                <span className="text-rh-text-secondary">Created:</span>
-                <span className="text-rh-text font-medium">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5 text-rh-text-secondary flex-shrink-0" />
+                <span className="text-rh-text-secondary text-xs">Created:</span>
+                <span className="text-rh-text text-xs">
                   {new Date(workItem.createdDate).toLocaleDateString()}
                 </span>
               </div>
 
-              {workItem.changedBy && (
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-rh-text-secondary" />
-                  <span className="text-rh-text-secondary">Last changed by:</span>
-                  {workItem.changedByEmail ? (
-                    <a
-                      href={`mailto:${workItem.changedByEmail}`}
-                      className="text-rh-text font-medium hover:text-rh-green transition-colors hover:underline"
-                    >
-                      {workItem.changedBy}
-                    </a>
-                  ) : (
-                    <span className="text-rh-text font-medium">{workItem.changedBy}</span>
-                  )}
-                </div>
-              )}
-
-              {workItem.areaPath && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-rh-text-secondary">Area:</span>
-                  <span className="text-rh-text font-medium text-xs">{workItem.areaPath}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Tag className="w-4 h-4 text-rh-text-secondary" />
-                <span className="text-rh-text-secondary">Priority:</span>
-                <span className="text-rh-text font-medium">P{workItem.priority}</span>
+              <div className="flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-rh-text-secondary flex-shrink-0" />
+                <span className="text-rh-text-secondary text-xs">Creator:</span>
+                {workItem.createdByEmail ? (
+                  <a
+                    href={`mailto:${workItem.createdByEmail}`}
+                    className="text-rh-text text-xs hover:text-rh-green transition-colors hover:underline truncate"
+                  >
+                    {workItem.createdBy}
+                  </a>
+                ) : (
+                  <span className="text-rh-text text-xs truncate">{workItem.createdBy}</span>
+                )}
               </div>
 
-              {workItem.project && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-rh-text-secondary">Project:</span>
-                  <span className="text-rh-text font-medium">{workItem.project}</span>
-                </div>
-              )}
-
               {workItem.changedDate && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="w-4 h-4 text-rh-text-secondary" />
-                  <span className="text-rh-text-secondary">Last changed:</span>
-                  <span className="text-rh-text font-medium">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-rh-text-secondary flex-shrink-0" />
+                  <span className="text-rh-text-secondary text-xs">Modified:</span>
+                  <span className="text-rh-text text-xs">
                     {new Date(workItem.changedDate).toLocaleDateString()}
                   </span>
                 </div>
               )}
 
-              {workItem.storyPoints !== undefined && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-rh-text-secondary">Story Points:</span>
-                  <span className="text-rh-text font-medium">{workItem.storyPoints}</span>
-                </div>
-              )}
-
               {workItem.iterationPath && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-rh-text-secondary">Iteration:</span>
-                  <span className="text-rh-text font-medium text-xs">{workItem.iterationPath}</span>
+                <div className="flex items-center gap-2 col-span-2">
+                  <span className="text-rh-text-secondary text-xs">Sprint:</span>
+                  <span className="text-rh-text text-xs truncate">{workItem.iterationPath}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Description */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-rh-text mb-2">Description</h3>
-            <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-60 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-rh-text">Description</h3>
+              {workItem.description && (
+                <button
+                  onClick={copyDescription}
+                  className="flex items-center gap-1.5 px-2 py-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors rounded hover:bg-rh-border/50"
+                >
+                  {copiedDescription ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-48 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
               {sanitizedDescription ? (
                 <div dangerouslySetInnerHTML={{ __html: sanitizedDescription }} />
               ) : (
@@ -521,9 +537,27 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
           {/* Acceptance Criteria */}
           {workItem.acceptanceCriteria && (
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-rh-text mb-2">Acceptance Criteria</h3>
-              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-60 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-rh-text">Acceptance Criteria</h3>
+                <button
+                  onClick={copyCriteria}
+                  className="flex items-center gap-1.5 px-2 py-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors rounded hover:bg-rh-border/50"
+                >
+                  {copiedCriteria ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-48 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
                 <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(workItem.acceptanceCriteria, {
                   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
                   ALLOWED_ATTR: ['class'],
