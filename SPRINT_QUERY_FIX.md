@@ -1,5 +1,24 @@
 # Sprint Query Fix - CRITICAL UPDATE ✅
 
+## 🚨 IMPORTANT: Restart Required
+
+**After pulling these changes, you MUST restart your dev server:**
+
+```bash
+# Stop your current dev server (Ctrl+C)
+# Then restart:
+npm run dev
+
+# Or if deployed to Vercel, push to trigger redeploy:
+git add .
+git commit -m "Fix sprint queries with validator"
+git push origin main
+```
+
+The fix includes a **post-processing validator** that catches CONTAINS on IterationPath even if the AI still generates it.
+
+---
+
 ## Problem Identified
 
 Sprint queries were failing with **400 Bad Request** errors:
@@ -80,6 +99,52 @@ messages.push({
   role: 'user',
   content: prompt + sprintContext,
 });
+```
+
+### 4. Added WIQL Post-Processing Validator (CRITICAL SAFETY NET)
+
+**New Function** in `lib/enhanced-ai-prompts.ts`:
+
+#### `validateAndFixWiqlQuery(wiqlQuery, projectName, availableSprints)`
+
+This is a **safety net** that runs AFTER the AI generates WIQL to catch any remaining CONTAINS issues:
+
+**What it does:**
+1. Scans the WIQL query for `CONTAINS` on IterationPath
+2. If found, automatically fixes it by:
+   - **Best case**: Matches sprint name and replaces with `UNDER '<exact sprint path>'`
+   - **Good case**: Matches area/team name and replaces with `UNDER '<area path>'`
+   - **Fallback**: Replaces with `IterationPath <> ''` (any sprint)
+3. Logs the original query, fixed query, and reason
+
+**Example fix:**
+```typescript
+// AI Generated (INVALID):
+WHERE [System.IterationPath] CONTAINS 'CX Sprint'
+
+// Auto-fixed to (VALID):
+WHERE [System.IterationPath] UNDER 'Next Gen LOS\\Customer Experience\\CX Sprint 2025.11.05 (42)'
+
+// Logs:
+// [WIQL Validator] ⚠️ Found invalid CONTAINS on IterationPath
+// [WIQL Validator] Fixed using sprint: CX Sprint 2025.11.05 (42)
+// [ADO Prompt API] Reason: Replaced CONTAINS with UNDER using sprint path
+```
+
+**Integration in API:**
+```typescript
+// After AI generates WIQL
+let wiqlQuery = openaiData.choices[0].message.content.trim();
+
+// CRITICAL: Validate and fix
+const validationResult = validateAndFixWiqlQuery(wiqlQuery, projectName, availableSprints);
+if (validationResult.wasFixed) {
+  console.warn('⚠️ WIQL query was automatically fixed!');
+  console.warn('Original:', wiqlQuery);
+  console.warn('Fixed:', validationResult.query);
+  console.warn('Reason:', validationResult.fixReason);
+  wiqlQuery = validationResult.query; // Use the fixed query
+}
 ```
 
 ## Correct Sprint Query Patterns

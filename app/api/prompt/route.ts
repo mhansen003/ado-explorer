@@ -111,6 +111,9 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
 
     // Check if this is a sprint-related query and fetch sprint context
     let sprintContext = '';
+    let availableSprints: Array<{ name: string; path: string; timeFrame?: string }> | undefined;
+    let sprintProjectName = project;
+
     if (isSprintQuery(prompt)) {
       console.log('[ADO Prompt API] Sprint query detected, fetching sprint context...');
 
@@ -125,11 +128,13 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
       }
 
       if (targetProject) {
+        sprintProjectName = targetProject;
         try {
           const adoService = new ADOService(organization, pat, targetProject);
-          const sprints = await adoService.getSprints();
-          sprintContext = buildSprintContext(targetProject, sprints);
+          availableSprints = await adoService.getSprints();
+          sprintContext = buildSprintContext(targetProject, availableSprints);
           console.log('[ADO Prompt API] Sprint context built:', sprintContext);
+          console.log('[ADO Prompt API] Available sprints:', availableSprints?.length || 0);
         } catch (error) {
           console.warn('[ADO Prompt API] Failed to fetch sprint context:', error);
           // Continue without sprint context
@@ -176,8 +181,20 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
       throw new Error(errorMessage);
     }
 
-    const wiqlQuery = openaiData.choices[0].message.content.trim();
+    let wiqlQuery = openaiData.choices[0].message.content.trim();
     console.log('[ADO Prompt API] Generated WIQL:', wiqlQuery);
+
+    // CRITICAL: Validate and fix WIQL query for IterationPath issues
+    const validationResult = validateAndFixWiqlQuery(wiqlQuery, sprintProjectName || project || organization, availableSprints);
+    if (validationResult.wasFixed) {
+      console.warn('[ADO Prompt API] ⚠️ WIQL query was automatically fixed!');
+      console.warn('[ADO Prompt API] Original:', wiqlQuery);
+      console.warn('[ADO Prompt API] Fixed:', validationResult.query);
+      console.warn('[ADO Prompt API] Reason:', validationResult.fixReason);
+      wiqlQuery = validationResult.query;
+    } else {
+      console.log('[ADO Prompt API] ✅ WIQL query validation passed');
+    }
 
     // If no project specified, get the first available project
     let targetProject = project;
