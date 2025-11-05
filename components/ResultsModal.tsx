@@ -225,7 +225,7 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
               <div className="relative">
                 <button
                   onClick={() => setChartDropdownOpen(!chartDropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-2 bg-rh-dark border border-rh-border rounded-lg text-sm hover:border-rh-green transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 rounded-lg text-sm transition-colors"
                   title={hasActiveFilters ? `Chart ${filteredWorkItems.length} filtered items` : `Chart all ${workItems.length} items`}
                 >
                   <BarChart3 className="w-4 h-4" />

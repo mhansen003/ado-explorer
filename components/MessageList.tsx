@@ -269,7 +269,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                           <div className="relative">
                             <button
                               onClick={() => setChartDropdownOpen(chartDropdownOpen === message.id ? null : message.id)}
-                              className="flex items-center gap-1 px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 rounded transition-colors"
                             >
                               <BarChart3 className="w-3 h-3" />
                               Chart
