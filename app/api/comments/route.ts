@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[Comments API] Configuration:', {
       organization,
+      project,
       hasProject: !!project,
       hasPAT: !!pat,
       workItemId,
@@ -21,6 +22,14 @@ export async function POST(request: NextRequest) {
       console.error('[Comments API] Missing configuration:', { organization: !!organization, pat: !!pat });
       return NextResponse.json(
         { error: 'ADO configuration not found.' },
+        { status: 500 }
+      );
+    }
+
+    if (!project) {
+      console.error('[Comments API] Missing project configuration');
+      return NextResponse.json(
+        { error: 'Azure DevOps project must be configured. Please set NEXT_PUBLIC_ADO_PROJECT environment variable.' },
         { status: 500 }
       );
     }
