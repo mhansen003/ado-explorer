@@ -734,8 +734,9 @@ export class ADOService {
     try {
       console.log('[ADO getComments] Fetching comments for work item:', workItemId);
 
-      // Use the comments API endpoint
-      const response = await this.orgClient.get(`/wit/workitems/${workItemId}/comments`, {
+      // Use the project-level client (includes project in URL path)
+      // Azure DevOps comments API requires: /{project}/_apis/wit/workitems/{id}/comments
+      const response = await this.client.get(`/wit/workitems/${workItemId}/comments`, {
         params: {
           '$top': 200, // Get up to 200 comments
           '$expand': 'all',
