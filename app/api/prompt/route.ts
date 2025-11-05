@@ -16,6 +16,9 @@ import {
   buildEnhancedContext,
   generateFriendlyError,
   generateFollowUpSuggestions,
+  isSprintQuery,
+  buildSprintContext,
+  validateAndFixWiqlQuery,
 } from '@/lib/enhanced-ai-prompts';
 
 export async function POST(request: NextRequest) {
@@ -106,6 +109,34 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
 
     console.log('[ADO Prompt API] Query type detected:', queryType);
 
+    // Check if this is a sprint-related query and fetch sprint context
+    let sprintContext = '';
+    if (isSprintQuery(prompt)) {
+      console.log('[ADO Prompt API] Sprint query detected, fetching sprint context...');
+
+      // Determine project to use
+      let targetProject = project;
+      if (!targetProject) {
+        const tempService = new ADOService(organization, pat);
+        const projects = await tempService.getProjects();
+        if (projects.length > 0) {
+          targetProject = projects[0].name;
+        }
+      }
+
+      if (targetProject) {
+        try {
+          const adoService = new ADOService(organization, pat, targetProject);
+          const sprints = await adoService.getSprints();
+          sprintContext = buildSprintContext(targetProject, sprints);
+          console.log('[ADO Prompt API] Sprint context built:', sprintContext);
+        } catch (error) {
+          console.warn('[ADO Prompt API] Failed to fetch sprint context:', error);
+          // Continue without sprint context
+        }
+      }
+    }
+
     // Call OpenAI to interpret the prompt with enhanced prompting
     const messages = [
       {
@@ -114,10 +145,10 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
       },
     ];
 
-    // Add current user prompt
+    // Add current user prompt with sprint context if available
     messages.push({
       role: 'user',
-      content: prompt,
+      content: prompt + sprintContext,
     });
 
     const openaiResponse = await callOpenAIWithRetry('https://api.openai.com/v1/chat/completions', {

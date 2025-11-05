@@ -40,16 +40,37 @@ SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditi
 - System.ChangedDate - Last modified date (use >=, <=, or = with @Today)
 - System.CreatedDate - Creation date (use >=, <=, or = with @Today)
 - Microsoft.VSTS.Common.Priority - Priority (1=highest, 4=lowest) (use = or < or >)
-- System.IterationPath - Sprint/Iteration (use CONTAINS or UNDER for hierarchical search)
-- System.AreaPath - Team/Area (use CONTAINS or UNDER for hierarchical search)
+- System.IterationPath - Sprint/Iteration (use ONLY UNDER or = - NEVER CONTAINS!)
+- System.AreaPath - Team/Area (use UNDER for hierarchical search)
 
-## CRITICAL - Sprint/Iteration Queries:
-⚠️ SPRINTS = ITERATIONS in Azure DevOps! Always use System.IterationPath for sprint queries.
-- When users ask about "sprint", "iteration", "sprint velocity", or "current sprint", use System.IterationPath
-- Sprint queries MUST filter by [System.IterationPath] field
-- For "current sprint" or "latest sprint": [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed'
-- For specific sprint (e.g., "Sprint 2025.11.12"): [System.IterationPath] CONTAINS '2025.11.12'
-- Sprint paths follow format: ProjectName\\Sprint Name
+## ⚠️ CRITICAL - Sprint/Iteration Path Rules (MUST FOLLOW):
+AZURE DEVOPS DOES NOT ALLOW CONTAINS OPERATOR ON ITERATIONPATH!
+
+**ONLY THESE OPERATORS ARE ALLOWED FOR System.IterationPath:**
+1. UNDER - For hierarchical matching (RECOMMENDED)
+2. = - For exact path match
+
+**NEVER USE:**
+- ❌ CONTAINS - Will cause 400 error!
+- ❌ Multiple CONTAINS on IterationPath
+- ❌ Partial path matching with CONTAINS
+
+**Sprint Query Patterns:**
+
+For "current sprint" or "latest sprint":
+✅ Use: [System.IterationPath] UNDER 'ProjectName'
+(Returns all items in all sprints, then filter by date in application)
+
+For "sprint in Marketing" or "Marketing sprint":
+✅ Use: [System.IterationPath] UNDER 'ProjectName\\\\Marketing Experience'
+(UNDER matches the path and all children - note the double backslashes)
+
+For specific sprint by name:
+✅ Use: [System.IterationPath] = 'ProjectName\\\\Marketing Experience\\\\Sprint 23'
+(Exact match to full path)
+
+**Sprint paths use backslash separator:** ProjectName\\AreaPath\\SprintName
+Example: Next Gen LOS\\Marketing Experience\\MX Sprint 2025.11.12 (23)
 
 ## Operators:
 - CONTAINS - For text search in Title, Description, AssignedTo, CreatedBy, Tags
@@ -72,8 +93,14 @@ Time-based: "recent work" or "what's new?"
 Team member: "john's tickets" or "what is sarah working on?"
 → SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.AssignedTo] CONTAINS 'john' OR [System.AssignedTo] CONTAINS 'sarah' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC
 
-Sprint: "this sprint" or "current iteration"
-→ SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC
+Sprint: "this sprint" or "current iteration" or "sprint items"
+→ SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] <> '' AND [System.State] <> 'Closed' ORDER BY [System.ChangedDate] DESC
+(Note: Returns items with any sprint. For specific sprint, need exact path)
+
+Sprint in area: "marketing sprint" or "sprint in marketing"
+→ SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] UNDER 'Next Gen LOS\\Marketing Experience' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC
+
+⚠️ REMEMBER: NEVER use CONTAINS with IterationPath - only UNDER or = !
 
 Respond ONLY with the WIQL query, nothing else.`;
 
@@ -316,4 +343,142 @@ export function generateFollowUpSuggestions(
   suggestions.push("create a chart to visualize this data");
 
   return suggestions.slice(0, 3); // Return top 3 suggestions
+}
+
+/**
+ * Detect if a query is asking about sprints
+ */
+export function isSprintQuery(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+  const sprintKeywords = [
+    'sprint',
+    'iteration',
+    'current sprint',
+    'last sprint',
+    'latest sprint',
+    'recent sprint',
+    'this sprint',
+    'sprint items',
+    'sprint work',
+    'what we working on',
+  ];
+
+  return sprintKeywords.some(keyword => lowerQuery.includes(keyword));
+}
+
+/**
+ * Build sprint-aware context for better WIQL generation
+ */
+export function buildSprintContext(
+  projectName: string,
+  availableSprints?: Array<{ name: string; path: string; timeFrame?: string }>
+): string {
+  if (!availableSprints || availableSprints.length === 0) {
+    return `\n\n**Sprint Context:**
+Project Name: ${projectName}
+No sprint information available. Use generic sprint query: [System.IterationPath] <> ''`;
+  }
+
+  const currentSprint = availableSprints.find(s => s.timeFrame === 'current');
+  const recentSprints = availableSprints.slice(0, 5);
+
+  let context = `\n\n**Sprint Context for ${projectName}:**\n`;
+
+  if (currentSprint) {
+    context += `Current Sprint: "${currentSprint.name}"\n`;
+    context += `Current Sprint Path: ${currentSprint.path}\n`;
+  }
+
+  if (recentSprints.length > 0) {
+    context += `\nAvailable Sprints:\n`;
+    recentSprints.forEach(sprint => {
+      const marker = sprint.timeFrame === 'current' ? ' (CURRENT)' : '';
+      context += `- "${sprint.name}"${marker} → Path: ${sprint.path}\n`;
+    });
+  }
+
+  context += `\n**For sprint queries, use UNDER operator with the full path:**\n`;
+  context += `Example: [System.IterationPath] UNDER '${currentSprint?.path || recentSprints[0]?.path || projectName}'\n`;
+  context += `\n⚠️ NEVER use CONTAINS with IterationPath!`;
+
+  return context;
+}
+
+/**
+ * Validate and fix WIQL query to prevent CONTAINS on IterationPath
+ * This is a safety check in case the AI still generates invalid queries
+ */
+export function validateAndFixWiqlQuery(
+  wiqlQuery: string,
+  projectName: string,
+  availableSprints?: Array<{ name: string; path: string; timeFrame?: string }>
+): { query: string; wasFixed: boolean; fixReason?: string } {
+  // Check if query has CONTAINS with IterationPath (case insensitive)
+  const containsIterationPathRegex = /\[System\.IterationPath\]\s+CONTAINS\s+'([^']+)'/gi;
+  const matches = [...wiqlQuery.matchAll(containsIterationPathRegex)];
+
+  if (matches.length === 0) {
+    // Query is valid
+    return { query: wiqlQuery, wasFixed: false };
+  }
+
+  console.warn('[WIQL Validator] Found invalid CONTAINS on IterationPath, attempting to fix...');
+
+  // Try to fix the query
+  let fixedQuery = wiqlQuery;
+  let fixReason = '';
+
+  for (const match of matches) {
+    const fullMatch = match[0];
+    const searchTerm = match[1];
+
+    console.log(`[WIQL Validator] Fixing: ${fullMatch}`);
+
+    // Try to find a matching sprint
+    if (availableSprints && availableSprints.length > 0) {
+      // Look for sprint that matches the search term
+      const matchingSprint = availableSprints.find(s =>
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.path.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      if (matchingSprint) {
+        // Replace with UNDER using the exact path
+        const replacement = `[System.IterationPath] UNDER '${matchingSprint.path}'`;
+        fixedQuery = fixedQuery.replace(fullMatch, replacement);
+        fixReason = `Replaced CONTAINS with UNDER using sprint path: ${matchingSprint.path}`;
+        console.log(`[WIQL Validator] Fixed using sprint: ${matchingSprint.name} → ${replacement}`);
+        continue;
+      }
+
+      // Try to find by area/team name
+      const matchingArea = availableSprints.find(s => {
+        const pathParts = s.path.split('\\');
+        return pathParts.some(part => part.toLowerCase().includes(searchTerm.toLowerCase()));
+      });
+
+      if (matchingArea) {
+        // Use the parent path (remove last segment for area path)
+        const pathParts = matchingArea.path.split('\\');
+        const areaPath = pathParts.slice(0, -1).join('\\') || matchingArea.path;
+        const replacement = `[System.IterationPath] UNDER '${areaPath}'`;
+        fixedQuery = fixedQuery.replace(fullMatch, replacement);
+        fixReason = `Replaced CONTAINS with UNDER using area path: ${areaPath}`;
+        console.log(`[WIQL Validator] Fixed using area: ${areaPath} → ${replacement}`);
+        continue;
+      }
+    }
+
+    // Fallback: use generic sprint filter
+    const replacement = `[System.IterationPath] <> ''`;
+    fixedQuery = fixedQuery.replace(fullMatch, replacement);
+    fixReason = `Replaced invalid CONTAINS with generic sprint filter (IterationPath not empty)`;
+    console.log(`[WIQL Validator] Fixed using generic filter: ${replacement}`);
+  }
+
+  return {
+    query: fixedQuery,
+    wasFixed: true,
+    fixReason,
+  };
 }

@@ -818,6 +818,16 @@ Type **/help** for more info`,
         const aiNote = data.aiGenerated ? `\n\n🤖 AI-Generated Query: ${data.generatedQuery}` : '';
         const searchScope = data.searchScope ? ` (${data.searchScope})` : '';
         const filterSummary = buildFilterSummary();
+
+        // Detect if this is an error response even though HTTP was OK
+        const isErrorResponse = data.conversationalAnswer && (
+          data.conversationalAnswer.toLowerCase().includes('error') ||
+          data.conversationalAnswer.toLowerCase().includes('issue') ||
+          data.conversationalAnswer.toLowerCase().includes('problem') ||
+          data.conversationalAnswer.toLowerCase().includes('failed') ||
+          data.conversationalAnswer.toLowerCase().includes('status code')
+        ) && (!data.workItems || data.workItems.length === 0);
+
         const resultMessage: Message = {
           id: Date.now().toString(),
           type: 'results',
@@ -827,6 +837,7 @@ Type **/help** for more info`,
           conversationalAnswer: data.conversationalAnswer,
           responseType: data.responseType,
           suggestions: data.suggestions,
+          isError: isErrorResponse, // Show in red if AI is describing an error
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
       } catch (error: any) {
