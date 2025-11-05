@@ -71,10 +71,14 @@ export async function POST(request: NextRequest) {
           {
             role: 'system',
             content: `You are analyzing user queries to Azure DevOps. Determine if the user wants:
-1. "SEARCH" - Find and list specific work items (bugs, tasks, stories)
+1. "SEARCH" - Find and list specific work items (bugs, tasks, stories, tickets in a sprint)
 2. "ANALYTICS" - Analyze metrics, trends, velocity, performance, insights
 
-Analytical queries include words like: velocity, trend, performance, how fast, how many, analysis, metrics, throughput, cycle time, team performance, sprint progress, burn rate, comparison
+Analytical queries include words like: velocity, sprint velocity, iteration velocity, trend, performance, how fast, how many, analysis, metrics, throughput, cycle time, team performance, sprint progress, burn rate, comparison, by iteration, by sprint
+
+IMPORTANT: Sprint/iteration velocity queries are ANALYTICS, not SEARCH.
+Examples of ANALYTICS: "sprint velocity", "velocity by iteration", "team performance by sprint"
+Examples of SEARCH: "show sprint items", "tickets in sprint 23", "current sprint bugs"
 
 Respond with ONLY "SEARCH" or "ANALYTICS".`,
           },
@@ -122,11 +126,15 @@ Common Fields (in order of usefulness):
 - System.IterationPath - Sprint/Iteration (use CONTAINS or UNDER for hierarchical search)
 - System.AreaPath - Team/Area (use CONTAINS or UNDER for hierarchical search)
 
-IMPORTANT - Sprint/Iteration Queries:
-- When users ask about "sprint", "iteration", or "current sprint", use System.IterationPath
-- For "current sprint" or "latest sprint" queries, use: [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed'
-- For specific sprint: [System.IterationPath] UNDER 'ProjectName\\Sprint X'
-- Sprint paths follow format: ProjectName\\Sprint X or ProjectName\\Release Y\\Sprint X
+CRITICAL - Sprint/Iteration Queries:
+⚠️ SPRINTS = ITERATIONS in Azure DevOps! Always use System.IterationPath for sprint queries.
+- When users ask about "sprint", "iteration", "sprint velocity", or "current sprint", use System.IterationPath
+- Sprint queries MUST filter by [System.IterationPath] field - this is how tickets are assigned to sprints
+- For "current sprint" or "latest sprint": [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed'
+- For specific sprint (e.g., "Sprint 2025.11.12"): [System.IterationPath] CONTAINS '2025.11.12'
+- For sprint with number (e.g., "Sprint 23"): [System.IterationPath] CONTAINS '(23)' OR [System.IterationPath] CONTAINS 'Sprint 23'
+- Sprint paths follow format: ProjectName\\Sprint Name or ProjectName\\Area\\Sprint Name
+- Example path: Marketing Experience\\MX Sprint 2025.11.12 (23)
 
 Operators:
 - CONTAINS - For text search in Title, Description, AssignedTo, CreatedBy, Tags
@@ -165,6 +173,15 @@ A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [Syst
 
 Q: "Show bugs in the latest sprint"
 A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Bug' AND [System.IterationPath] CONTAINS 'Sprint' AND [System.State] <> 'Closed' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+
+Q: "Show me iteration MX Sprint 2025.11.12"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS '2025.11.12' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+
+Q: "What tickets are in sprint 23?"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS '(23)' OR [System.IterationPath] CONTAINS 'Sprint 23' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
+
+Q: "Show me Marketing Experience sprint items"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.IterationPath] CONTAINS 'Marketing Experience' AND [System.IterationPath] CONTAINS 'Sprint' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
 
 Respond ONLY with the WIQL query, nothing else.`,
       },
@@ -250,10 +267,15 @@ Respond ONLY with the WIQL query, nothing else.`,
               role: 'system',
               content: `You are an expert Agile/Scrum analytics consultant. Analyze Azure DevOps metrics and provide actionable insights.
 
+IMPORTANT CONTEXT:
+• In Azure DevOps, Sprints = Iterations (same thing, different names)
+• Tickets are assigned to sprints via the Iteration Path field
+• Sprint velocity = story points completed in an iteration
+
 When answering:
 1. Directly address the user's question
-2. Cite specific numbers from the data
-3. Identify trends and patterns
+2. Cite specific numbers from the data (use iteration names from the data)
+3. Identify trends and patterns across sprints/iterations
 4. Provide 2-3 actionable recommendations
 5. Use clear, business-friendly language
 6. Format with markdown for readability (use **bold** for numbers, bullet points for lists)

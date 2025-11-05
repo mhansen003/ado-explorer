@@ -46,11 +46,16 @@ export interface AnalyticsResult {
 
 /**
  * Calculate sprint velocity metrics from work items
+ *
+ * IMPORTANT: Sprints = Iterations in Azure DevOps
+ * Tickets are assigned to sprints via the System.IterationPath field
+ * Example path: "Marketing Experience\\MX Sprint 2025.11.12 (23)"
  */
 export function calculateSprintVelocity(workItems: WorkItem[]): SprintVelocity[] {
   const iterationMap = new Map<string, WorkItem[]>();
 
-  // Group work items by iteration
+  // Group work items by iteration (sprint)
+  // Each ticket's iterationPath determines which sprint it belongs to
   workItems.forEach(item => {
     const iteration = item.iterationPath || 'No Sprint';
     if (!iterationMap.has(iteration)) {
