@@ -3,13 +3,14 @@ import { ADOService } from '@/lib/ado-api';
 import { GlobalFilters } from '@/types';
 
 export async function POST(request: NextRequest) {
+  // Get environment variables outside try block so they're available in catch
+  const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
+  const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
+  const pat = process.env.ADO_PAT;
+  const openaiKey = process.env.OPENAI_API_KEY;
+
   try {
     const { prompt, filters } = await request.json() as { prompt: string; filters?: GlobalFilters };
-
-    const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
-    const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
-    const pat = process.env.ADO_PAT;
-    const openaiKey = process.env.OPENAI_API_KEY;
 
     console.log('[ADO Prompt API] Configuration:', {
       organization,
