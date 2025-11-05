@@ -72,28 +72,29 @@ export default function CommandAutocomplete({
       {hasCommands && commands.map((command, index) => {
         const itemIndex = templates.length + index;
         return (
-        <button
-          key={command.name}
-          onClick={() => onSelect?.(command)}
-          className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left ${
-            selectedIndex === itemIndex ? 'bg-rh-border' : ''
-          }`}
-        >
-          <span className="text-2xl">{command.icon}</span>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-rh-green font-medium">/{command.name}</span>
-              {command.hasParam && (
-                <span className="text-xs text-rh-text-secondary">&lt;parameter&gt;</span>
-              )}
-              {command.isDynamic && (
-                <span className="text-xs px-2 py-0.5 bg-rh-green/10 text-rh-green rounded">dynamic</span>
-              )}
+          <button
+            key={command.name}
+            onClick={() => onSelect?.(command)}
+            className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left ${
+              selectedIndex === itemIndex ? 'bg-rh-border' : ''
+            }`}
+          >
+            <span className="text-2xl">{command.icon}</span>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-rh-green font-medium">/{command.name}</span>
+                {command.hasParam && (
+                  <span className="text-xs text-rh-text-secondary">&lt;parameter&gt;</span>
+                )}
+                {command.isDynamic && (
+                  <span className="text-xs px-2 py-0.5 bg-rh-green/10 text-rh-green rounded">dynamic</span>
+                )}
+              </div>
+              <p className="text-sm text-rh-text-secondary mt-0.5">{command.description}</p>
             </div>
-            <p className="text-sm text-rh-text-secondary mt-0.5">{command.description}</p>
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
 
       {/* Loading State */}
       {isLoadingDynamic && (
