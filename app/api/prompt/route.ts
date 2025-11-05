@@ -123,6 +123,24 @@ Respond ONLY with the WIQL query, nothing else.`,
     const workItems = await adoService.searchWorkItems(wiqlQuery);
     console.log('[ADO Prompt API] Found work items:', workItems.length);
 
+    // Generate AI suggestions asynchronously (don't wait for it)
+    let suggestions: string[] = [];
+    if (workItems.length > 0) {
+      try {
+        const suggestionsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suggestions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workItems, query: prompt }),
+        });
+        if (suggestionsResponse.ok) {
+          const suggestionsData = await suggestionsResponse.json();
+          suggestions = suggestionsData.suggestions || [];
+        }
+      } catch (error) {
+        console.log('[ADO Prompt API] Failed to generate suggestions (non-critical):', error);
+      }
+    }
+
     // Determine if we should provide a conversational answer
     const shouldAnswerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -190,6 +208,7 @@ Respond ONLY with the WIQL query, nothing else.`,
       generatedQuery: wiqlQuery,
       responseType,
       conversationalAnswer,
+      suggestions,
     });
   } catch (error: any) {
     console.error('[ADO Prompt API] Error:', {

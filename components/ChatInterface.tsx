@@ -423,6 +423,7 @@ export default function ChatInterface() {
           workItems: data.workItems || [],
           conversationalAnswer: data.conversationalAnswer,
           responseType: data.responseType,
+          suggestions: data.suggestions,
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
       } catch (error: any) {
@@ -665,6 +666,20 @@ export default function ChatInterface() {
     await processCommand(command);
   };
 
+  const handleSuggestionClick = async (suggestion: string) => {
+    // Add user message with the suggestion
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: suggestion,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Process the suggestion as a new query
+    await processCommand(suggestion);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Calculate total items in autocomplete
     const totalItems = filteredCommands.length + dynamicSuggestions.length;
@@ -833,7 +848,11 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <MessageList messages={messages} onListItemClick={handleListItemClick} />
+      <MessageList
+        messages={messages}
+        onListItemClick={handleListItemClick}
+        onSuggestionClick={handleSuggestionClick}
+      />
 
       <div className="relative p-4 border-t border-rh-border bg-rh-dark">
         {showAutocomplete && (
