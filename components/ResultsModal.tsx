@@ -1,9 +1,10 @@
 'use client';
 
-import { Message } from '@/types';
-import { X, Download, ChevronDown, Check } from 'lucide-react';
+import { Message, ChartData } from '@/types';
+import { X, Download, ChevronDown, Check, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import WorkItemDetailModal from './WorkItemDetailModal';
+import ChartModal from './ChartModal';
 import { getTypeColor, getStateColor } from '@/lib/colors';
 
 interface ResultsModalProps {
@@ -15,6 +16,8 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
+  const [chartDropdownOpen, setChartDropdownOpen] = useState(false);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
 
   // Column filters
   const [columnFilters, setColumnFilters] = useState({
@@ -160,6 +163,20 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
     URL.revokeObjectURL(url);
   };
 
+  // Create chart from filtered work items
+  const handleCreateChart = async (chartType: 'pie' | 'bar' | 'line' | 'area', dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy') => {
+    if (filteredWorkItems.length === 0) return;
+
+    // Import chart utilities dynamically
+    const { processWorkItemsToChartData } = await import('@/lib/chart-utils');
+
+    // Generate chart data
+    const newChartData = processWorkItemsToChartData(filteredWorkItems, chartType, dataKey);
+
+    setChartData(newChartData);
+    setChartDropdownOpen(false);
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -203,6 +220,38 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
                 <Download className="w-4 h-4" />
                 Export JSON {hasActiveFilters && `(${filteredWorkItems.length})`}
               </button>
+
+              {/* Chart Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setChartDropdownOpen(!chartDropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-2 bg-rh-dark border border-rh-border rounded-lg text-sm hover:border-rh-green transition-colors"
+                  title={hasActiveFilters ? `Chart ${filteredWorkItems.length} filtered items` : `Chart all ${workItems.length} items`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Chart {hasActiveFilters && `(${filteredWorkItems.length})`}
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {chartDropdownOpen && (
+                  <div className="absolute right-0 mt-1 w-48 bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50 overflow-hidden">
+                    <div className="p-2">
+                      <div className="text-xs font-medium text-rh-text-secondary mb-2 px-2">Chart Type</div>
+                      {['pie', 'bar', 'line', 'area'].map((chartType) => (
+                        <div key={chartType} className="mb-2">
+                          <button
+                            onClick={() => handleCreateChart(chartType as any, 'state')}
+                            className="w-full text-left px-2 py-1.5 text-xs text-rh-text hover:bg-rh-border rounded transition-colors capitalize"
+                          >
+                            {chartType} Chart
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-rh-border rounded-lg transition-colors"
@@ -463,6 +512,15 @@ export default function ResultsModal({ message, onClose }: ResultsModalProps) {
         <WorkItemDetailModal
           workItem={selectedItem}
           onClose={() => setSelectedItem(null)}
+        />
+      )}
+
+      {/* Chart Modal */}
+      {chartData && (
+        <ChartModal
+          chartData={chartData}
+          workItems={filteredWorkItems}
+          onClose={() => setChartData(null)}
         />
       )}
     </>
