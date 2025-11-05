@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Filter } from 'lucide-react';
+import { Send } from 'lucide-react';
 import MessageList from './MessageList';
 import CommandAutocomplete from './CommandAutocomplete';
 import TemplateInputBuilder from './TemplateInputBuilder';
@@ -495,12 +495,6 @@ Type **/help** for more info`,
 
     setMessages(prev => [...prev, userMessage]);
 
-    // Get last 10 messages for conversation context (exclude current message)
-    const conversationHistory = messages.slice(-10).map(msg => ({
-      role: msg.type === 'user' ? 'user' : 'assistant',
-      content: msg.content,
-    }));
-
     // Add to command history (avoid duplicates at the end)
     const trimmedInput = input.trim();
     setCommandHistory(prev => {
@@ -563,12 +557,6 @@ Type **/help** for more info`,
 
     // If input doesn't start with '/', treat it as an AI prompt
     if (!command.startsWith('/')) {
-      // Get last 10 messages for conversation context
-      const conversationHistory = messages.slice(-10).map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.content,
-      }));
-
       const loadingMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
@@ -586,7 +574,6 @@ Type **/help** for more info`,
           body: JSON.stringify({
             prompt: command,
             filters: globalFilters,
-            conversationHistory,
           }),
         });
 
@@ -1225,34 +1212,6 @@ Type / for interactive fill-in-the-blank searches:
             title="Clear chat history"
           >
             <span className="text-sm">Clear</span>
-          </button>
-          <button
-            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-            className={`relative px-4 py-3 border rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-rh-green transition-colors ${
-              isFilterExpanded
-                ? 'bg-rh-green text-rh-dark border-rh-green'
-                : 'bg-rh-card border-rh-border text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
-            }`}
-            title="Global filters"
-          >
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              {(globalFilters.ignoreClosed ||
-                globalFilters.ignoreStates.length > 0 ||
-                globalFilters.ignoreCreatedBy.length > 0 ||
-                globalFilters.onlyMyTickets ||
-                globalFilters.ignoreOlderThanDays !== null) && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rh-green text-rh-dark rounded-full text-xs flex items-center justify-center font-bold">
-                  {[
-                    globalFilters.ignoreClosed,
-                    globalFilters.ignoreStates.length > 0,
-                    globalFilters.ignoreCreatedBy.length > 0,
-                    globalFilters.onlyMyTickets,
-                    globalFilters.ignoreOlderThanDays !== null,
-                  ].filter(Boolean).length}
-                </span>
-              )}
-            </div>
           </button>
           <input
             ref={inputRef}

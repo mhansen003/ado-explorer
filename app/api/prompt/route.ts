@@ -12,17 +12,14 @@ export async function POST(request: NextRequest) {
   // Parse request outside try block so prompt is available in catch
   let prompt = '';
   let filters: GlobalFilters | undefined;
-  let conversationHistory: Array<{ role: string; content: string }> | undefined;
 
   try {
     const body = await request.json() as {
       prompt: string;
       filters?: GlobalFilters;
-      conversationHistory?: Array<{ role: string; content: string }>;
     };
     prompt = body.prompt;
     filters = body.filters;
-    conversationHistory = body.conversationHistory;
 
     console.log('[ADO Prompt API] Configuration:', {
       organization,
@@ -31,7 +28,6 @@ export async function POST(request: NextRequest) {
       hasOpenAI: !!openaiKey,
       prompt,
       filters: filters || 'NO FILTERS PROVIDED',
-      conversationHistoryLength: conversationHistory?.length || 0,
     });
 
     if (!organization || !pat) {
@@ -48,13 +44,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call OpenAI to interpret the prompt with conversation history
+    // Call OpenAI to interpret the prompt
     const messages = [
       {
         role: 'system',
         content: `You are an Azure DevOps WIQL (Work Item Query Language) expert. Your job is to convert natural language questions into WIQL queries.
-
-IMPORTANT: You are part of a conversation. The user may refer to previous queries or use follow-up questions like "now just the open ones" or "what about the closed ones". Use the conversation history to understand the full context.
 
 WIQL Query Format:
 SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditions] ORDER BY [field]

@@ -23,9 +23,7 @@ export default function FilterBar({
 }: FilterBarProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
   const [states, setStates] = useState<string[]>([]);
-  const [users, setUsers] = useState<Array<{ displayName: string; principalName: string }>>([]);
   const [loadingStates, setLoadingStates] = useState(false);
-  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Use controlled state if provided, otherwise use internal state
   const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : internalIsExpanded;
@@ -59,26 +57,7 @@ export default function FilterBar({
       }
     };
 
-    const fetchUsers = async () => {
-      setLoadingUsers(true);
-      try {
-        const response = await fetch('/api/users');
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        // Ensure we always set an array
-        setUsers(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-        setUsers([]); // Set empty array on error
-      } finally {
-        setLoadingUsers(false);
-      }
-    };
-
     fetchStates();
-    fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -129,24 +108,32 @@ export default function FilterBar({
     handleFilterChange('ignoreStates', newStates);
   };
 
-  const toggleCreatedBy = (user: string) => {
-    const currentUsers = Array.isArray(filters.ignoreCreatedBy) ? filters.ignoreCreatedBy : [];
-    const newUsers = currentUsers.includes(user)
-      ? currentUsers.filter(u => u !== user)
-      : [...currentUsers, user];
-    handleFilterChange('ignoreCreatedBy', newUsers);
-  };
-
   const activeFilterCount = [
     filters.ignoreClosed,
     filters.onlyMyTickets,
     filters.ignoreOlderThanDays !== null,
     (Array.isArray(filters.ignoreStates) && filters.ignoreStates.length > 0),
-    (Array.isArray(filters.ignoreCreatedBy) && filters.ignoreCreatedBy.length > 0),
   ].filter(Boolean).length;
 
   return (
     <>
+      {/* Edge Tab Button - Visible when drawer is closed */}
+      {!isExpanded && (
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-rh-card border-l border-t border-b border-rh-border rounded-l-lg shadow-lg z-40 py-4 px-2 hover:bg-rh-border transition-colors group"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <Filter className="w-5 h-5 text-rh-green" />
+            {activeFilterCount > 0 && (
+              <span className="w-6 h-6 bg-rh-green text-rh-dark rounded-full text-xs flex items-center justify-center font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+        </button>
+      )}
+
       {/* Backdrop overlay */}
       {isExpanded && (
         <div
@@ -181,127 +168,38 @@ export default function FilterBar({
         </div>
 
         {/* Filter content */}
-        <div className="px-4 py-3 space-y-3">
-            {/* Ignore States - Multi-select Dropdown */}
-            <div className="p-2 hover:bg-rh-border/50 rounded transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-rh-text">Ignore States:</span>
-                <div className="relative group flex-1">
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
-                  >
-                    <span className="truncate">
-                      {Array.isArray(filters.ignoreStates) && filters.ignoreStates.length > 0
-                        ? `${filters.ignoreStates.length} selected`
-                        : 'Select states to ignore'}
-                    </span>
-                    <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
-                  </button>
-                  <div className="hidden group-hover:block absolute top-full left-0 mt-1 w-full bg-rh-card border border-rh-border rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
-                    {loadingStates ? (
-                      <div className="px-3 py-2 text-xs text-rh-text-secondary">Loading...</div>
-                    ) : (
-                      states.map(state => (
-                        <button
-                          key={state}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleState(state);
-                          }}
-                          className="w-full px-3 py-2 text-xs text-left hover:bg-rh-border flex items-center justify-between"
-                        >
-                          <span>{state}</span>
-                          {filters.ignoreStates?.includes(state) && <Check className="w-3 h-3 text-rh-green" />}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-              {Array.isArray(filters.ignoreStates) && filters.ignoreStates.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {filters.ignoreStates.map(state => (
-                    <span
+        <div className="px-4 py-3 space-y-4">
+            {/* Ignore States - Checkbox List */}
+            <div>
+              <div className="text-sm font-medium text-rh-text mb-3">Ignore States:</div>
+              {loadingStates ? (
+                <div className="text-xs text-rh-text-secondary">Loading states...</div>
+              ) : (
+                <div className="space-y-2">
+                  {states.map(state => (
+                    <label
                       key={state}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-rh-green/20 text-rh-green rounded text-xs"
+                      className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/30 p-2 rounded transition-colors"
                     >
-                      {state}
-                      <button
-                        onClick={() => toggleState(state)}
-                        className="hover:text-rh-text transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Ignore Created By - Multi-select Dropdown */}
-            <div className="p-2 hover:bg-rh-border/50 rounded transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-rh-text">Ignore Created By:</span>
-                <div className="relative group flex-1">
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
-                  >
-                    <span className="truncate">
-                      {Array.isArray(filters.ignoreCreatedBy) && filters.ignoreCreatedBy.length > 0
-                        ? `${filters.ignoreCreatedBy.length} selected`
-                        : 'Select users to ignore'}
-                    </span>
-                    <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
-                  </button>
-                  <div className="hidden group-hover:block absolute top-full left-0 mt-1 w-full bg-rh-card border border-rh-border rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
-                    {loadingUsers ? (
-                      <div className="px-3 py-2 text-xs text-rh-text-secondary">Loading...</div>
-                    ) : (
-                      users.map(user => (
-                        <button
-                          key={user.displayName}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleCreatedBy(user.displayName);
-                          }}
-                          className="w-full px-3 py-2 text-xs text-left hover:bg-rh-border flex items-center justify-between"
-                        >
-                          <span className="truncate">{user.displayName}</span>
-                          {filters.ignoreCreatedBy?.includes(user.displayName) && <Check className="w-3 h-3 text-rh-green" />}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-              {Array.isArray(filters.ignoreCreatedBy) && filters.ignoreCreatedBy.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {filters.ignoreCreatedBy.map(user => (
-                    <span
-                      key={user}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs"
-                    >
-                      {user}
-                      <button
-                        onClick={() => toggleCreatedBy(user)}
-                        className="hover:text-rh-text transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
+                      <input
+                        type="checkbox"
+                        checked={filters.ignoreStates?.includes(state) || false}
+                        onChange={() => toggleState(state)}
+                        className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
+                      />
+                      <span className="text-sm text-rh-text">{state}</span>
+                    </label>
                   ))}
                 </div>
               )}
             </div>
 
             {/* Divider */}
-            <div className="border-t border-rh-border my-2"></div>
+            <div className="border-t border-rh-border"></div>
 
-            {/* Only My Tickets */}
+            {/* Only Show Tickets I Created */}
             <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/50 p-2 rounded transition-colors">
+              <label className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/30 p-2 rounded transition-colors">
                 <input
                   type="checkbox"
                   checked={filters.onlyMyTickets}
@@ -314,7 +212,7 @@ export default function FilterBar({
                   }}
                   className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
                 />
-                <span className="text-sm text-rh-text">Only show my tickets</span>
+                <span className="text-sm text-rh-text">Only show tickets I created</span>
               </label>
 
               {filters.onlyMyTickets && (
