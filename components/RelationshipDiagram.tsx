@@ -603,7 +603,10 @@ export default function RelationshipDiagram({
         }
         top = Math.max(10, top);
 
-        const tooltipColor = getRelationshipColor(tooltipItem.relationType);
+        // Use green for current work item, otherwise use relationship color
+        const tooltipColor = tooltipItem.id === currentWorkItem.id
+          ? '#10b981' // green-500 - matches the current item border
+          : getRelationshipColor(tooltipItem.relationType);
 
         return (
           <div
