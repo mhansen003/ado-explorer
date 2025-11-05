@@ -61,19 +61,29 @@ export class ADOService {
         return [];
       }
 
-      // Limit to 200 items to respect Azure DevOps limits and prevent URL length issues
-      const limitedIds = workItemIds.slice(0, 200);
-      console.log(`[ADO API] Query returned ${workItemIds.length} items, limiting to ${limitedIds.length}`);
+      // Fetch all items in batches of 200 to respect URL length limits
+      console.log(`[ADO API] Query returned ${workItemIds.length} items, fetching all in batches...`);
 
-      // Then, get the full details of each work item (use org client to get all fields including project)
-      const detailsResponse = await this.orgClient.get('/wit/workitems', {
-        params: {
-          ids: limitedIds.join(','),
-          fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,System.ChangedDate,System.ChangedBy,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,Microsoft.VSTS.Common.AcceptanceCriteria',
-        },
-      });
+      const allWorkItems: WorkItem[] = [];
+      const batchSize = 200;
 
-      return detailsResponse.data.value.map((item: any) => this.mapToWorkItem(item));
+      // Fetch in batches
+      for (let i = 0; i < workItemIds.length; i += batchSize) {
+        const batchIds = workItemIds.slice(i, i + batchSize);
+        console.log(`[ADO API] Fetching batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(workItemIds.length / batchSize)} (${batchIds.length} items)`);
+
+        const detailsResponse = await this.orgClient.get('/wit/workitems', {
+          params: {
+            ids: batchIds.join(','),
+            fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,System.ChangedDate,System.ChangedBy,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,Microsoft.VSTS.Common.AcceptanceCriteria',
+          },
+        });
+
+        allWorkItems.push(...detailsResponse.data.value.map((item: any) => this.mapToWorkItem(item)));
+      }
+
+      console.log(`[ADO API] Successfully fetched ${allWorkItems.length} work items`);
+      return allWorkItems;
     } catch (error) {
       console.error('Error searching work items:', error);
       throw error;
