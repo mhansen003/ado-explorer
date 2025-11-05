@@ -790,6 +790,26 @@ export default function ChatInterface() {
           cachedTagsLength: cachedTags.length,
         });
 
+        // If autocomplete is already showing, Tab should SELECT like Enter does
+        if (showAutocomplete && (filteredCommands.length > 0 || dynamicSuggestions.length > 0)) {
+          const hasValidSelection = (selectedIndex < filteredCommands.length) ||
+                                   (selectedIndex >= filteredCommands.length &&
+                                    (selectedIndex - filteredCommands.length) < dynamicSuggestions.length);
+
+          if (hasValidSelection) {
+            // Select the highlighted item (same logic as Enter)
+            if (selectedIndex < filteredCommands.length) {
+              handleCommandSelect(filteredCommands[selectedIndex]);
+            } else {
+              const suggestionIndex = selectedIndex - filteredCommands.length;
+              if (suggestionIndex < dynamicSuggestions.length) {
+                handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
+              }
+            }
+            return;
+          }
+        }
+
         // If command with or without space, show all cached options for that command
         if ((hasSpace && parts.length === 2 && parts[1] === '') || isJustCommand) {
           let cachedData: DynamicSuggestion[] = [];
@@ -836,14 +856,6 @@ export default function ChatInterface() {
         // If typing a command, show the dropdown
         if (input.startsWith('/') && !showAutocomplete) {
           setShowAutocomplete(true);
-        } else if (selectedIndex < filteredCommands.length) {
-          // Select the highlighted command
-          handleCommandSelect(filteredCommands[selectedIndex]);
-        } else {
-          const suggestionIndex = selectedIndex - filteredCommands.length;
-          if (suggestionIndex < dynamicSuggestions.length) {
-            handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
-          }
         }
         return;
       }
