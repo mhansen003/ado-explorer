@@ -41,33 +41,59 @@ export default function RelationshipDiagram({
   const VERTICAL_GAP = 140;
   const HORIZONTAL_GAP = 60;
 
-  // Position current item in the center
-  const centerX = 400;
-  const centerY = 300;
+  // Calculate how many rows we'll need
+  const parentRows = Math.ceil(parents.length / 5);
+  const childRows = Math.ceil(children.length / 5);
 
-  // Position parents above (multiple levels if needed)
-  const positionedParents: PositionedWorkItem[] = parents.map((item, index) => ({
-    ...item,
-    x: centerX + (index - (parents.length - 1) / 2) * (CARD_WIDTH + HORIZONTAL_GAP),
-    y: centerY - VERTICAL_GAP - CARD_HEIGHT,
-    level: -1,
-  }));
+  // Position current item in the center, accounting for total height
+  const centerX = 600; // Shift right to make room for left-side items
+  const totalHeight =
+    (parentRows * (CARD_HEIGHT + 40)) + // Parent rows
+    VERTICAL_GAP + CARD_HEIGHT + // Current item space
+    VERTICAL_GAP + (childRows * (CARD_HEIGHT + 40)); // Child rows
+  const centerY = totalHeight / 2 + 200; // Add padding to center better
 
-  // Position children below (multiple levels if needed)
-  const positionedChildren: PositionedWorkItem[] = children.map((item, index) => ({
-    ...item,
-    x: centerX + (index - (children.length - 1) / 2) * (CARD_WIDTH + HORIZONTAL_GAP),
-    y: centerY + VERTICAL_GAP + CARD_HEIGHT,
-    level: 1,
-  }));
+  // Position parents above (stack in rows if more than 5)
+  const positionedParents: PositionedWorkItem[] = parents.map((item, index) => {
+    const itemsPerRow = Math.min(5, parents.length);
+    const row = Math.floor(index / itemsPerRow);
+    const col = index % itemsPerRow;
+    const rowOffset = row * (CARD_HEIGHT + 40);
+    return {
+      ...item,
+      x: centerX + (col - (itemsPerRow - 1) / 2) * (CARD_WIDTH + HORIZONTAL_GAP),
+      y: centerY - VERTICAL_GAP - CARD_HEIGHT - rowOffset,
+      level: -1,
+    };
+  });
 
-  // Position related items to the right
-  const positionedRelated: PositionedWorkItem[] = related.map((item, index) => ({
-    ...item,
-    x: centerX + CARD_WIDTH + HORIZONTAL_GAP + 100,
-    y: centerY + (index - (related.length - 1) / 2) * (CARD_HEIGHT + 30),
-    level: 0,
-  }));
+  // Position children below (stack in rows if more than 5)
+  const positionedChildren: PositionedWorkItem[] = children.map((item, index) => {
+    const itemsPerRow = Math.min(5, children.length);
+    const row = Math.floor(index / itemsPerRow);
+    const col = index % itemsPerRow;
+    const rowOffset = row * (CARD_HEIGHT + 40);
+    return {
+      ...item,
+      x: centerX + (col - (itemsPerRow - 1) / 2) * (CARD_WIDTH + HORIZONTAL_GAP),
+      y: centerY + VERTICAL_GAP + CARD_HEIGHT + rowOffset,
+      level: 1,
+    };
+  });
+
+  // Position related items to the right (stack vertically if more than 5)
+  const positionedRelated: PositionedWorkItem[] = related.map((item, index) => {
+    const itemsPerColumn = Math.min(5, related.length);
+    const col = Math.floor(index / itemsPerColumn);
+    const row = index % itemsPerColumn;
+    const colOffset = col * (CARD_WIDTH + HORIZONTAL_GAP);
+    return {
+      ...item,
+      x: centerX + CARD_WIDTH + HORIZONTAL_GAP + 100 + colOffset,
+      y: centerY + (row - (itemsPerColumn - 1) / 2) * (CARD_HEIGHT + 30),
+      level: 0,
+    };
+  });
 
   // Position predecessors to the left
   const positionedPredecessors: PositionedWorkItem[] = predecessors.map((item, index) => ({
@@ -496,22 +522,35 @@ export default function RelationshipDiagram({
         }
         top = Math.max(10, top);
 
+        const tooltipColor = getRelationshipColor(tooltipItem.relationType);
+
         return (
           <div
-            className="fixed z-[200] w-96 bg-rh-dark/98 backdrop-blur-xl border-2 border-rh-green rounded-xl shadow-2xl p-6 pointer-events-none"
+            className="fixed z-[200] w-96 bg-rh-dark/98 backdrop-blur-xl border-2 rounded-xl shadow-2xl p-6 pointer-events-none"
             style={{
               left: `${left}px`,
               top: `${top}px`,
               maxHeight: '80vh',
               overflowY: 'auto',
+              borderColor: tooltipColor,
             }}
           >
 
           {/* Header */}
           <div className="mb-4 pb-4 border-b border-rh-border">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl font-mono font-bold text-rh-green">#{tooltipItem.id}</span>
-              <span className="px-2 py-1 text-xs rounded bg-rh-green/20 text-rh-green border border-rh-green/50 font-semibold">
+              <span className="text-xl font-mono font-bold" style={{ color: tooltipColor }}>
+                #{tooltipItem.id}
+              </span>
+              <span
+                className="px-2 py-1 text-xs rounded font-semibold"
+                style={{
+                  backgroundColor: `${tooltipColor}30`,
+                  color: tooltipColor,
+                  borderColor: `${tooltipColor}60`,
+                  borderWidth: '1px',
+                }}
+              >
                 {tooltipItem.relationType}
               </span>
             </div>
