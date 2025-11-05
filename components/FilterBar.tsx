@@ -121,12 +121,12 @@ export default function FilterBar({
       {!isExpanded && (
         <button
           onClick={() => setIsExpanded(true)}
-          className="fixed bottom-24 right-0 bg-rh-card border-l border-t border-b border-rh-border rounded-l-lg shadow-lg z-40 py-3 px-2 hover:bg-rh-border transition-colors group"
+          className="fixed bottom-24 right-0 bg-gradient-to-l from-orange-600 to-orange-500 border-l-2 border-t-2 border-b-2 border-orange-400 rounded-l-xl shadow-2xl z-40 py-4 px-3 hover:from-orange-500 hover:to-orange-400 hover:shadow-orange-500/50 transition-all duration-300 group animate-pulse hover:animate-none"
         >
-          <div className="flex flex-col items-center gap-1">
-            <Filter className="w-4 h-4 text-rh-green" />
+          <div className="flex flex-col items-center gap-1.5">
+            <Filter className="w-5 h-5 text-white drop-shadow-lg" />
             {activeFilterCount > 0 && (
-              <span className="w-5 h-5 bg-rh-green text-rh-dark rounded-full text-xs flex items-center justify-center font-bold">
+              <span className="w-6 h-6 bg-white text-orange-600 rounded-full text-xs flex items-center justify-center font-bold shadow-lg">
                 {activeFilterCount}
               </span>
             )}
