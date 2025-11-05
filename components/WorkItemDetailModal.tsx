@@ -683,26 +683,44 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
           {/* AI Result */}
           {(loading || aiResult) && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-rh-text">AI Result</h3>
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-rh-text">AI Result</h3>
                 {aiResult && !loading && !relatedWorkItems && (
                   <button
                     onClick={copyToClipboard}
-                    className="text-xs text-rh-green hover:text-green-400 transition-colors"
+                    className="text-sm text-rh-green hover:text-green-400 transition-colors flex items-center gap-1.5"
                   >
+                    <Copy className="w-3.5 h-3.5" />
                     Copy to Clipboard
                   </button>
                 )}
               </div>
-              <div className="bg-rh-dark border border-rh-border rounded-lg p-3 text-sm max-h-80 overflow-y-auto">
+              <div className="bg-rh-dark border border-rh-border rounded-xl p-6 text-base max-h-[600px] overflow-y-auto shadow-inner">
                 {loading ? (
                   <div className="flex items-center gap-2 text-rh-text-secondary">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-rh-green border-t-transparent"></div>
                     <span>Generating with AI...</span>
                   </div>
                 ) : (
-                  <div className="prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
+                  <div className="prose prose-invert prose-base max-w-none
+                    prose-headings:text-rh-text prose-headings:font-semibold prose-headings:mb-4 prose-headings:mt-6 first:prose-headings:mt-0
+                    prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base
+                    prose-p:text-rh-text prose-p:leading-relaxed prose-p:mb-4
+                    prose-strong:text-rh-green prose-strong:font-semibold
+                    prose-ul:my-4 prose-ul:space-y-2 prose-ul:text-rh-text prose-ul:list-disc prose-ul:pl-6
+                    prose-ol:my-4 prose-ol:space-y-2 prose-ol:text-rh-text prose-ol:list-decimal prose-ol:pl-6
+                    prose-li:text-rh-text prose-li:leading-relaxed prose-li:pl-2
+                    prose-code:text-cyan-400 prose-code:bg-rh-card/50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm
+                    prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-pre:rounded-lg prose-pre:p-4 prose-pre:my-4
+                    prose-a:text-rh-green prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-green-400
+                    prose-blockquote:border-l-4 prose-blockquote:border-rh-green prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-rh-text-secondary prose-blockquote:my-4
+                    prose-hr:border-rh-border prose-hr:my-6
+                    prose-table:border-collapse prose-table:w-full prose-table:my-4
+                    prose-th:border prose-th:border-rh-border prose-th:bg-rh-card prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:font-semibold
+                    prose-td:border prose-td:border-rh-border prose-td:px-4 prose-td:py-2
+                    [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                  ">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {aiResult || ''}
                     </ReactMarkdown>
