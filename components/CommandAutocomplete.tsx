@@ -1,5 +1,6 @@
 import { Command, DynamicSuggestion, CommandTemplate } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface CommandAutocompleteProps {
   commands?: Command[];
@@ -29,6 +30,18 @@ export default function CommandAutocomplete({
   const hasCommands = commands.length > 0;
   const hasTemplates = templates.length > 0;
   const hasSuggestions = dynamicSuggestions.length > 0;
+  const selectedItemRef = useRef<HTMLButtonElement>(null);
+
+  // Scroll selected item into view when selection changes
+  useEffect(() => {
+    if (selectedItemRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    }
+  }, [selectedIndex]);
 
   return (
     <div className="absolute bottom-full left-0 right-0 mb-2 mx-4 bg-rh-card border border-rh-border rounded-lg shadow-2xl overflow-hidden max-h-80 overflow-y-auto z-50">
@@ -36,6 +49,7 @@ export default function CommandAutocomplete({
       {hasTemplates && templates.map((template, index) => (
         <button
           key={template.id}
+          ref={selectedIndex === index ? selectedItemRef : null}
           onClick={() => onSelectTemplate?.(template)}
           className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left ${
             selectedIndex === index ? 'bg-rh-border' : ''
@@ -74,6 +88,7 @@ export default function CommandAutocomplete({
         return (
           <button
             key={command.name}
+            ref={selectedIndex === itemIndex ? selectedItemRef : null}
             onClick={() => onSelect?.(command)}
             className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left ${
               selectedIndex === itemIndex ? 'bg-rh-border' : ''
@@ -135,6 +150,7 @@ export default function CommandAutocomplete({
             return (
               <button
                 key={`${suggestion.value}-${index}`}
+                ref={selectedIndex === itemIndex ? selectedItemRef : null}
                 onClick={() => onSelectDynamic?.(suggestion.value)}
                 className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left border-t border-rh-border/50 ${
                   selectedIndex === itemIndex ? 'bg-rh-border' : ''

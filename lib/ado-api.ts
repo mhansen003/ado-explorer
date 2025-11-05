@@ -585,7 +585,7 @@ export class ADOService {
       // Fetch the work item with relations expanded
       const response = await this.orgClient.get(`/wit/workitems/${workItemId}`, {
         params: {
-          '$expand': 'relations',
+          '$expand': 'Relations',
         },
       });
 
