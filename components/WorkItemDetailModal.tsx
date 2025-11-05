@@ -34,22 +34,38 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     const fetchComments = async () => {
       if (activeTab === 'discussion' && comments.length === 0 && !loadingComments) {
         setLoadingComments(true);
+
+        // Create an AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
         try {
           const response = await fetch('/api/comments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ workItemId: parseInt(workItem.id) }),
+            signal: controller.signal,
           });
 
+          clearTimeout(timeoutId);
           const data = await response.json();
 
           if (response.ok) {
             setComments(data.comments || []);
           } else {
             console.error('Failed to fetch comments:', data.error);
+            // Set empty array on error so UI shows "no comments" message instead of spinning
+            setComments([]);
           }
-        } catch (error) {
-          console.error('Error fetching comments:', error);
+        } catch (error: any) {
+          clearTimeout(timeoutId);
+          if (error.name === 'AbortError') {
+            console.error('Comments fetch timed out after 10 seconds');
+          } else {
+            console.error('Error fetching comments:', error);
+          }
+          // Set empty array on error so UI shows "no comments" message instead of spinning
+          setComments([]);
         } finally {
           setLoadingComments(false);
         }
