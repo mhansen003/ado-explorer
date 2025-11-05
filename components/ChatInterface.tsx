@@ -225,6 +225,25 @@ export default function ChatInterface() {
     preloadData();
   }, []);
 
+  // Helper function to build filter summary text
+  const buildFilterSummary = (): string => {
+    const filters: string[] = [];
+
+    if (globalFilters.ignoreClosed) {
+      filters.push('ignoring closed tickets');
+    }
+
+    if (globalFilters.onlyMyTickets && globalFilters.currentUser) {
+      filters.push(`only showing tickets for ${globalFilters.currentUser}`);
+    }
+
+    if (globalFilters.ignoreOlderThanDays) {
+      filters.push(`ignoring tickets older than ${globalFilters.ignoreOlderThanDays} days`);
+    }
+
+    return filters.length > 0 ? `\n🔍 Filters: ${filters.join(', ')}` : '';
+  };
+
   const fetchProjects = async (searchTerm: string) => {
     try {
       setIsLoadingDynamic(true);
@@ -423,10 +442,11 @@ export default function ChatInterface() {
 
         const aiNote = data.aiGenerated ? `\n\n🤖 AI-Generated Query: ${data.generatedQuery}` : '';
         const searchScope = data.searchScope ? ` (${data.searchScope})` : '';
+        const filterSummary = buildFilterSummary();
         const resultMessage: Message = {
           id: Date.now().toString(),
           type: 'results',
-          content: `Results for: "${command}"${searchScope}${aiNote}`,
+          content: `Results for: "${command}"${searchScope}${aiNote}${filterSummary}`,
           timestamp: new Date(),
           workItems: data.workItems || [],
           conversationalAnswer: data.conversationalAnswer,
@@ -553,10 +573,11 @@ export default function ChatInterface() {
 
       // Show results
       const searchScope = data.searchScope ? ` (${data.searchScope})` : '';
+      const filterSummary = buildFilterSummary();
       const resultMessage: Message = {
         id: Date.now().toString(),
         type: 'results',
-        content: `Results for: ${command}${searchScope}`,
+        content: `Results for: ${command}${searchScope}${filterSummary}`,
         timestamp: new Date(),
         workItems: data.workItems || [],
       };
