@@ -222,10 +222,54 @@ Respond ONLY with the WIQL query, nothing else.`,
       response: error.response?.data,
     });
 
+    // Use AI to provide a conversational error response
+    try {
+      const errorResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an Azure DevOps assistant. The system encountered an error while trying to fetch work items. Provide a helpful, conversational response explaining what might have gone wrong and suggesting alternatives.',
+            },
+            {
+              role: 'user',
+              content: `User question: "${prompt}"\n\nError: ${error.message}\n\nPlease provide a helpful response to the user.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+        }),
+      });
+
+      if (errorResponse.ok) {
+        const errorData = await errorResponse.json();
+        const conversationalError = errorData.choices[0].message.content.trim();
+
+        return NextResponse.json({
+          workItems: [],
+          searchScope: 'Error occurred',
+          error: error.message,
+          conversationalAnswer: conversationalError,
+          aiGenerated: true,
+          originalPrompt: prompt,
+        });
+      }
+    } catch (aiError) {
+      console.error('[ADO Prompt API] AI error response failed:', aiError);
+    }
+
+    // Fallback to generic error if AI fails
     return NextResponse.json(
       {
         error: error.message || 'Failed to process prompt',
         details: error.response?.data,
+        conversationalAnswer: `I encountered an error while trying to search Azure DevOps: "${error.message}". This might be due to:\n\n• Invalid query syntax\n• Network connectivity issues\n• Insufficient permissions\n\nPlease try rephrasing your question or check your connection.`,
       },
       { status: 500 }
     );

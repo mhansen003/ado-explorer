@@ -449,7 +449,20 @@ export default function ChatInterface() {
 
         const data = await response.json();
 
+        // Even if there's an error, show conversational answer if available
         if (!response.ok) {
+          if (data.conversationalAnswer) {
+            const errorMessage: Message = {
+              id: Date.now().toString(),
+              type: 'results',
+              content: `⚠️ An error occurred while searching Azure DevOps`,
+              timestamp: new Date(),
+              workItems: [],
+              conversationalAnswer: data.conversationalAnswer,
+            };
+            setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+            return;
+          }
           throw new Error(data.error || 'Failed to process prompt');
         }
 
