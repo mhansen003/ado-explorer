@@ -741,7 +741,8 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                 ))}
               </div>
             </div>
-          )}
+          );
+          })()}
 
             </>
           ) : activeTab === 'discussion' ? (
