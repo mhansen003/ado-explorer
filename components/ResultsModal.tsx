@@ -4,6 +4,7 @@ import { Message } from '@/types';
 import { X, Download } from 'lucide-react';
 import { useState } from 'react';
 import WorkItemDetailModal from './WorkItemDetailModal';
+import { getTypeColor, getStateColor } from '@/lib/colors';
 
 interface ResultsModalProps {
   message: Message;
@@ -16,34 +17,6 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
   if (!message.workItems) return null;
-
-  const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'bug':
-        return 'text-red-400 bg-red-400/10';
-      case 'task':
-        return 'text-blue-400 bg-blue-400/10';
-      case 'user story':
-        return 'text-purple-400 bg-purple-400/10';
-      default:
-        return 'text-gray-400 bg-gray-400/10';
-    }
-  };
-
-  const getStateColor = (state: string) => {
-    switch (state.toLowerCase()) {
-      case 'active':
-      case 'in progress':
-        return 'text-blue-400';
-      case 'resolved':
-      case 'closed':
-        return 'text-green-400';
-      case 'new':
-        return 'text-yellow-400';
-      default:
-        return 'text-gray-400';
-    }
-  };
 
   const workItems = message.workItems;
   const typeCounts = workItems.reduce((acc, item) => {

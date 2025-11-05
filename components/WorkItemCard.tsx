@@ -4,23 +4,11 @@ import { useState } from 'react';
 import { WorkItem } from '@/types';
 import { Calendar, User, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import WorkItemDetailModal from './WorkItemDetailModal';
+import { getTypeColor, getStateColor } from '@/lib/colors';
 
 interface WorkItemCardProps {
   workItem: WorkItem;
 }
-
-const getTypeColor = (type: string) => {
-  switch (type.toLowerCase()) {
-    case 'bug':
-      return 'text-red-400 bg-red-400/10';
-    case 'task':
-      return 'text-blue-400 bg-blue-400/10';
-    case 'user story':
-      return 'text-purple-400 bg-purple-400/10';
-    default:
-      return 'text-gray-400 bg-gray-400/10';
-  }
-};
 
 const getStateIcon = (state: string) => {
   switch (state.toLowerCase()) {
