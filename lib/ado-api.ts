@@ -913,8 +913,9 @@ export class ADOService {
 
   /**
    * Run a saved query by its ID
+   * Returns both work items and query metadata
    */
-  async runQuery(queryId: string): Promise<WorkItem[]> {
+  async runQuery(queryId: string): Promise<{ workItems: WorkItem[]; queryName: string; queryPath: string }> {
     try {
       if (!this.project) {
         throw new Error('Project required to run queries');
@@ -933,6 +934,8 @@ export class ADOService {
       console.log('[ADO runQuery] Query response:', queryResponse.data);
 
       const wiql = queryResponse.data.wiql;
+      const queryName = queryResponse.data.name || 'Unnamed Query';
+      const queryPath = queryResponse.data.path || '';
 
       if (!wiql) {
         throw new Error('Query does not contain WIQL. The query might be a folder or a query that references another query.');
@@ -941,7 +944,13 @@ export class ADOService {
       console.log('[ADO runQuery] Query WIQL:', wiql);
 
       // Execute the WIQL query
-      return await this.searchWorkItems(wiql);
+      const workItems = await this.searchWorkItems(wiql);
+
+      return {
+        workItems,
+        queryName,
+        queryPath,
+      };
     } catch (error: any) {
       console.error('[ADO runQuery] Error running query:', {
         queryId,

@@ -991,10 +991,11 @@ Just type naturally - I understand questions like:
         }
 
         const filterSummary = buildFilterSummary();
+        const queryName = data.queryName || 'Query';
         const resultMessage: Message = {
           id: Date.now().toString(),
           type: 'results',
-          content: `Query results${filterSummary}`,
+          content: `📋 Query: "${queryName}"${filterSummary}`,
           timestamp: new Date(),
           workItems: data.workItems || [],
         };
@@ -1090,7 +1091,7 @@ Just type naturally - I understand questions like:
     inputRef.current?.focus();
   };
 
-  const handleDynamicSelect = async (value: string) => {
+  const handleDynamicSelect = async (value: string, description?: string) => {
     // Get the current command name
     const parts = input.slice(1).split(' ');
     const commandName = parts[0];
@@ -1101,14 +1102,18 @@ Just type naturally - I understand questions like:
       return;
     }
 
-    // Build the full command
+    // Build the full command (use ID for execution)
     const fullCommand = `/${commandName} ${value}`;
 
-    // Add user message
+    // For display, use description if available (for queries and sprints)
+    const displayValue = description || value;
+    const displayCommand = `/${commandName} ${displayValue}`;
+
+    // Add user message with human-readable display
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: fullCommand,
+      content: displayCommand,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
@@ -1335,7 +1340,8 @@ Just type naturally - I understand questions like:
           } else {
             const suggestionIndex = adjustedIndex - filteredCommands.length;
             if (suggestionIndex < dynamicSuggestions.length) {
-              handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
+              const suggestion = dynamicSuggestions[suggestionIndex];
+              handleDynamicSelect(suggestion.value, suggestion.description);
             }
           }
         } else {
@@ -1389,7 +1395,8 @@ Just type naturally - I understand questions like:
             } else {
               const suggestionIndex = adjustedIndex - filteredCommands.length;
               if (suggestionIndex < dynamicSuggestions.length) {
-                handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
+                const suggestion = dynamicSuggestions[suggestionIndex];
+                handleDynamicSelect(suggestion.value, suggestion.description);
               }
             }
             return;

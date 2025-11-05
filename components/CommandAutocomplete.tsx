@@ -9,7 +9,7 @@ interface CommandAutocompleteProps {
   isLoadingDynamic?: boolean;
   onSelect?: (command: Command) => void;
   onSelectTemplate?: (template: CommandTemplate) => void;
-  onSelectDynamic?: (value: string) => void;
+  onSelectDynamic?: (value: string, description?: string) => void;
   selectedIndex?: number;
   isMultiSelectMode?: boolean;
   selectedTags?: string[];
@@ -151,7 +151,7 @@ export default function CommandAutocomplete({
               <button
                 key={`${suggestion.value}-${index}`}
                 ref={selectedIndex === itemIndex ? selectedItemRef : null}
-                onClick={() => onSelectDynamic?.(suggestion.value)}
+                onClick={() => onSelectDynamic?.(suggestion.value, suggestion.description)}
                 className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-rh-border transition-colors text-left border-t border-rh-border/50 ${
                   selectedIndex === itemIndex ? 'bg-rh-border' : ''
                 }`}

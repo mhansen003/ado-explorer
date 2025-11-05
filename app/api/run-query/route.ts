@@ -43,17 +43,20 @@ export async function POST(request: NextRequest) {
     const adoService = new ADOService(organization, pat, project);
 
     // Run the query
-    const workItems = await adoService.runQuery(queryId);
-    console.log('[ADO Run Query API] Query returned', workItems.length, 'work items');
+    const result = await adoService.runQuery(queryId);
+    console.log('[ADO Run Query API] Query returned', result.workItems.length, 'work items');
 
     return NextResponse.json({
-      workItems,
+      workItems: result.workItems,
+      queryName: result.queryName,
+      queryPath: result.queryPath,
       searchScope: `Project: ${project}`,
       debug: {
         organization,
         project,
         queryId,
-        count: workItems.length,
+        queryName: result.queryName,
+        count: result.workItems.length,
       }
     });
   } catch (error: any) {
