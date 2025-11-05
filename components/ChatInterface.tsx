@@ -870,34 +870,92 @@ Just type naturally - I understand questions like:
       const parts = command.split(' ');
       const chartType = parts[1] as 'pie' | 'bar' | 'line' | 'area';
       const dataKey = parts[2] as 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy';
+      const project = parts.slice(3).join(' '); // Optional project parameter
 
-      // Find the most recent results message with work items
-      const lastResultsMessage = [...messages].reverse().find(m => m.type === 'results' && m.workItems && m.workItems.length > 0);
+      let workItems: any[] = [];
+      let chartTitle = '';
 
-      if (!lastResultsMessage || !lastResultsMessage.workItems) {
-        const errorMessage: Message = {
+      // If project is specified, fetch work items for that project
+      if (project) {
+        const loadingMessage: Message = {
           id: Date.now().toString(),
           type: 'system',
-          content: '❌ No work items found to chart. Please run a search first.',
+          content: `Fetching work items for ${project}...`,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, errorMessage]);
-        return;
+        setMessages(prev => [...prev, loadingMessage]);
+
+        try {
+          const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              command: `/project ${project}`,
+              filters: globalFilters,
+            }),
+          });
+
+          const data = await response.json();
+
+          // Remove loading message
+          setMessages(prev => prev.filter(m => m.id !== loadingMessage.id));
+
+          if (response.ok && data.workItems) {
+            workItems = data.workItems;
+            chartTitle = `${project} - `;
+          } else {
+            const errorMessage: Message = {
+              id: Date.now().toString(),
+              type: 'system',
+              content: `❌ Could not fetch work items for project: ${project}`,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, errorMessage]);
+            return;
+          }
+        } catch (error) {
+          setMessages(prev => prev.filter(m => m.id !== loadingMessage.id));
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            type: 'system',
+            content: `❌ Error fetching work items: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          return;
+        }
+      } else {
+        // Find the most recent results message with work items
+        const lastResultsMessage = [...messages].reverse().find(m => m.type === 'results' && m.workItems && m.workItems.length > 0);
+
+        if (!lastResultsMessage || !lastResultsMessage.workItems) {
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            type: 'system',
+            content: '❌ No work items found to chart. Please run a search first or specify a project.',
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          return;
+        }
+        workItems = lastResultsMessage.workItems;
       }
 
       // Import the chart processing function dynamically
       const { processWorkItemsToChartData, getDataKeyLabel } = await import('@/lib/chart-utils');
 
       // Generate chart data
-      const chartData = processWorkItemsToChartData(lastResultsMessage.workItems, chartType, dataKey);
+      const chartData = processWorkItemsToChartData(workItems, chartType, dataKey);
 
       const chartMessage: Message = {
         id: Date.now().toString(),
         type: 'results',
-        content: `📊 ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart - ${getDataKeyLabel(dataKey)}`,
+        content: `📊 ${chartTitle}${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart - ${getDataKeyLabel(dataKey)}`,
         timestamp: new Date(),
         chartData,
-        workItems: lastResultsMessage.workItems, // Include work items for reference
+        workItems, // Include work items for reference
       };
 
       setMessages(prev => [...prev, chartMessage]);
@@ -1402,6 +1460,30 @@ Just type naturally - I understand questions like:
     }
   };
 
+  // Handle chart creation from existing results
+  const handleCreateChart = async (
+    chartType: 'pie' | 'bar' | 'line' | 'area',
+    dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy',
+    workItems: any[]
+  ) => {
+    // Import the chart processing function dynamically
+    const { processWorkItemsToChartData, getDataKeyLabel } = await import('@/lib/chart-utils');
+
+    // Generate chart data
+    const chartData = processWorkItemsToChartData(workItems, chartType, dataKey);
+
+    const chartMessage: Message = {
+      id: Date.now().toString(),
+      type: 'results',
+      content: `📊 ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart - ${getDataKeyLabel(dataKey)}`,
+      timestamp: new Date(),
+      chartData,
+      workItems, // Include work items for reference and pivot changes
+    };
+
+    setMessages(prev => [...prev, chartMessage]);
+  };
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <MessageList
@@ -1412,6 +1494,7 @@ Just type naturally - I understand questions like:
         globalFilters={globalFilters}
         onOpenFilters={() => setIsFilterExpanded(true)}
         onChangelogClick={() => setShowChangelog(true)}
+        onCreateChart={handleCreateChart}
       />
 
       <FilterBar

@@ -2,7 +2,7 @@ import { Message, ViewPreferences, GlobalFilters } from '@/types';
 import WorkItemCard from './WorkItemCard';
 import WorkItemGrid from './WorkItemGrid';
 import WorkItemChart from './WorkItemChart';
-import { Bot, User, Download, Table } from 'lucide-react';
+import { Bot, User, Download, Table, BarChart3, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ResultsModal from './ResultsModal';
 
@@ -14,16 +14,33 @@ interface MessageListProps {
   globalFilters: GlobalFilters;
   onOpenFilters?: () => void;
   onChangelogClick?: () => void;
+  onCreateChart?: (chartType: 'pie' | 'bar' | 'line' | 'area', dataKey: 'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy', workItems: any[]) => void;
 }
 
-export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters, onOpenFilters, onChangelogClick }: MessageListProps) {
+export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters, onOpenFilters, onChangelogClick, onCreateChart }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<Message | null>(null);
+  const [chartDropdownOpen, setChartDropdownOpen] = useState<string | null>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Close chart dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.relative')) {
+        setChartDropdownOpen(null);
+      }
+    };
+
+    if (chartDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [chartDropdownOpen]);
 
   // Build filter description for display
   const buildFilterDescription = (): string => {
@@ -205,7 +222,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
 
               {/* Chart Visualization */}
               {message.chartData && (
-                <WorkItemChart chartData={message.chartData} />
+                <WorkItemChart chartData={message.chartData} workItems={message.workItems} />
               )}
 
               {message.type === 'results' && message.workItems ? (
@@ -246,6 +263,42 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                           <Download className="w-3 h-3" />
                           JSON
                         </button>
+
+                        {/* Render Chart Dropdown */}
+                        {onCreateChart && (
+                          <div className="relative">
+                            <button
+                              onClick={() => setChartDropdownOpen(chartDropdownOpen === message.id ? null : message.id)}
+                              className="flex items-center gap-1 px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green transition-colors"
+                            >
+                              <BarChart3 className="w-3 h-3" />
+                              Chart
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+
+                            {chartDropdownOpen === message.id && (
+                              <div className="absolute right-0 mt-1 w-48 bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50 overflow-hidden">
+                                <div className="p-2">
+                                  <div className="text-xs font-medium text-rh-text-secondary mb-2 px-2">Chart Type</div>
+                                  {['pie', 'bar', 'line', 'area'].map((chartType) => (
+                                    <div key={chartType} className="mb-2">
+                                      <button
+                                        onClick={() => {
+                                          setChartDropdownOpen(null);
+                                          onCreateChart(chartType as any, 'state', message.workItems!);
+                                        }}
+                                        className="w-full text-left px-2 py-1.5 text-xs text-rh-text hover:bg-rh-border rounded transition-colors capitalize"
+                                      >
+                                        {chartType} Chart
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {message.workItems.length > 5 && (
                           <button
                             onClick={() => setModalMessage(message)}

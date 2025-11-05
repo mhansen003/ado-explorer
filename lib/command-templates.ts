@@ -147,14 +147,15 @@ export const COMMAND_TEMPLATES: CommandTemplate[] = [
   // Chart
   {
     id: 'create-chart',
-    displayText: 'Create a {chartType} chart showing {chartDimension}',
+    displayText: 'Create a {chartType} chart for {project} showing {chartDimension}',
     description: 'Visualize work items with charts',
     icon: '📊',
     placeholders: [
       { key: 'chartType', type: 'chartType', label: 'chart type', required: true },
+      { key: 'project', type: 'project', label: 'project', required: true },
       { key: 'chartDimension', type: 'chartDimension', label: 'dimension', required: true }
     ],
-    buildCommand: (values) => `/chart ${values.chartType} ${values.chartDimension}`
+    buildCommand: (values) => `/chart ${values.chartType} ${values.chartDimension} ${values.project}`
   },
 
   // Help

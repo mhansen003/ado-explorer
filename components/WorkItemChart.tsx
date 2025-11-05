@@ -1,6 +1,8 @@
 'use client';
 
-import { ChartData } from '@/types';
+import { useState, useEffect } from 'react';
+import { ChartData, WorkItem } from '@/types';
+import { ChevronDown } from 'lucide-react';
 import {
   PieChart,
   Pie,
@@ -21,6 +23,7 @@ import {
 
 interface WorkItemChartProps {
   chartData: ChartData;
+  workItems?: WorkItem[];
 }
 
 // Color palette for charts
@@ -35,8 +38,33 @@ const COLORS = [
   '#F97316', // Dark Orange
 ];
 
-export default function WorkItemChart({ chartData }: WorkItemChartProps) {
-  const { chartType, data } = chartData;
+export default function WorkItemChart({ chartData, workItems }: WorkItemChartProps) {
+  const { chartType, dataKey: initialDataKey } = chartData;
+  const [currentDataKey, setCurrentDataKey] = useState<'state' | 'type' | 'priority' | 'assignedTo' | 'createdBy'>(initialDataKey);
+  const [currentData, setCurrentData] = useState(chartData.data);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Available pivot options
+  const pivotOptions = [
+    { value: 'state', label: 'State' },
+    { value: 'type', label: 'Type' },
+    { value: 'priority', label: 'Priority' },
+    { value: 'assignedTo', label: 'Assigned To' },
+    { value: 'createdBy', label: 'Created By' },
+  ];
+
+  // Recalculate chart data when pivot point changes
+  useEffect(() => {
+    if (workItems && currentDataKey !== initialDataKey) {
+      // Dynamically import chart utils to recalculate data
+      import('@/lib/chart-utils').then(({ processWorkItemsToChartData }) => {
+        const newChartData = processWorkItemsToChartData(workItems, chartType, currentDataKey);
+        setCurrentData(newChartData.data);
+      });
+    } else {
+      setCurrentData(chartData.data);
+    }
+  }, [currentDataKey, workItems, chartType, initialDataKey, chartData.data]);
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
@@ -60,7 +88,7 @@ export default function WorkItemChart({ chartData }: WorkItemChartProps) {
           <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
-                data={data}
+                data={currentData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -71,7 +99,7 @@ export default function WorkItemChart({ chartData }: WorkItemChartProps) {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {data.map((entry, index) => (
+                {currentData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={entry.color || COLORS[index % COLORS.length]}
@@ -87,14 +115,14 @@ export default function WorkItemChart({ chartData }: WorkItemChartProps) {
       case 'bar':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={data}>
+            <BarChart data={currentData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" />
               <XAxis dataKey="name" stroke="#9CA3AF" />
               <YAxis stroke="#9CA3AF" />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Bar dataKey="value" fill="#10B981" radius={[8, 8, 0, 0]}>
-                {data.map((entry, index) => (
+                {currentData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={entry.color || COLORS[index % COLORS.length]}
@@ -108,7 +136,7 @@ export default function WorkItemChart({ chartData }: WorkItemChartProps) {
       case 'line':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={data}>
+            <LineChart data={currentData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" />
               <XAxis dataKey="name" stroke="#9CA3AF" />
               <YAxis stroke="#9CA3AF" />
@@ -129,7 +157,7 @@ export default function WorkItemChart({ chartData }: WorkItemChartProps) {
       case 'area':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <AreaChart data={data}>
+            <AreaChart data={currentData}>
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
@@ -164,9 +192,49 @@ export default function WorkItemChart({ chartData }: WorkItemChartProps) {
         <h3 className="text-lg font-semibold text-rh-text">
           {chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart
         </h3>
-        <span className="text-sm text-rh-text-secondary">
-          {data.reduce((sum, item) => sum + item.value, 0)} total items
-        </span>
+        <div className="flex items-center gap-4">
+          {/* Pivot Point Dropdown */}
+          {workItems && (
+            <div className="relative">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-rh-dark border border-rh-border rounded hover:border-rh-green transition-colors"
+              >
+                <span className="text-rh-text-secondary">Group by:</span>
+                <span className="text-rh-text font-medium">
+                  {pivotOptions.find(o => o.value === currentDataKey)?.label}
+                </span>
+                <ChevronDown className="w-4 h-4 text-rh-text-secondary" />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-1 w-40 bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50 overflow-hidden">
+                  <div className="p-1">
+                    {pivotOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setCurrentDataKey(option.value as any);
+                          setDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
+                          currentDataKey === option.value
+                            ? 'bg-rh-green/20 text-rh-green'
+                            : 'text-rh-text hover:bg-rh-border'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <span className="text-sm text-rh-text-secondary">
+            {currentData.reduce((sum, item) => sum + item.value, 0)} total items
+          </span>
+        </div>
       </div>
       {renderChart()}
     </div>
