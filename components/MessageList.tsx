@@ -11,9 +11,10 @@ interface MessageListProps {
   onSuggestionClick?: (suggestion: string) => void;
   viewPreferences: ViewPreferences;
   globalFilters: GlobalFilters;
+  onOpenFilters?: () => void;
 }
 
-export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters }: MessageListProps) {
+export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters, onOpenFilters }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<Message | null>(null);
 
@@ -146,9 +147,25 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
               {message.type === 'results' && message.workItems ? (
                 <div className="space-y-2 mt-3">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm text-rh-text-secondary">
-                      Found {message.workItems.length} work items{buildFilterDescription()}
-                    </p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm text-rh-text-secondary">
+                        Found {message.workItems.length} work items{buildFilterDescription()}
+                      </p>
+                      {message.workItems.length === 0 && (
+                        globalFilters.ignoreClosed ||
+                        (Array.isArray(globalFilters.ignoreStates) && globalFilters.ignoreStates.length > 0) ||
+                        (Array.isArray(globalFilters.ignoreCreatedBy) && globalFilters.ignoreCreatedBy.length > 0) ||
+                        globalFilters.onlyMyTickets ||
+                        globalFilters.ignoreOlderThanDays
+                      ) && onOpenFilters && (
+                        <button
+                          onClick={onOpenFilters}
+                          className="text-xs text-rh-green hover:underline text-left"
+                        >
+                          💡 Try adjusting your filters to see more results
+                        </button>
+                      )}
+                    </div>
                     {message.workItems.length > 0 && (
                       <div className="flex gap-2">
                         <button
