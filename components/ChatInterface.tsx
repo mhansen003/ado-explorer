@@ -902,8 +902,9 @@ Type / to see interactive search options with fill-in-the-blank style:
       }
     }
 
-    // Calculate total items in autocomplete
-    const totalItems = filteredCommands.length + dynamicSuggestions.length;
+    // Calculate total items in autocomplete (including templates when showing)
+    const activeTemplates = input === '/' ? COMMAND_TEMPLATES : [];
+    const totalItems = activeTemplates.length + filteredCommands.length + dynamicSuggestions.length;
 
     // Handle autocomplete navigation
     if (showAutocomplete && totalItems > 0) {
@@ -930,9 +931,10 @@ Type / to see interactive search options with fill-in-the-blank style:
 
       if (e.key === ' ' && isMultiSelectMode && showAutocomplete) {
         e.preventDefault();
-        // Toggle the currently selected tag
-        if (selectedIndex >= filteredCommands.length) {
-          const suggestionIndex = selectedIndex - filteredCommands.length;
+        // Toggle the currently selected tag (adjust for templates)
+        const adjustedIndex = selectedIndex - activeTemplates.length;
+        if (adjustedIndex >= filteredCommands.length) {
+          const suggestionIndex = adjustedIndex - filteredCommands.length;
           if (suggestionIndex < dynamicSuggestions.length) {
             handleToggleTag(dynamicSuggestions[suggestionIndex].value);
           }
@@ -958,17 +960,26 @@ Type / to see interactive search options with fill-in-the-blank style:
           return;
         }
 
+        // Handle template selection
+        if (selectedIndex < activeTemplates.length) {
+          handleTemplateSelect(activeTemplates[selectedIndex]);
+          return;
+        }
+
+        // Adjust index for commands and suggestions (after templates)
+        const adjustedIndex = selectedIndex - activeTemplates.length;
+
         // Only select from autocomplete if there are actual items to select
-        const hasValidSelection = (selectedIndex < filteredCommands.length) ||
-                                 (selectedIndex >= filteredCommands.length &&
-                                  (selectedIndex - filteredCommands.length) < dynamicSuggestions.length);
+        const hasValidSelection = (adjustedIndex < filteredCommands.length) ||
+                                 (adjustedIndex >= filteredCommands.length &&
+                                  (adjustedIndex - filteredCommands.length) < dynamicSuggestions.length);
 
         if (hasValidSelection && (filteredCommands.length > 0 || dynamicSuggestions.length > 0)) {
           // Select the highlighted item
-          if (selectedIndex < filteredCommands.length) {
-            handleCommandSelect(filteredCommands[selectedIndex]);
+          if (adjustedIndex < filteredCommands.length) {
+            handleCommandSelect(filteredCommands[adjustedIndex]);
           } else {
-            const suggestionIndex = selectedIndex - filteredCommands.length;
+            const suggestionIndex = adjustedIndex - filteredCommands.length;
             if (suggestionIndex < dynamicSuggestions.length) {
               handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
             }
@@ -1004,17 +1015,24 @@ Type / to see interactive search options with fill-in-the-blank style:
         });
 
         // If autocomplete is already showing, Tab should SELECT like Enter does
-        if (showAutocomplete && (filteredCommands.length > 0 || dynamicSuggestions.length > 0)) {
-          const hasValidSelection = (selectedIndex < filteredCommands.length) ||
-                                   (selectedIndex >= filteredCommands.length &&
-                                    (selectedIndex - filteredCommands.length) < dynamicSuggestions.length);
+        if (showAutocomplete && (activeTemplates.length > 0 || filteredCommands.length > 0 || dynamicSuggestions.length > 0)) {
+          // Handle template selection first
+          if (selectedIndex < activeTemplates.length) {
+            handleTemplateSelect(activeTemplates[selectedIndex]);
+            return;
+          }
+
+          const adjustedIndex = selectedIndex - activeTemplates.length;
+          const hasValidSelection = (adjustedIndex < filteredCommands.length) ||
+                                   (adjustedIndex >= filteredCommands.length &&
+                                    (adjustedIndex - filteredCommands.length) < dynamicSuggestions.length);
 
           if (hasValidSelection) {
             // Select the highlighted item (same logic as Enter)
-            if (selectedIndex < filteredCommands.length) {
-              handleCommandSelect(filteredCommands[selectedIndex]);
+            if (adjustedIndex < filteredCommands.length) {
+              handleCommandSelect(filteredCommands[adjustedIndex]);
             } else {
-              const suggestionIndex = selectedIndex - filteredCommands.length;
+              const suggestionIndex = adjustedIndex - filteredCommands.length;
               if (suggestionIndex < dynamicSuggestions.length) {
                 handleDynamicSelect(dynamicSuggestions[suggestionIndex].value);
               }
