@@ -105,12 +105,6 @@ Respond ONLY with the WIQL query, nothing else.`,
       },
     ];
 
-    // Add conversation history if provided
-    if (conversationHistory && conversationHistory.length > 0) {
-      messages.push(...conversationHistory);
-      console.log('[ADO Prompt API] Including conversation history:', conversationHistory.length, 'messages');
-    }
-
     // Add current user prompt
     messages.push({
       role: 'user',
@@ -245,18 +239,13 @@ Respond ONLY with the WIQL query, nothing else.`,
         `- #${item.id}: ${item.title} (${item.type}, ${item.state}, P${item.priority}${item.assignedTo ? `, assigned to ${item.assignedTo}` : ''}${item.tags && item.tags.length > 0 ? `, tags: ${item.tags.join(', ')}` : ''})`
       ).join('\n');
 
-      // Build messages array for conversational answer with history
+      // Build messages array for conversational answer
       const answerMessages = [
         {
           role: 'system',
-          content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational, insightful, and helpful. When discussing priority, remember P1 is highest priority and P4 is lowest. You are part of an ongoing conversation, so use context from previous messages to provide relevant follow-up answers.',
+          content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational, insightful, and helpful. When discussing priority, remember P1 is highest priority and P4 is lowest.',
         },
       ];
-
-      // Add conversation history if provided
-      if (conversationHistory && conversationHistory.length > 0) {
-        answerMessages.push(...conversationHistory);
-      }
 
       // Add current question with context
       answerMessages.push({
@@ -291,7 +280,7 @@ Based on this context, provide a helpful, conversational answer to the user's qu
 
       const answerData = await answerResponse.json();
       conversationalAnswer = answerData.choices[0].message.content.trim();
-      console.log('[ADO Prompt API] Generated conversational answer with full context');
+      console.log('[ADO Prompt API] Generated conversational answer');
     }
 
     return NextResponse.json({
