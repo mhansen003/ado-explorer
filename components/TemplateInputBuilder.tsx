@@ -33,7 +33,9 @@ export default function TemplateInputBuilder({
     template.placeholders.length > 0 ? template.placeholders[0].key : null
   );
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedDropdownIndex, setSelectedDropdownIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Get data source for a placeholder type
   const getDataSource = (type: string): DynamicSuggestion[] => {
@@ -82,13 +84,57 @@ export default function TemplateInputBuilder({
     }
   };
 
-  // Handle Enter key
+  // Handle arrow key navigation in dropdown
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && isComplete()) {
-      const command = template.buildCommand(values);
-      onExecute(command);
-    } else if (e.key === 'Escape') {
-      onCancel();
+    if (!activePlaceholder) {
+      if (e.key === 'Enter' && isComplete()) {
+        const command = template.buildCommand(values);
+        onExecute(command);
+      } else if (e.key === 'Escape') {
+        onCancel();
+      }
+      return;
+    }
+
+    const placeholder = template.placeholders.find(p => p.key === activePlaceholder);
+    if (!placeholder) return;
+
+    const dataSource = getDataSource(placeholder.type);
+
+    if (dropdownOpen && dataSource.length > 0) {
+      // Dropdown navigation
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedDropdownIndex(prev =>
+          prev < dataSource.length - 1 ? prev + 1 : prev
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedDropdownIndex(prev => prev > 0 ? prev - 1 : prev);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const selectedItem = dataSource[selectedDropdownIndex];
+        if (selectedItem) {
+          handleValueSelect(activePlaceholder, selectedItem.value, !!placeholder.multiSelect);
+        }
+      } else if (e.key === ' ' && placeholder.multiSelect) {
+        e.preventDefault();
+        const selectedItem = dataSource[selectedDropdownIndex];
+        if (selectedItem) {
+          handleValueSelect(activePlaceholder, selectedItem.value, true);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setDropdownOpen(false);
+      }
+    } else {
+      // Global navigation when dropdown closed
+      if (e.key === 'Enter' && isComplete()) {
+        const command = template.buildCommand(values);
+        onExecute(command);
+      } else if (e.key === 'Escape') {
+        onCancel();
+      }
     }
   };
 
@@ -112,6 +158,7 @@ export default function TemplateInputBuilder({
           onClick={() => {
             setActivePlaceholder(placeholder.key);
             setDropdownOpen(true);
+            setSelectedDropdownIndex(0);
           }}
           onKeyDown={handleKeyDown}
           className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium transition-all ${
@@ -128,12 +175,17 @@ export default function TemplateInputBuilder({
 
         {/* Dropdown */}
         {isActive && dropdownOpen && dataSource.length > 0 && (
-          <div className="absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50">
+          <div
+            ref={dropdownRef}
+            className="absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50"
+          >
             <div className="p-2 space-y-1">
-              {dataSource.map((item) => {
+              {dataSource.map((item, itemIndex) => {
                 const isSelected = Array.isArray(value)
                   ? value.includes(item.value)
                   : value === item.value;
+
+                const isHighlighted = selectedDropdownIndex === itemIndex;
 
                 return (
                   <button
@@ -143,6 +195,8 @@ export default function TemplateInputBuilder({
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm text-left transition-colors ${
                       isSelected
                         ? 'bg-rh-green/20 text-rh-green'
+                        : isHighlighted
+                        ? 'bg-rh-border text-rh-text'
                         : 'hover:bg-rh-border text-rh-text'
                     }`}
                   >
@@ -197,6 +251,26 @@ export default function TemplateInputBuilder({
 
     return parts;
   };
+
+  // Auto-scroll to keep selected item visible
+  useEffect(() => {
+    if (dropdownOpen && dropdownRef.current) {
+      const dropdown = dropdownRef.current;
+      const selectedButton = dropdown.querySelector(`button:nth-child(${selectedDropdownIndex + 1})`) as HTMLElement;
+
+      if (selectedButton) {
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const buttonRect = selectedButton.getBoundingClientRect();
+
+        // Check if button is out of view
+        if (buttonRect.bottom > dropdownRect.bottom) {
+          selectedButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else if (buttonRect.top < dropdownRect.top) {
+          selectedButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }, [selectedDropdownIndex, dropdownOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
