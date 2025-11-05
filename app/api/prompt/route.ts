@@ -49,23 +49,25 @@ export async function POST(request: NextRequest) {
 WIQL Query Format:
 SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditions] ORDER BY [field]
 
-IMPORTANT: Do NOT use TOP keyword - results will be limited automatically.
+IMPORTANT RULES:
+- Do NOT use TOP keyword - results will be limited automatically
+- Do NOT filter by System.TeamProject - queries are already scoped to a single project
+- When users mention "projects" in their query, search System.Title or System.Description instead
 
-Common Fields:
-- System.Title - Work item title
-- System.Description - Work item description
-- System.State - State (New, Active, Resolved, Closed)
-- System.WorkItemType - Type (Bug, Task, User Story, Epic, Feature)
-- System.Tags - Tags
-- System.AssignedTo - Assigned person
-- System.CreatedBy - Creator
-- System.ChangedDate - Last modified date
-- System.CreatedDate - Creation date
-- System.TeamProject - Project name
+Common Fields (in order of usefulness):
+- System.Title - Work item title (use CONTAINS for text search)
+- System.Description - Work item description (use CONTAINS for text search)
+- System.State - State (use = for exact match: New, Active, Resolved, Closed)
+- System.WorkItemType - Type (use = for exact match: Bug, Task, User Story, Epic, Feature)
+- System.Tags - Tags (use CONTAINS)
+- System.AssignedTo - Assigned person (use CONTAINS for name search)
+- System.CreatedBy - Creator (use CONTAINS for name search)
+- System.ChangedDate - Last modified date (use >=, <=, or = with @Today)
+- System.CreatedDate - Creation date (use >=, <=, or = with @Today)
 
 Operators:
-- CONTAINS - For text search
-- = - Exact match
+- CONTAINS - For text search in Title, Description, AssignedTo, CreatedBy, Tags
+- = - Exact match for State, WorkItemType
 - >= / <= - Date/number comparison
 - @Today - Current date
 
@@ -78,6 +80,9 @@ A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [Syst
 
 Q: "What tasks were created this week?"
 A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.WorkItemType] = 'Task' AND [System.CreatedDate] >= @Today - 7 ORDER BY [System.CreatedDate] DESC
+
+Q: "Show me all bob builder projects"
+A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS 'bob builder' OR [System.Description] CONTAINS 'bob builder' ORDER BY [System.ChangedDate] DESC
 
 Respond ONLY with the WIQL query, nothing else.`,
           },
