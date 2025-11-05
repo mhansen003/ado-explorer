@@ -82,12 +82,12 @@ export async function POST(request: NextRequest) {
           const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
           try {
             const titleResults = await projectService.searchWorkItems(titleQuery);
-          // Add items that aren't already in the list
-          const existingIds = new Set(relatedItems.map(item => item.id));
-          const newResults = titleResults
-            .filter(item => !existingIds.has(item.id))
-            .slice(0, maxSimilarTitles)
-            .map(item => ({ ...item, relationSource: 'title' as const, relationType: 'Similar Title' }));
+            // Add items that aren't already in the list
+            const existingIds = new Set(relatedItems.map(item => item.id));
+            const newResults = titleResults
+              .filter(item => !existingIds.has(item.id))
+              .slice(0, maxSimilarTitles)
+              .map(item => ({ ...item, relationSource: 'title' as const, relationType: 'Similar Title' }));
 
             if (newResults.length > 0) {
               relatedItems.push(...newResults);
