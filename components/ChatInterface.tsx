@@ -153,49 +153,23 @@ export default function ChatInterface() {
       type: 'system',
       content: `🤖 Welcome to ADO Explorer!
 
-💬 Natural Language Search (Recommended):
-Just type naturally! The AI will understand. Examples:
+💬 **Natural Language Search:**
+Just type naturally! Examples:
 • "show me all active bugs"
 • "find tasks assigned to john"
-• "what was updated this week?"
-• "show me ticket #12345"
+• "ticket #12345"
 
-/ Guided Search Commands:
-Type / to see interactive search options with fill-in-the-blank style:
+**/ Guided Search:**
+Type / for fill-in-the-blank searches with dropdowns
 
-👤 Show me all tickets created by [user dropdown]
-📌 Show me all tickets assigned to [user dropdown]
-📊 Show me all tickets with status [status dropdown]
-🏷️  Show me all [Bug/Task/Story dropdown] tickets
-📁 Show me all tickets for project [project dropdown]
-📋 Show me all tickets on board [board dropdown]
-🔖 Show me all tickets tagged with [tag multi-select]
-⏰ Show me recent tickets
-🎯 Show me ticket #[enter ID]
-
-🎯 How It Works:
-1. Type / to see all search options
-2. Click any option to fill in the blanks
-3. Select from dropdowns (use arrow keys ↑↓)
-4. Press Enter to search!
-
-💡 Pro Tips:
-• Use natural language for best results (no / needed!)
-• Type / for guided searches with dropdown help
-• Click "Discussion" tab in any work item to see all comments
-• Use filters at the top to refine results`,
+Type **/help** for more info`,
       timestamp: new Date(),
     };
 
     const helpMessage: Message = {
       id: '2',
       type: 'system',
-      content: `⚡ Quick Actions:
-• Type just a number (e.g., "12345") to open that ticket
-• Type / to explore all search options
-• Use ↑↓ arrows to recall previous searches
-
-Type /help anytime to see this guide again!`,
+      content: '',
       timestamp: new Date(),
     };
 
@@ -500,59 +474,26 @@ Type /help anytime to see this guide again!`,
   };
 
   const handleClearChat = () => {
-    // Clear and reshow welcome and help messages
+    // Clear and reshow welcome message
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       type: 'system',
       content: `🤖 Welcome to ADO Explorer!
 
-💬 Natural Language Search (Recommended):
-Just type naturally! The AI will understand. Examples:
+💬 **Natural Language Search:**
+Just type naturally! Examples:
 • "show me all active bugs"
 • "find tasks assigned to john"
-• "what was updated this week?"
-• "show me ticket #12345"
+• "ticket #12345"
 
-/ Guided Search Commands:
-Type / to see interactive search options with fill-in-the-blank style:
+**/ Guided Search:**
+Type / for fill-in-the-blank searches with dropdowns
 
-👤 Show me all tickets created by [user dropdown]
-📌 Show me all tickets assigned to [user dropdown]
-📊 Show me all tickets with status [status dropdown]
-🏷️  Show me all [Bug/Task/Story dropdown] tickets
-📁 Show me all tickets for project [project dropdown]
-📋 Show me all tickets on board [board dropdown]
-🔖 Show me all tickets tagged with [tag multi-select]
-⏰ Show me recent tickets
-🎯 Show me ticket #[enter ID]
-
-🎯 How It Works:
-1. Type / to see all search options
-2. Click any option to fill in the blanks
-3. Select from dropdowns (use arrow keys ↑↓)
-4. Press Enter to search!
-
-💡 Pro Tips:
-• Use natural language for best results (no / needed!)
-• Type / for guided searches with dropdown help
-• Click "Discussion" tab in any work item to see all comments
-• Use filters at the top to refine results`,
+Type **/help** for more info`,
       timestamp: new Date(),
     };
 
-    const helpMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      type: 'system',
-      content: `⚡ Quick Actions:
-• Type just a number (e.g., "12345") to open that ticket
-• Type / to explore all search options
-• Use ↑↓ arrows to recall previous searches
-
-Type /help anytime to see this guide again!`,
-      timestamp: new Date(),
-    };
-
-    setMessages([welcomeMessage, helpMessage]);
+    setMessages([welcomeMessage]);
     setInput('');
     setShowAutocomplete(false);
   };
@@ -634,43 +575,23 @@ Type /help anytime to see this guide again!`,
       const helpMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
-        content: `🤖 Welcome to ADO Explorer!
+        content: `🤖 **ADO Explorer Help**
 
-💬 Natural Language Search (Recommended):
-Just type naturally! The AI will understand. Examples:
+💬 **Natural Language Search:**
+Just type naturally:
 • "show me all active bugs"
 • "find tasks assigned to john"
-• "what was updated this week?"
-• "show me ticket #12345"
+• "ticket #12345"
 
-/ Guided Search Commands:
-Type / to see interactive search options with fill-in-the-blank style:
+**/ Guided Search:**
+Type / for interactive fill-in-the-blank searches:
+👤 Created by • 📌 Assigned to • 📊 Status • 🏷️ Type
+📁 Project • 📋 Board • 🔖 Tags • ⏰ Recent • 🎯 By ID
 
-👤 Show me all tickets created by [user dropdown]
-📌 Show me all tickets assigned to [user dropdown]
-📊 Show me all tickets with status [status dropdown]
-🏷️  Show me all [Bug/Task/Story dropdown] tickets
-📁 Show me all tickets for project [project dropdown]
-📋 Show me all tickets on board [board dropdown]
-🔖 Show me all tickets tagged with [tag multi-select]
-⏰ Show me recent tickets
-🎯 Show me ticket #[enter ID]
-
-🎯 How It Works:
-1. Type / to see all search options
-2. Click any option to fill in the blanks
-3. Select from dropdowns (use arrow keys ↑↓)
-4. Press Enter to search!
-
-💡 Pro Tips:
-• Use natural language for best results (no / needed!)
-• Type / for guided searches with dropdown help
-• Click "Discussion" tab in any work item to see all comments
-• Use filters at the top to refine results
-
-⚡ Quick Actions:
-• Type just a number (e.g., "12345") to open that ticket
-• Type / to explore all search options`,
+**Tips:**
+• Use ↑↓ arrows to recall searches
+• Use filters at top to refine results
+• Click "Discussion" tab for comments`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, helpMessage]);
