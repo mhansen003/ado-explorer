@@ -12,11 +12,17 @@ export async function POST(request: NextRequest) {
   // Parse request outside try block so prompt is available in catch
   let prompt = '';
   let filters: GlobalFilters | undefined;
+  let conversationHistory: Array<{ role: string; content: string }> | undefined;
 
   try {
-    const body = await request.json() as { prompt: string; filters?: GlobalFilters };
+    const body = await request.json() as {
+      prompt: string;
+      filters?: GlobalFilters;
+      conversationHistory?: Array<{ role: string; content: string }>;
+    };
     prompt = body.prompt;
     filters = body.filters;
+    conversationHistory = body.conversationHistory;
 
     console.log('[ADO Prompt API] Configuration:', {
       organization,
@@ -25,6 +31,7 @@ export async function POST(request: NextRequest) {
       hasOpenAI: !!openaiKey,
       prompt,
       filters: filters || 'NO FILTERS PROVIDED',
+      conversationHistoryLength: conversationHistory?.length || 0,
     });
 
     if (!organization || !pat) {
@@ -41,19 +48,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call OpenAI to interpret the prompt
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an Azure DevOps WIQL (Work Item Query Language) expert. Your job is to convert natural language questions into WIQL queries.
+    // Call OpenAI to interpret the prompt with conversation history
+    const messages = [
+      {
+        role: 'system',
+        content: `You are an Azure DevOps WIQL (Work Item Query Language) expert. Your job is to convert natural language questions into WIQL queries.
+
+IMPORTANT: You are part of a conversation. The user may refer to previous queries or use follow-up questions like "now just the open ones" or "what about the closed ones". Use the conversation history to understand the full context.
 
 WIQL Query Format:
 SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditions] ORDER BY [field]
@@ -107,12 +108,30 @@ Q: "What are we working on this sprint?"
 A: SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.State] = 'Active' ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.ChangedDate] DESC
 
 Respond ONLY with the WIQL query, nothing else.`,
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+      },
+    ];
+
+    // Add conversation history if provided
+    if (conversationHistory && conversationHistory.length > 0) {
+      messages.push(...conversationHistory);
+      console.log('[ADO Prompt API] Including conversation history:', conversationHistory.length, 'messages');
+    }
+
+    // Add current user prompt
+    messages.push({
+      role: 'user',
+      content: prompt,
+    });
+
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages,
         temperature: 0.3,
         max_tokens: 200,
       }),
@@ -232,22 +251,23 @@ Respond ONLY with the WIQL query, nothing else.`,
         `- #${item.id}: ${item.title} (${item.type}, ${item.state}, P${item.priority}${item.assignedTo ? `, assigned to ${item.assignedTo}` : ''}${item.tags && item.tags.length > 0 ? `, tags: ${item.tags.join(', ')}` : ''})`
       ).join('\n');
 
-      const answerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
+      // Build messages array for conversational answer with history
+      const answerMessages = [
+        {
+          role: 'system',
+          content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational, insightful, and helpful. When discussing priority, remember P1 is highest priority and P4 is lowest. You are part of an ongoing conversation, so use context from previous messages to provide relevant follow-up answers.',
         },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an Azure DevOps assistant. Answer questions based on the work item data provided. Be conversational, insightful, and helpful. When discussing priority, remember P1 is highest priority and P4 is lowest.',
-            },
-            {
-              role: 'user',
-              content: `Question: "${prompt}"
+      ];
+
+      // Add conversation history if provided
+      if (conversationHistory && conversationHistory.length > 0) {
+        answerMessages.push(...conversationHistory);
+      }
+
+      // Add current question with context
+      answerMessages.push({
+        role: 'user',
+        content: `Question: "${prompt}"
 
 CONTEXT: Overall Project Status (all non-closed items)
 - Total non-closed items: ${contextSummary.totalNonClosed}
@@ -259,8 +279,17 @@ SEARCH RESULTS: Found ${contextSummary.searchResults} matching items
 ${itemsList}
 
 Based on this context, provide a helpful, conversational answer to the user's question. If asked about priorities or urgency, focus on P1 and P2 items. Be specific and reference actual work item IDs when relevant.`,
-            },
-          ],
+      });
+
+      const answerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: answerMessages,
           temperature: 0.7,
           max_tokens: 800,
         }),
