@@ -325,8 +325,8 @@ export default function RelationshipDiagram({
                   item.y - CARD_HEIGHT / 2
                 )}
                 stroke={color}
-                strokeWidth="2"
-                strokeDasharray="3,3"
+                strokeWidth="3"
+                strokeDasharray="4,4"
                 fill="none"
                 opacity={hoveredId === item.id || hoveredId === currentWorkItem.id ? 1 : 0.3}
                 className="transition-opacity duration-300"
