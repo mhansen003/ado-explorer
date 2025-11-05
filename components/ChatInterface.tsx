@@ -1164,6 +1164,7 @@ Type / for interactive fill-in-the-blank searches:
         onListItemClick={handleListItemClick}
         onSuggestionClick={handleSuggestionClick}
         viewPreferences={viewPreferences}
+        globalFilters={globalFilters}
       />
 
       <FilterBar

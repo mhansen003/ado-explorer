@@ -38,8 +38,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Use org-level client (no project) for cross-project relation support
-      const adoService = new ADOService(organization, pat);
+      // Use TWO clients:
+      // 1. Org-level (no project) for cross-project relation support
+      // 2. Project-level for WIQL searches (which require a project)
+      const orgService = new ADOService(organization, pat);
+      const projectService = targetProject ? new ADOService(organization, pat, targetProject) : null;
 
       const relatedItems: WorkItem[] = [];
       const maxSimilarTitles = 5; // Only show up to 5 similar title suggestions
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
       // This includes Parent, Child, Related, Predecessor, Successor from ADO
       console.log('[AI Actions] 🔍 Fetching ADO relationships for work item ID:', workItem.id);
       try {
-        const linkedItems = await adoService.getRelatedWorkItems(parseInt(workItem.id));
+        const linkedItems = await orgService.getRelatedWorkItems(parseInt(workItem.id));
         console.log('[AI Actions] ✅ ADO returned', linkedItems.length, 'linked relationships');
 
         if (linkedItems.length > 0) {
@@ -68,15 +71,17 @@ export async function POST(request: NextRequest) {
 
       // SECOND: Add up to 5 similar titles based on title keywords
       // This is ONLY AI suggestions, separate from actual ADO relationships
-      const titleWords = workItem.title
-        .split(/\s+/)
-        .filter(word => word.length >= 4)
-        .slice(0, 3);
+      // NOTE: WIQL queries require a project, so we use the project-level service
+      if (projectService) {
+        const titleWords = workItem.title
+          .split(/\s+/)
+          .filter(word => word.length >= 4)
+          .slice(0, 3);
 
-      if (titleWords.length > 0) {
-        const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
-        try {
-          const titleResults = await adoService.searchWorkItems(titleQuery);
+        if (titleWords.length > 0) {
+          const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
+          try {
+            const titleResults = await projectService.searchWorkItems(titleQuery);
           // Add items that aren't already in the list
           const existingIds = new Set(relatedItems.map(item => item.id));
           const newResults = titleResults

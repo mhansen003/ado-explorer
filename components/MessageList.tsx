@@ -1,4 +1,4 @@
-import { Message, ViewPreferences } from '@/types';
+import { Message, ViewPreferences, GlobalFilters } from '@/types';
 import WorkItemCard from './WorkItemCard';
 import WorkItemGrid from './WorkItemGrid';
 import { Bot, User, Download, Table } from 'lucide-react';
@@ -10,9 +10,10 @@ interface MessageListProps {
   onListItemClick?: (value: string, commandName: string) => void;
   onSuggestionClick?: (suggestion: string) => void;
   viewPreferences: ViewPreferences;
+  globalFilters: GlobalFilters;
 }
 
-export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences }: MessageListProps) {
+export default function MessageList({ messages, onListItemClick, onSuggestionClick, viewPreferences, globalFilters }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<Message | null>(null);
 
@@ -20,6 +21,29 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Build filter description for display
+  const buildFilterDescription = (): string => {
+    const filterParts: string[] = [];
+
+    if (globalFilters.ignoreClosed) {
+      filterParts.push('not showing closed');
+    }
+
+    if (Array.isArray(globalFilters.ignoreStates) && globalFilters.ignoreStates.length > 0) {
+      filterParts.push(`not showing ${globalFilters.ignoreStates.join(', ')}`);
+    }
+
+    if (globalFilters.onlyMyTickets) {
+      filterParts.push('only my tickets');
+    }
+
+    if (globalFilters.ignoreOlderThanDays !== null) {
+      filterParts.push(`not showing older than ${globalFilters.ignoreOlderThanDays} days`);
+    }
+
+    return filterParts.length > 0 ? ` (${filterParts.join('; ')})` : '';
+  };
 
   const exportToCSV = (message: Message) => {
     if (!message.workItems || message.workItems.length === 0) return;
@@ -123,7 +147,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                 <div className="space-y-2 mt-3">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm text-rh-text-secondary">
-                      Found {message.workItems.length} work items
+                      Found {message.workItems.length} work items{buildFilterDescription()}
                     </p>
                     {message.workItems.length > 0 && (
                       <div className="flex gap-2">

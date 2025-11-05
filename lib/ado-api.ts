@@ -640,19 +640,19 @@ export class ADOService {
           attributes: relation.attributes,
         });
 
-        if (relation.url && relation.url.includes('/workitems/')) {
-          const match = relation.url.match(/\/workitems\/(\d+)$/);
+        // Case-insensitive check for /workItems/ (note: Azure uses camelCase!)
+        if (relation.url && relation.url.toLowerCase().includes('/workitems/')) {
+          const match = relation.url.match(/\/workitems\/(\d+)$/i); // Case-insensitive regex
           if (match) {
             const id = parseInt(match[1]);
             // Parse relation type from 'rel' field
-            // Examples: "System.LinkTypes.Hierarchy-Forward" = Parent
-            //           "System.LinkTypes.Hierarchy-Reverse" = Child
-            //           "System.LinkTypes.Related" = Related
+            // IMPORTANT: Hierarchy-Reverse = Parent, Hierarchy-Forward = Child
+            //            (verified from attributes.name in ADO response)
             let relationType = 'Related';
             if (relation.rel) {
-              if (relation.rel.includes('Hierarchy-Forward')) {
+              if (relation.rel.includes('Hierarchy-Reverse')) {
                 relationType = 'Parent';
-              } else if (relation.rel.includes('Hierarchy-Reverse')) {
+              } else if (relation.rel.includes('Hierarchy-Forward')) {
                 relationType = 'Child';
               } else if (relation.rel.includes('Dependency-Forward')) {
                 relationType = 'Successor';
