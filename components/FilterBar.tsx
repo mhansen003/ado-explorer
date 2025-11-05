@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Filter, X, LayoutGrid, LayoutList } from 'lucide-react';
+import { Filter, X, LayoutGrid, LayoutList, ChevronDown, Check } from 'lucide-react';
 import { GlobalFilters, ViewPreferences } from '@/types';
 
 interface FilterBarProps {
@@ -22,6 +22,10 @@ export default function FilterBar({
   onExpandedChange
 }: FilterBarProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
+  const [states, setStates] = useState<string[]>([]);
+  const [users, setUsers] = useState<Array<{ displayName: string; principalName: string }>>([]);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Use controlled state if provided, otherwise use internal state
   const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : internalIsExpanded;
@@ -35,6 +39,38 @@ export default function FilterBar({
   const [daysInput, setDaysInput] = useState(filters.ignoreOlderThanDays?.toString() || '30');
   const [usernameInput, setUsernameInput] = useState(filters.currentUser || '');
 
+  // Fetch states and users when component mounts
+  useEffect(() => {
+    const fetchStates = async () => {
+      setLoadingStates(true);
+      try {
+        const response = await fetch('/api/states');
+        const data = await response.json();
+        setStates(data || []);
+      } catch (error) {
+        console.error('Failed to fetch states:', error);
+      } finally {
+        setLoadingStates(false);
+      }
+    };
+
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      try {
+        const response = await fetch('/api/users');
+        const data = await response.json();
+        setUsers(data || []);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchStates();
+    fetchUsers();
+  }, []);
+
   useEffect(() => {
     // Sync UI inputs with loaded filters
     if (filters.ignoreOlderThanDays) {
@@ -45,7 +81,7 @@ export default function FilterBar({
     }
   }, [filters]);
 
-  const handleFilterChange = (key: keyof GlobalFilters, value: boolean | number | null) => {
+  const handleFilterChange = (key: keyof GlobalFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     onFiltersChange(newFilters);
     localStorage.setItem('ado-explorer-filters', JSON.stringify(newFilters));
@@ -61,10 +97,28 @@ export default function FilterBar({
     }
   };
 
+  const toggleState = (state: string) => {
+    const currentStates = filters.ignoreStates || [];
+    const newStates = currentStates.includes(state)
+      ? currentStates.filter(s => s !== state)
+      : [...currentStates, state];
+    handleFilterChange('ignoreStates', newStates);
+  };
+
+  const toggleCreatedBy = (user: string) => {
+    const currentUsers = filters.ignoreCreatedBy || [];
+    const newUsers = currentUsers.includes(user)
+      ? currentUsers.filter(u => u !== user)
+      : [...currentUsers, user];
+    handleFilterChange('ignoreCreatedBy', newUsers);
+  };
+
   const activeFilterCount = [
     filters.ignoreClosed,
     filters.onlyMyTickets,
     filters.ignoreOlderThanDays !== null,
+    (filters.ignoreStates && filters.ignoreStates.length > 0),
+    (filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0),
   ].filter(Boolean).length;
 
   return (
@@ -86,7 +140,121 @@ export default function FilterBar({
 
         {isExpanded && (
           <div className="mt-3 space-y-2 pb-1">
-            {/* Ignore Closed */}
+            {/* Ignore States - Multi-select Dropdown */}
+            <div className="p-2 hover:bg-rh-border/50 rounded transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-rh-text">Ignore States:</span>
+                <div className="relative group flex-1">
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
+                  >
+                    <span className="truncate">
+                      {filters.ignoreStates && filters.ignoreStates.length > 0
+                        ? `${filters.ignoreStates.length} selected`
+                        : 'Select states to ignore'}
+                    </span>
+                    <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
+                  </button>
+                  <div className="hidden group-hover:block absolute top-full left-0 mt-1 w-full bg-rh-card border border-rh-border rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                    {loadingStates ? (
+                      <div className="px-3 py-2 text-xs text-rh-text-secondary">Loading...</div>
+                    ) : (
+                      states.map(state => (
+                        <button
+                          key={state}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleState(state);
+                          }}
+                          className="w-full px-3 py-2 text-xs text-left hover:bg-rh-border flex items-center justify-between"
+                        >
+                          <span>{state}</span>
+                          {filters.ignoreStates?.includes(state) && <Check className="w-3 h-3 text-rh-green" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+              {filters.ignoreStates && filters.ignoreStates.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {filters.ignoreStates.map(state => (
+                    <span
+                      key={state}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-rh-green/20 text-rh-green rounded text-xs"
+                    >
+                      {state}
+                      <button
+                        onClick={() => toggleState(state)}
+                        className="hover:text-rh-text transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Ignore Created By - Multi-select Dropdown */}
+            <div className="p-2 hover:bg-rh-border/50 rounded transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-rh-text">Ignore Created By:</span>
+                <div className="relative group flex-1">
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full px-2 py-1 text-xs bg-rh-dark border border-rh-border rounded hover:border-rh-green text-rh-text text-left flex items-center justify-between"
+                  >
+                    <span className="truncate">
+                      {filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0
+                        ? `${filters.ignoreCreatedBy.length} selected`
+                        : 'Select users to ignore'}
+                    </span>
+                    <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
+                  </button>
+                  <div className="hidden group-hover:block absolute top-full left-0 mt-1 w-full bg-rh-card border border-rh-border rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                    {loadingUsers ? (
+                      <div className="px-3 py-2 text-xs text-rh-text-secondary">Loading...</div>
+                    ) : (
+                      users.map(user => (
+                        <button
+                          key={user.displayName}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCreatedBy(user.displayName);
+                          }}
+                          className="w-full px-3 py-2 text-xs text-left hover:bg-rh-border flex items-center justify-between"
+                        >
+                          <span className="truncate">{user.displayName}</span>
+                          {filters.ignoreCreatedBy?.includes(user.displayName) && <Check className="w-3 h-3 text-rh-green" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+              {filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {filters.ignoreCreatedBy.map(user => (
+                    <span
+                      key={user}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs"
+                    >
+                      {user}
+                      <button
+                        onClick={() => toggleCreatedBy(user)}
+                        className="hover:text-rh-text transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Legacy Ignore Closed */}
             <label className="flex items-center gap-2 cursor-pointer hover:bg-rh-border/50 p-2 rounded transition-colors">
               <input
                 type="checkbox"
@@ -94,7 +262,7 @@ export default function FilterBar({
                 onChange={(e) => handleFilterChange('ignoreClosed', e.target.checked)}
                 className="w-4 h-4 rounded border-rh-border bg-rh-dark text-rh-green focus:ring-rh-green focus:ring-offset-rh-dark"
               />
-              <span className="text-sm text-rh-text">Ignore closed tickets</span>
+              <span className="text-sm text-rh-text">Ignore closed tickets (legacy)</span>
             </label>
 
             {/* Only My Tickets */}
@@ -191,6 +359,8 @@ export default function FilterBar({
                 onClick={() => {
                   const clearedFilters: GlobalFilters = {
                     ignoreClosed: false,
+                    ignoreStates: [],
+                    ignoreCreatedBy: [],
                     onlyMyTickets: false,
                     ignoreOlderThanDays: null,
                     currentUser: undefined,

@@ -57,6 +57,8 @@ export default function ChatInterface() {
   // Global filters
   const [globalFilters, setGlobalFilters] = useState<GlobalFilters>({
     ignoreClosed: false,
+    ignoreStates: [],
+    ignoreCreatedBy: [],
     onlyMyTickets: false,
     ignoreOlderThanDays: null,
   });

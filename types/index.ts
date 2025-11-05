@@ -55,7 +55,9 @@ export interface ADOConfig {
 }
 
 export interface GlobalFilters {
-  ignoreClosed: boolean;
+  ignoreClosed: boolean; // Legacy - kept for backwards compatibility
+  ignoreStates: string[]; // Multi-select states to ignore (e.g., ["Closed", "Removed", "Archived"])
+  ignoreCreatedBy: string[]; // Multi-select users to ignore by created by
   onlyMyTickets: boolean;
   ignoreOlderThanDays: number | null;
   currentUser?: string;

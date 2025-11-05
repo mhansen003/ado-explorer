@@ -216,9 +216,24 @@ export class ADOService {
 
     const conditions: string[] = [];
 
+    // Legacy support for ignoreClosed checkbox
     if (filters.ignoreClosed) {
       console.log('[ADO Service] Adding ignoreClosed condition');
       conditions.push(`[System.State] <> 'Closed'`);
+    }
+
+    // New multi-select ignore states filter
+    if (filters.ignoreStates && filters.ignoreStates.length > 0) {
+      console.log('[ADO Service] Adding ignoreStates condition:', filters.ignoreStates);
+      const stateConditions = filters.ignoreStates.map(state => `[System.State] <> '${state}'`).join(' AND ');
+      conditions.push(`(${stateConditions})`);
+    }
+
+    // New multi-select ignore created by filter
+    if (filters.ignoreCreatedBy && filters.ignoreCreatedBy.length > 0) {
+      console.log('[ADO Service] Adding ignoreCreatedBy condition:', filters.ignoreCreatedBy);
+      const createdByConditions = filters.ignoreCreatedBy.map(user => `[System.CreatedBy] <> '${user}'`).join(' AND ');
+      conditions.push(`(${createdByConditions})`);
     }
 
     if (filters.onlyMyTickets && filters.currentUser) {
