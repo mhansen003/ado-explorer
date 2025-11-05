@@ -52,6 +52,7 @@ export interface Message {
   chartData?: ChartData;
   isAnalytics?: boolean;
   analyticsData?: AnalyticsData;
+  isError?: boolean; // Red styling for error responses that need better prompting
 }
 
 export interface WorkItem {

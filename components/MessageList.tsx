@@ -211,10 +211,16 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
 
               {/* Conversational Answer */}
               {message.conversationalAnswer && (
-                <div className="mb-3 p-4 bg-rh-green/10 border border-rh-green/30 rounded-lg">
+                <div className={`mb-3 p-4 rounded-lg ${
+                  message.isError
+                    ? 'bg-red-500/10 border border-red-500/30'
+                    : 'bg-rh-green/10 border border-rh-green/30'
+                }`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Bot className="w-4 h-4 text-rh-green" />
-                    <span className="text-sm font-medium text-rh-green">AI Answer</span>
+                    <Bot className={`w-4 h-4 ${message.isError ? 'text-red-400' : 'text-rh-green'}`} />
+                    <span className={`text-sm font-medium ${message.isError ? 'text-red-400' : 'text-rh-green'}`}>
+                      {message.isError ? 'Error Response - Try Improving Your Prompt' : 'AI Answer'}
+                    </span>
                   </div>
                   <p className="text-sm text-rh-text whitespace-pre-wrap">
                     {message.conversationalAnswer}

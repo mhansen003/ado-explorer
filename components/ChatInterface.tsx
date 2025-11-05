@@ -807,6 +807,7 @@ Type **/help** for more info`,
               timestamp: new Date(),
               workItems: [],
               conversationalAnswer: data.conversationalAnswer,
+              isError: true, // Show in red - needs better prompting
             };
             setMessages(prev => [...prev.slice(0, -1), errorMessage]);
             return;
