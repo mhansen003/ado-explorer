@@ -431,7 +431,7 @@ export default function ChatInterface() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ prompt: command }),
+          body: JSON.stringify({ prompt: command, filters: globalFilters }),
         });
 
         const data = await response.json();

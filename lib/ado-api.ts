@@ -81,6 +81,22 @@ export class ADOService {
   }
 
   /**
+   * Apply global filters to an existing WIQL query
+   * Public method to allow applying filters to AI-generated queries
+   */
+  applyFiltersToQuery(query: string, filters?: GlobalFilters): string {
+    const globalFilterConditions = this.buildGlobalFilterConditions(filters);
+    if (!globalFilterConditions) return query;
+
+    // If query has WHERE, append with AND, otherwise add WHERE
+    if (query.includes(' WHERE ')) {
+      return query.replace(' ORDER BY ', ` AND ${globalFilterConditions} ORDER BY `);
+    } else {
+      return query.replace(' ORDER BY ', ` WHERE ${globalFilterConditions} ORDER BY `);
+    }
+  }
+
+  /**
    * Build global filter conditions to be added to WHERE clause
    */
   private buildGlobalFilterConditions(filters?: GlobalFilters): string {

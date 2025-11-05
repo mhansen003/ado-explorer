@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ADOService } from '@/lib/ado-api';
+import { GlobalFilters } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json();
+    const { prompt, filters } = await request.json() as { prompt: string; filters?: GlobalFilters };
 
     const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
     const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
@@ -118,9 +119,13 @@ Respond ONLY with the WIQL query, nothing else.`,
       console.log('[ADO Prompt API] No project specified, using first project:', targetProject);
     }
 
-    // Execute the WIQL query
+    // Apply global filters to the AI-generated WIQL query
     const adoService = new ADOService(organization, pat, targetProject);
-    const workItems = await adoService.searchWorkItems(wiqlQuery);
+    const filteredQuery = adoService.applyFiltersToQuery(wiqlQuery, filters);
+    console.log('[ADO Prompt API] WIQL with filters:', filteredQuery);
+
+    // Execute the filtered WIQL query
+    const workItems = await adoService.searchWorkItems(filteredQuery);
     console.log('[ADO Prompt API] Found work items:', workItems.length);
 
     // Generate AI suggestions asynchronously (don't wait for it)
