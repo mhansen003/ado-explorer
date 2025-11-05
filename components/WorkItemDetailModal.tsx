@@ -4,6 +4,8 @@ import { useState, useMemo } from 'react';
 import { WorkItem } from '@/types';
 import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2 } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface WorkItemDetailModalProps {
   workItem: WorkItem;
@@ -329,7 +331,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           {/* Description */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-rh-text mb-2">Description</h3>
-            <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm text-rh-text-secondary max-h-40 overflow-y-auto prose prose-invert prose-sm max-w-none">
+            <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-60 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
               {sanitizedDescription ? (
                 <div dangerouslySetInnerHTML={{ __html: sanitizedDescription }} />
               ) : (
@@ -359,10 +361,10 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           {workItem.acceptanceCriteria && (
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-rh-text mb-2">Acceptance Criteria</h3>
-              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm text-rh-text-secondary max-h-40 overflow-y-auto prose prose-invert prose-sm max-w-none">
+              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-60 overflow-y-auto prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
                 <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(workItem.acceptanceCriteria, {
-                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'div', 'span'],
-                  ALLOWED_ATTR: [],
+                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
+                  ALLOWED_ATTR: ['class'],
                 }) }} />
               </div>
             </div>
@@ -411,14 +413,18 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                   </button>
                 )}
               </div>
-              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm text-rh-text-secondary max-h-60 overflow-y-auto">
+              <div className="bg-rh-dark border border-rh-border rounded-lg p-4 text-sm max-h-96 overflow-y-auto">
                 {loading ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-rh-text-secondary">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-rh-green border-t-transparent"></div>
                     <span>Generating with AI...</span>
                   </div>
                 ) : (
-                  <pre className="whitespace-pre-wrap font-sans">{aiResult}</pre>
+                  <div className="prose prose-invert prose-sm max-w-none prose-headings:text-rh-text prose-p:text-rh-text-secondary prose-strong:text-rh-text prose-ul:text-rh-text-secondary prose-ol:text-rh-text-secondary prose-li:text-rh-text-secondary prose-code:text-rh-green prose-code:bg-rh-card prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-a:text-rh-green hover:prose-a:text-green-400 prose-blockquote:border-rh-green prose-blockquote:text-rh-text-secondary">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {aiResult || ''}
+                    </ReactMarkdown>
+                  </div>
                 )}
               </div>
             </div>
