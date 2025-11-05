@@ -83,9 +83,11 @@ function generateEmailHTML(
 
   const chartHTML = charts && charts.length > 0
     ? charts.map(chart => `
-        <div style="margin: 24px 0;">
-          <h3 style="color: #10b981; margin-bottom: 12px;">${chart.name}</h3>
-          <img src="${chart.image}" alt="${chart.name}" style="max-width: 100%; border: 1px solid #2d3748; border-radius: 8px;" />
+        <div style="margin: 28px 0;">
+          <div class="chart-title">${chart.name}</div>
+          <div class="chart-container">
+            <img src="${chart.image}" alt="${chart.name}" style="max-width: 100%; display: block; background: #000000;" />
+          </div>
         </div>
       `).join('')
     : '';
@@ -101,8 +103,8 @@ function generateEmailHTML(
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background-color: #0f1419;
-      color: #d1d5db;
+      background-color: #0D0D0D;
+      color: #E5E5E7;
     }
     .container {
       max-width: 800px;
@@ -112,76 +114,118 @@ function generateEmailHTML(
     .header {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       border-radius: 12px 12px 0 0;
-      padding: 32px;
+      padding: 40px 32px;
       text-align: center;
+      box-shadow: 0 8px 32px rgba(16, 185, 129, 0.2);
     }
     .header h1 {
       margin: 0;
       color: #ffffff;
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 700;
+      letter-spacing: -0.5px;
     }
     .header p {
-      margin: 8px 0 0 0;
-      color: #d1fae5;
-      font-size: 14px;
+      margin: 12px 0 0 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 15px;
+      font-weight: 500;
     }
     .content {
-      background-color: #1a1f2e;
-      border: 1px solid #2d3748;
+      background: linear-gradient(to bottom, #0D0D0D 0%, #000000 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-top: none;
       border-radius: 0 0 12px 12px;
-      padding: 40px 32px;
+      padding: 48px 32px;
     }
     .section {
-      margin-bottom: 32px;
+      margin-bottom: 40px;
     }
     .section-title {
       color: #10b981;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
-      margin-bottom: 16px;
-      border-bottom: 2px solid #10b981;
-      padding-bottom: 8px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+      letter-spacing: -0.3px;
     }
     .search-info {
-      background-color: #1e3a28;
-      border: 1px solid #10b981;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
       border-radius: 8px;
-      padding: 16px;
+      padding: 20px;
       margin-bottom: 24px;
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.8;
+      color: #E5E5E7;
     }
     .stats {
       display: flex;
-      gap: 16px;
+      gap: 20px;
       margin: 24px 0;
     }
     .stat-card {
       flex: 1;
-      background: linear-gradient(135deg, #1e3a28 0%, #1a2e26 100%);
-      border: 1px solid #10b981;
-      border-radius: 8px;
-      padding: 16px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 12px;
+      padding: 24px;
       text-align: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
     .stat-number {
-      font-size: 32px;
+      font-size: 42px;
       font-weight: 700;
       color: #10b981;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
     }
     .stat-label {
-      font-size: 12px;
-      color: #9ca3af;
+      font-size: 13px;
+      color: #A0A0A3;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+    .chart-container {
+      margin: 28px 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .chart-title {
+      color: #E5E5E7;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding-left: 4px;
+    }
+    .data-export-info {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 20px;
+      color: #A0A0A3;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .data-export-info strong {
+      color: #E5E5E7;
     }
     .footer {
       text-align: center;
-      padding: 24px;
-      color: #6b7280;
+      padding: 32px 24px;
+      color: #6B6B6D;
       font-size: 13px;
+      line-height: 1.8;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 20px;
+    }
+    .footer strong {
+      color: #10b981;
+      font-weight: 600;
     }
   </style>
 </head>
@@ -189,7 +233,7 @@ function generateEmailHTML(
   <div class="container">
     <div class="header">
       <h1>📊 ADO Explorer Report</h1>
-      <p>Work Item Analysis • ${new Date().toLocaleDateString()}</p>
+      <p>Work Item Analysis • ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
     </div>
     <div class="content">
       <div class="section">
@@ -211,16 +255,16 @@ function generateEmailHTML(
 
       ${chartHTML ? `
         <div class="section">
-          <div class="section-title">Charts</div>
+          <div class="section-title">Charts & Analytics</div>
           ${chartHTML}
         </div>
       ` : ''}
 
       <div class="section">
         <div class="section-title">Data Export</div>
-        <p style="color: #9ca3af; font-size: 14px;">
-          A CSV file with all ${workItems.length} work items is attached to this email.
-        </p>
+        <div class="data-export-info">
+          📎 A CSV file containing all <strong>${workItems.length} work items</strong> is attached to this email for further analysis.
+        </div>
       </div>
     </div>
     <div class="footer">

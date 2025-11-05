@@ -5,6 +5,19 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-01-05
+
+### 📝 Updated
+- **Documentation improvements** - Organized changelog with collapsible sections for easier reading
+- **Version tracking** - Incremental version bump for deployment tracking
+
+### 🎯 Status
+- All sprint query fixes from v0.1.1 and v0.1.2 are live and working
+- System now fetches sprints from all teams (16 teams, hundreds of sprints)
+- Sprint queries work reliably for any team (Marketing, CX, Engineering, etc.)
+
+---
+
 ## [0.1.2] - 2025-01-05
 
 ### 🔧 Fixed
@@ -28,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `team` field to sprint objects for traceability
 
 ---
+
+<details>
+<summary><strong>Previous Releases</strong> (click to expand)</summary>
 
 ## [0.1.1] - 2025-01-05
 
@@ -82,3 +98,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Authentication with email OTP
 - Related items discovery
 - AI actions (release notes, test cases, summaries)
+
+</details>
