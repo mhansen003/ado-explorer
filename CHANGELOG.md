@@ -5,6 +5,74 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-01-05
+
+### 🎨 Enhanced - Button Consistency
+- **Normalized all CTA buttons** - CSV, JSON, Email Me, Chart, and View All buttons now have consistent styling
+  - Subtle buttons (CSV, JSON, Email): Same padding (px-3 py-1.5), border style, and font-weight
+  - Bold buttons (Chart, View All): Vibrant colors with consistent sizing
+  - All buttons use text-xs size and font-medium weight
+  - Icon sizing standardized to w-3.5 h-3.5
+  - Spacing between icons and text set to gap-1.5
+  - Border radius upgraded to rounded-lg for modern appearance
+  - Applied across MessageList main results and ResultsModal (View All)
+
+### 📧 Added - Comprehensive Email Features
+- **Email button in ResultsModal** - View All modal now includes email functionality
+  - Sends filtered work items from the modal
+  - Uses same normalized button style as other CTAs
+  - Respects active filters when emailing
+
+- **Email button in WorkItemDetailModal** - New "Email Me This Ticket" button in header
+  - Positioned in top-right corner before close button
+  - Sends comprehensive work item report including:
+    * All work item details (title, state, priority, assigned to, created by, tags, etc.)
+    * Full description and acceptance criteria (HTML stripped for readability)
+    * Complete discussion thread with all comments and timestamps
+    * Related work items with relationship types and visual indicators
+  - Professional HTML email format with Red Hat design theme
+  - Dark mode styling matching the application
+
+### 🔧 Technical Implementation
+- **New API endpoint**: `/api/email-work-item`
+  - Handles comprehensive work item emails
+  - Includes authentication verification
+  - Generates rich HTML emails with sections for details, description, criteria, discussion, and relationships
+  - Color-coded relationship types (Parent=green, Child=orange, Related=blue, etc.)
+  - Responsive email design
+
+- **Updated components**:
+  - `MessageList.tsx` - Normalized all 5 CTA buttons
+  - `ResultsModal.tsx` - Added email functionality and normalized buttons
+  - `WorkItemDetailModal.tsx` - Added email button to header
+  - `EmailButton` component - Used with size overrides for consistency
+
+### 🎯 Impact
+- **Better UX** - Consistent button appearance reduces cognitive load
+- **Professional appearance** - Uniform styling across all action buttons
+- **Enhanced functionality** - Email any work item with full context
+- **Time savings** - Quickly share work items with all details, discussion, and relationships
+
+### 💡 Button Layout
+**Main Results:**
+```
+[CSV] [JSON] [Email Me] [Chart ▼] [View All]
+ └─ Subtle ─┘  └───── Bold ──────┘
+```
+
+**View All Modal:**
+```
+[CSV (n)] [JSON (n)] [Email Me] [Chart (n) ▼]
+ └──── Subtle ────┘  └──── Bold ─────┘
+```
+
+**Work Item Detail:**
+```
+#12345  Type           [Email Me] [×]
+```
+
+---
+
 ## [0.1.6] - 2025-01-05
 
 ### ✨ Added
