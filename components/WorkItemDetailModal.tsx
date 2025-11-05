@@ -8,16 +8,20 @@ import DOMPurify from 'isomorphic-dompurify';
 interface WorkItemDetailModalProps {
   workItem: WorkItem;
   onClose: () => void;
+  breadcrumbTrail?: WorkItem[]; // Trail of work items navigated through
 }
 
 type AIAction = 'releaseNotes' | 'summary' | 'testCases' | 'acceptanceCriteria' | 'complexity' | 'relatedItems';
 
-export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetailModalProps) {
+export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail = [] }: WorkItemDetailModalProps) {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<AIAction | null>(null);
   const [relatedWorkItems, setRelatedWorkItems] = useState<WorkItem[] | null>(null);
   const [selectedRelatedItem, setSelectedRelatedItem] = useState<WorkItem | null>(null);
+
+  // Current trail includes all previous items plus this one
+  const currentTrail = [...breadcrumbTrail, workItem];
 
   // Sanitize the HTML description to prevent XSS attacks
   const sanitizedDescription = useMemo(() => {
@@ -183,6 +187,26 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
             <X className="w-5 h-5 text-rh-text-secondary" />
           </button>
         </div>
+
+        {/* Breadcrumb Navigation */}
+        {breadcrumbTrail.length > 0 && (
+          <div className="px-6 py-3 bg-rh-dark border-b border-rh-border">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
+              {breadcrumbTrail.map((item, index) => (
+                <div key={item.id} className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedRelatedItem(item)}
+                    className="text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"
+                  >
+                    #{item.id}
+                  </button>
+                  <span className="text-rh-text-secondary">/</span>
+                </div>
+              ))}
+              <span className="text-rh-text font-medium">#{workItem.id}</span>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-88px)]">
@@ -465,6 +489,7 @@ export default function WorkItemDetailModal({ workItem, onClose }: WorkItemDetai
         <WorkItemDetailModal
           workItem={selectedRelatedItem}
           onClose={() => setSelectedRelatedItem(null)}
+          breadcrumbTrail={currentTrail}
         />
       )}
     </div>
