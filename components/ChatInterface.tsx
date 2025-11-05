@@ -178,6 +178,43 @@ Type **/help** for more info`,
     setMessages([welcomeMessage, helpMessage]);
   }, []); // Empty dependency array = run once on mount
 
+  // Auto-focus input when user starts typing anywhere on the page
+  useEffect(() => {
+    const handleGlobalKeyPress = (event: KeyboardEvent) => {
+      // Skip if user is already typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Skip if modifier keys are pressed (Ctrl, Alt, Meta)
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        return;
+      }
+
+      // Skip special keys (Escape, Tab, Arrow keys, etc.)
+      const specialKeys = ['Escape', 'Tab', 'Enter', 'Shift', 'Control', 'Alt', 'Meta',
+                          'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                          'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
+      if (specialKeys.includes(event.key)) {
+        return;
+      }
+
+      // Focus the input for printable characters
+      if (event.key.length === 1 && inputRef.current) {
+        inputRef.current.focus();
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleGlobalKeyPress);
+
+    // Cleanup on unmount
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyPress);
+    };
+  }, []); // Empty dependency array = run once on mount
+
   // Pre-load all autocomplete data on mount
   useEffect(() => {
     const preloadData = async () => {
@@ -188,8 +225,17 @@ Type **/help** for more info`,
         const savedFilters = localStorage.getItem('ado-explorer-filters');
         if (savedFilters) {
           const parsedFilters = JSON.parse(savedFilters);
-          setGlobalFilters(parsedFilters);
-          console.log('[ChatInterface] Loaded filters from localStorage:', parsedFilters);
+          // Merge with defaults to ensure new fields exist
+          const mergedFilters: GlobalFilters = {
+            ignoreClosed: parsedFilters.ignoreClosed || false,
+            ignoreStates: parsedFilters.ignoreStates || [],
+            ignoreCreatedBy: parsedFilters.ignoreCreatedBy || [],
+            onlyMyTickets: parsedFilters.onlyMyTickets || false,
+            ignoreOlderThanDays: parsedFilters.ignoreOlderThanDays || null,
+            currentUser: parsedFilters.currentUser,
+          };
+          setGlobalFilters(mergedFilters);
+          console.log('[ChatInterface] Loaded filters from localStorage:', mergedFilters);
         }
       } catch (error) {
         console.error('[ChatInterface] Failed to load filters from localStorage:', error);
