@@ -365,7 +365,24 @@ export default function ChatInterface() {
   };
 
   const handleClearChat = () => {
-    setMessages([]);
+    // Clear and reshow welcome and help messages
+    const welcomeMessage: Message = {
+      id: Date.now().toString(),
+      type: 'system',
+      content: 'Welcome to ADO Explorer! 👋\n\n🤖 Just type naturally to search with AI (e.g., "show me all active bugs")\n💡 Or type / to see slash commands\n🔍 Try /project or /board to see your ADO data with autocomplete!\n⌨️  Press Tab after a command to see all available options',
+      timestamp: new Date(),
+    };
+
+    const helpMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      type: 'system',
+      content: '🤖 AI-Powered Search:\nJust type naturally without any slash! Examples:\n• "show me all active user stories"\n• "find bugs assigned to john"\n• "what tasks were created this week?"\n\nSlash Commands:\n\n' + COMMANDS.map(cmd =>
+        `/${cmd.name}${cmd.hasParam ? ' <param>' : ''} - ${cmd.description}`
+      ).join('\n') + '\n\n💡 Start typing to get started!\n⌨️  Press Tab after any slash command to see all options',
+      timestamp: new Date(),
+    };
+
+    setMessages([welcomeMessage, helpMessage]);
     setInput('');
     setShowAutocomplete(false);
   };
