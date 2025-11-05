@@ -172,14 +172,22 @@ export default function TemplateInputBuilder({
   const renderPlaceholder = (placeholder: Placeholder) => {
     const value = values[placeholder.key];
     const isActive = activePlaceholder === placeholder.key;
-    const dataSource = getFilteredDataSource(placeholder.type);
+    const dataSource = getDataSource(placeholder.type); // Use full data source (not filtered) for display lookup
+    const filteredDataSource = getFilteredDataSource(placeholder.type); // Get filtered data for dropdown options
+
+    // Helper to get display text for a value
+    const getDisplayText = (val: string): string => {
+      const item = dataSource.find(item => item.value === val);
+      return item?.description || val;
+    };
+
     const displayValue = Array.isArray(value)
       ? value.length > 0
         ? value.length === 1
-          ? value[0]
+          ? getDisplayText(value[0])
           : `${value.length} selected`
         : placeholder.label
-      : value || placeholder.label;
+      : value ? getDisplayText(value) : placeholder.label;
 
     return (
       <span key={placeholder.key} className="relative inline-block">
@@ -208,7 +216,7 @@ export default function TemplateInputBuilder({
         {isActive && dropdownOpen && (
           <div
             ref={dropdownRef}
-            className="absolute bottom-full left-0 mb-1 w-64 max-h-64 bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50 flex flex-col"
+            className="absolute bottom-full left-0 mb-1 w-96 max-h-80 bg-rh-card border border-rh-border rounded-lg shadow-2xl z-50 flex flex-col"
           >
             {/* Filter Input */}
             <div className="p-2 border-b border-rh-border">
@@ -227,8 +235,8 @@ export default function TemplateInputBuilder({
             </div>
 
             {/* Options List */}
-            <div className="p-2 space-y-1 overflow-y-auto max-h-48">
-              {dataSource.length > 0 ? dataSource.map((item, itemIndex) => {
+            <div className="p-2 space-y-1 overflow-y-auto max-h-64">
+              {filteredDataSource.length > 0 ? filteredDataSource.map((item, itemIndex) => {
                 const isSelected = Array.isArray(value)
                   ? value.includes(item.value)
                   : value === item.value;
