@@ -272,11 +272,14 @@ export class ADOService {
     }
 
     if (command.startsWith('/created_by') && param) {
-      return applyFilters(`${baseQuery} WHERE [System.CreatedBy] CONTAINS '${param}' ORDER BY [System.CreatedDate] DESC`);
+      // Use = for exact display name match instead of CONTAINS to avoid partial matches
+      return applyFilters(`${baseQuery} WHERE [System.CreatedBy] = '${param}' ORDER BY [System.CreatedDate] DESC`);
     }
 
     if (command.startsWith('/assigned_to') && param) {
-      return applyFilters(`${baseQuery} WHERE [System.AssignedTo] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`);
+      // Use = for exact display name match instead of CONTAINS to avoid partial matches
+      // e.g., "Ericka" won't match "Frederick"
+      return applyFilters(`${baseQuery} WHERE [System.AssignedTo] = '${param}' ORDER BY [System.ChangedDate] DESC`);
     }
 
     if (command.startsWith('/state') && param) {

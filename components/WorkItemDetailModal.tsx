@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { WorkItem, Comment } from '@/types';
-import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown } from 'lucide-react';
+import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import RelationshipDiagram from './RelationshipDiagram';
 
 interface WorkItemDetailModalProps {
   workItem: WorkItem;
@@ -22,19 +23,24 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [activeAction, setActiveAction] = useState<AIAction | null>(null);
   const [relatedWorkItems, setRelatedWorkItems] = useState<WorkItem[] | null>(null);
   const [selectedRelatedItem, setSelectedRelatedItem] = useState<WorkItem | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'discussion'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'discussion' | 'relationships'>('details');
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [hasFetchedComments, setHasFetchedComments] = useState(false);
+  const [loadingRelationships, setLoadingRelationships] = useState(false);
+  const [hasFetchedRelationships, setHasFetchedRelationships] = useState(false);
 
   // Current trail includes all previous items plus this one
   const currentTrail = [...breadcrumbTrail, workItem];
 
-  // Reset comments state when work item changes
+  // Reset comments and relationships state when work item changes
   useEffect(() => {
     setComments([]);
     setHasFetchedComments(false);
     setLoadingComments(false);
+    setRelatedWorkItems(null);
+    setHasFetchedRelationships(false);
+    setLoadingRelationships(false);
   }, [workItem.id]);
 
   // Fetch comments when discussion tab is opened
@@ -83,6 +89,43 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
     fetchComments();
   }, [activeTab, workItem.id, hasFetchedComments, loadingComments]);
+
+  // Fetch relationships when relationships tab is opened
+  useEffect(() => {
+    const fetchRelationships = async () => {
+      if (activeTab === 'relationships' && !hasFetchedRelationships && !loadingRelationships) {
+        setLoadingRelationships(true);
+        setHasFetchedRelationships(true);
+
+        try {
+          const response = await fetch('/api/ai-actions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'relatedItems',
+              workItem,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.relatedWorkItems) {
+            setRelatedWorkItems(data.relatedWorkItems);
+          } else {
+            console.error('Failed to fetch relationships:', data.error);
+            setRelatedWorkItems([]);
+          }
+        } catch (error: any) {
+          console.error('Error fetching relationships:', error);
+          setRelatedWorkItems([]);
+        } finally {
+          setLoadingRelationships(false);
+        }
+      }
+    };
+
+    fetchRelationships();
+  }, [activeTab, workItem.id, hasFetchedRelationships, loadingRelationships]);
 
   // Sanitize the HTML description to prevent XSS attacks
   const sanitizedDescription = useMemo(() => {
@@ -307,10 +350,26 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('relationships')}
+            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'relationships'
+                ? 'text-rh-green border-b-2 border-rh-green'
+                : 'text-blue-400 hover:text-blue-300'
+            }`}
+          >
+            <Network className="w-4 h-4" />
+            Relationships
+            {relatedWorkItems && relatedWorkItems.length > 0 && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-rh-green/20 text-rh-green">
+                {relatedWorkItems.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-176px)]">
+        <div className={`${activeTab === 'relationships' ? 'p-0' : 'p-6'} overflow-y-auto max-h-[calc(90vh-176px)]`}>
           {activeTab === 'details' ? (
             <>
               <h2 className="text-2xl font-semibold text-rh-text mb-6">
@@ -579,7 +638,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           )}
 
             </>
-          ) : (
+          ) : activeTab === 'discussion' ? (
             /* Discussion Tab */
             <div>
               <h2 className="text-2xl font-semibold text-rh-text mb-6">Discussion</h2>
@@ -656,6 +715,24 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          ) : (
+            /* Relationships Tab */
+            <div className="h-full">
+              {loadingRelationships ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center gap-3 text-rh-text-secondary">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-rh-green border-t-transparent"></div>
+                    <span>Loading relationships...</span>
+                  </div>
+                </div>
+              ) : (
+                <RelationshipDiagram
+                  currentWorkItem={workItem}
+                  relatedWorkItems={relatedWorkItems || []}
+                  onNavigate={setSelectedRelatedItem}
+                />
               )}
             </div>
           )}
