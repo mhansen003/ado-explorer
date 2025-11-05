@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import MessageList from './MessageList';
 import CommandAutocomplete from './CommandAutocomplete';
-import { Message, Command, DynamicSuggestion } from '@/types';
+import FilterBar from './FilterBar';
+import { Message, Command, DynamicSuggestion, GlobalFilters } from '@/types';
 
 const COMMANDS: Command[] = [
   { name: 'project', description: 'Filter by project (auto-completes from your ADO)', icon: '📁', hasParam: true, isDynamic: true },
@@ -42,6 +43,13 @@ export default function ChatInterface() {
   // Multi-select state for tags
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+
+  // Global filters
+  const [globalFilters, setGlobalFilters] = useState<GlobalFilters>({
+    ignoreClosed: false,
+    onlyMyTickets: false,
+    ignoreOlderThanDays: null,
+  });
 
   useEffect(() => {
     // Don't override if Tab autocomplete is showing
@@ -528,13 +536,13 @@ export default function ChatInterface() {
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
-      // Call the API
+      // Call the API with global filters
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ command }),
+        body: JSON.stringify({ command, filters: globalFilters }),
       });
 
       const data = await response.json();
@@ -853,6 +861,8 @@ export default function ChatInterface() {
         onListItemClick={handleListItemClick}
         onSuggestionClick={handleSuggestionClick}
       />
+
+      <FilterBar filters={globalFilters} onFiltersChange={setGlobalFilters} />
 
       <div className="relative p-4 border-t border-rh-border bg-rh-dark">
         {showAutocomplete && (

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { WorkItem } from '@/types';
+import { WorkItem, GlobalFilters } from '@/types';
 
 export class ADOService {
   private client: AxiosInstance;
@@ -81,13 +81,48 @@ export class ADOService {
   }
 
   /**
+   * Build global filter conditions to be added to WHERE clause
+   */
+  private buildGlobalFilterConditions(filters?: GlobalFilters): string {
+    if (!filters) return '';
+
+    const conditions: string[] = [];
+
+    if (filters.ignoreClosed) {
+      conditions.push(`[System.State] <> 'Closed'`);
+    }
+
+    if (filters.onlyMyTickets && filters.currentUser) {
+      conditions.push(`[System.AssignedTo] CONTAINS '${filters.currentUser}'`);
+    }
+
+    if (filters.ignoreOlderThanDays) {
+      conditions.push(`[System.ChangedDate] >= @Today - ${filters.ignoreOlderThanDays}`);
+    }
+
+    return conditions.length > 0 ? conditions.join(' AND ') : '';
+  }
+
+  /**
    * Build WIQL query based on command and parameters
    */
-  buildQuery(command: string, param?: string): string {
+  buildQuery(command: string, param?: string, filters?: GlobalFilters): string {
     const baseQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems`;
+    const globalFilterConditions = this.buildGlobalFilterConditions(filters);
+
+    // Helper function to add filters to existing WHERE clause
+    const applyFilters = (query: string): string => {
+      if (!globalFilterConditions) return query;
+      // If query has WHERE, append with AND, otherwise add WHERE
+      if (query.includes(' WHERE ')) {
+        return query.replace(' ORDER BY ', ` AND ${globalFilterConditions} ORDER BY `);
+      } else {
+        return query.replace(' ORDER BY ', ` WHERE ${globalFilterConditions} ORDER BY `);
+      }
+    };
 
     if (command.startsWith('/project') && param) {
-      return `${baseQuery} WHERE [System.TeamProject] = '${param}' ORDER BY [System.ChangedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.TeamProject] = '${param}' ORDER BY [System.ChangedDate] DESC`);
     }
 
     if (command.startsWith('/board') && param) {
@@ -95,23 +130,23 @@ export class ADOService {
       // UNDER matches the area and all child areas hierarchically
       // AreaPath must be fully qualified with project name: ProjectName\AreaPath
       const fullAreaPath = this.project ? `${this.project}\\${param}` : param;
-      return `${baseQuery} WHERE [System.AreaPath] UNDER '${fullAreaPath}' ORDER BY [System.ChangedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.AreaPath] UNDER '${fullAreaPath}' ORDER BY [System.ChangedDate] DESC`);
     }
 
     if (command.startsWith('/created_by') && param) {
-      return `${baseQuery} WHERE [System.CreatedBy] CONTAINS '${param}' ORDER BY [System.CreatedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.CreatedBy] CONTAINS '${param}' ORDER BY [System.CreatedDate] DESC`);
     }
 
     if (command.startsWith('/assigned_to') && param) {
-      return `${baseQuery} WHERE [System.AssignedTo] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.AssignedTo] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`);
     }
 
     if (command.startsWith('/state') && param) {
-      return `${baseQuery} WHERE [System.State] = '${param}' ORDER BY [System.ChangedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.State] = '${param}' ORDER BY [System.ChangedDate] DESC`);
     }
 
     if (command.startsWith('/type') && param) {
-      return `${baseQuery} WHERE [System.WorkItemType] = '${param}' ORDER BY [System.CreatedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.WorkItemType] = '${param}' ORDER BY [System.CreatedDate] DESC`);
     }
 
     if (command.startsWith('/tag') && param) {
@@ -119,18 +154,18 @@ export class ADOService {
       const tags = param.split(',').map(t => t.trim()).filter(t => t);
       if (tags.length > 1) {
         const tagConditions = tags.map(tag => `[System.Tags] CONTAINS '${tag}'`).join(' AND ');
-        return `${baseQuery} WHERE ${tagConditions} ORDER BY [System.ChangedDate] DESC`;
+        return applyFilters(`${baseQuery} WHERE ${tagConditions} ORDER BY [System.ChangedDate] DESC`);
       }
-      return `${baseQuery} WHERE [System.Tags] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.Tags] CONTAINS '${param}' ORDER BY [System.ChangedDate] DESC`);
     }
 
     if (command.startsWith('/recent')) {
-      return `${baseQuery} WHERE [System.ChangedDate] >= @Today - 7 ORDER BY [System.ChangedDate] DESC`;
+      return applyFilters(`${baseQuery} WHERE [System.ChangedDate] >= @Today - 7 ORDER BY [System.ChangedDate] DESC`);
     }
 
     // Default: search in title and description
     const searchTerm = command.startsWith('/') ? command.slice(1).split(' ')[0] : command;
-    return `${baseQuery} WHERE [System.Title] CONTAINS '${searchTerm}' OR [System.Description] CONTAINS '${searchTerm}' ORDER BY [System.ChangedDate] DESC`;
+    return applyFilters(`${baseQuery} WHERE [System.Title] CONTAINS '${searchTerm}' OR [System.Description] CONTAINS '${searchTerm}' ORDER BY [System.ChangedDate] DESC`);
   }
 
   /**

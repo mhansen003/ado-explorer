@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ADOService } from '@/lib/ado-api';
+import { GlobalFilters } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const { command } = await request.json();
+    const { command, filters } = await request.json() as { command: string; filters?: GlobalFilters };
 
     // Get configuration from environment variables
     const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
@@ -49,10 +50,10 @@ export async function POST(request: NextRequest) {
     const mainCommand = parts[0];
     const param = parts.slice(1).join(' ');
 
-    console.log('[ADO API] Parsed command:', { mainCommand, param });
+    console.log('[ADO API] Parsed command:', { mainCommand, param, filters });
 
-    // Build and execute query
-    const query = adoService.buildQuery(mainCommand, param);
+    // Build and execute query with global filters
+    const query = adoService.buildQuery(mainCommand, param, filters);
     console.log('[ADO API] WIQL Query:', query);
 
     const workItems = await adoService.searchWorkItems(query);

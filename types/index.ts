@@ -51,3 +51,10 @@ export interface ADOConfig {
   project: string;
   personalAccessToken: string;
 }
+
+export interface GlobalFilters {
+  ignoreClosed: boolean;
+  onlyMyTickets: boolean;
+  ignoreOlderThanDays: number | null;
+  currentUser?: string;
+}
