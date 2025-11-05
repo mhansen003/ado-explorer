@@ -49,6 +49,11 @@ export default function ChatInterface() {
   // Template state
   const [activeTemplate, setActiveTemplate] = useState<CommandTemplate | null>(null);
 
+  // Command history
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [temporaryInput, setTemporaryInput] = useState('');
+
   // Global filters
   const [globalFilters, setGlobalFilters] = useState<GlobalFilters>({
     ignoreClosed: false,
@@ -129,6 +134,16 @@ export default function ChatInterface() {
   // Initialize messages only on client side to avoid hydration errors
   useEffect(() => {
     setIsClient(true);
+
+    // Load command history from localStorage
+    try {
+      const savedHistory = localStorage.getItem('ado-command-history');
+      if (savedHistory) {
+        setCommandHistory(JSON.parse(savedHistory));
+      }
+    } catch (error) {
+      console.error('Failed to load command history:', error);
+    }
 
     const welcomeMessage: Message = {
       id: '1',
@@ -419,11 +434,30 @@ export default function ChatInterface() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+
+    // Add to command history (avoid duplicates at the end)
+    const trimmedInput = input.trim();
+    setCommandHistory(prev => {
+      const filtered = prev.filter(cmd => cmd !== trimmedInput);
+      const newHistory = [...filtered, trimmedInput];
+      // Keep only last 50 commands
+      const limited = newHistory.slice(-50);
+      // Save to localStorage
+      try {
+        localStorage.setItem('ado-command-history', JSON.stringify(limited));
+      } catch (error) {
+        console.error('Failed to save command history:', error);
+      }
+      return limited;
+    });
+
     setInput('');
+    setHistoryIndex(-1);
+    setTemporaryInput('');
     setShowAutocomplete(false);
 
     // Process command
-    await processCommand(input);
+    await processCommand(trimmedInput);
   };
 
   const handleClearChat = () => {
@@ -793,6 +827,8 @@ Type / to see interactive search options with fill-in-the-blank style:
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
+    // Reset history navigation when user types
+    setHistoryIndex(-1);
     // Reset Tab autocomplete flag when user types
     if (isShowingTabAutocomplete) {
       setIsShowingTabAutocomplete(false);
@@ -831,6 +867,41 @@ Type / to see interactive search options with fill-in-the-blank style:
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle command history navigation (when no autocomplete showing)
+    if (!showAutocomplete && commandHistory.length > 0) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (historyIndex === -1) {
+          // First time pressing up - save current input and go to most recent
+          setTemporaryInput(input);
+          setHistoryIndex(commandHistory.length - 1);
+          setInput(commandHistory[commandHistory.length - 1]);
+        } else if (historyIndex > 0) {
+          // Go further back in history
+          setHistoryIndex(historyIndex - 1);
+          setInput(commandHistory[historyIndex - 1]);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (historyIndex === -1) {
+          // Already at the bottom, do nothing
+          return;
+        } else if (historyIndex < commandHistory.length - 1) {
+          // Go forward in history
+          setHistoryIndex(historyIndex + 1);
+          setInput(commandHistory[historyIndex + 1]);
+        } else {
+          // Reached the end - restore temporary input
+          setHistoryIndex(-1);
+          setInput(temporaryInput);
+        }
+        return;
+      }
+    }
+
     // Calculate total items in autocomplete
     const totalItems = filteredCommands.length + dynamicSuggestions.length;
 
