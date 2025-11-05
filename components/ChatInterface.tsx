@@ -326,6 +326,13 @@ Type **/help** for more info`,
             description: u.uniqueName || undefined,
           })));
           console.log('[ChatInterface] Pre-loaded users:', data.users.length);
+        } else if (response.ok && Array.isArray(data)) {
+          // API returns array directly
+          setCachedUsers(data.map((u: any) => ({
+            value: u.displayName,
+            description: u.uniqueName || undefined,
+          })));
+          console.log('[ChatInterface] Pre-loaded users (array format):', data.length);
         } else {
           console.warn('[ChatInterface] Users API returned error:', data);
         }
