@@ -40,46 +40,52 @@ export async function POST(request: NextRequest) {
 
       const adoService = new ADOService(organization, pat, targetProject);
 
-      // Search for related items using tags and title keywords
-      const searchTerms: string[] = [];
-
-      // Add tags as search terms
-      if (workItem.tags && workItem.tags.length > 0) {
-        searchTerms.push(...workItem.tags.slice(0, 3)); // Use up to 3 tags
-      }
-
-      // Extract key words from title (3-4 letter words and longer)
-      const titleWords = workItem.title
-        .split(/\s+/)
-        .filter(word => word.length >= 4)
-        .slice(0, 3); // Use up to 3 words
-      searchTerms.push(...titleWords);
-
       const relatedItems: WorkItem[] = [];
       const maxResults = 10;
 
-      // Search by tags first if available
-      if (workItem.tags && workItem.tags.length > 0) {
+      // FIRST: Get actual linked work items from Azure DevOps relations
+      try {
+        const linkedItems = await adoService.getRelatedWorkItems(parseInt(workItem.id));
+        relatedItems.push(...linkedItems);
+        console.log('[AI Actions] Found', linkedItems.length, 'linked work items');
+      } catch (error) {
+        console.error('[AI Actions] Error fetching linked items:', error);
+      }
+
+      // SECOND: If we need more results, search by tags
+      if (relatedItems.length < maxResults && workItem.tags && workItem.tags.length > 0) {
         const tagQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Tags] CONTAINS '${workItem.tags[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
         try {
           const tagResults = await adoService.searchWorkItems(tagQuery);
-          relatedItems.push(...tagResults.slice(0, maxResults));
+          // Add items that aren't already in the list
+          const existingIds = new Set(relatedItems.map(item => item.id));
+          const newResults = tagResults.filter(item => !existingIds.has(item.id));
+          relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
+          console.log('[AI Actions] Added', newResults.length, 'tag-based results');
         } catch (error) {
           console.error('[AI Actions] Tag search error:', error);
         }
       }
 
-      // If we don't have enough results, search by title keywords
-      if (relatedItems.length < maxResults && titleWords.length > 0) {
-        const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
-        try {
-          const titleResults = await adoService.searchWorkItems(titleQuery);
-          // Add items that aren't already in the list
-          const existingIds = new Set(relatedItems.map(item => item.id));
-          const newResults = titleResults.filter(item => !existingIds.has(item.id));
-          relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
-        } catch (error) {
-          console.error('[AI Actions] Title search error:', error);
+      // THIRD: If we still need more, search by title keywords
+      if (relatedItems.length < maxResults) {
+        const titleWords = workItem.title
+          .split(/\s+/)
+          .filter(word => word.length >= 4)
+          .slice(0, 3);
+
+        if (titleWords.length > 0) {
+          const titleQuery = `SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.Title] CONTAINS '${titleWords[0]}' AND [System.Id] <> ${workItem.id} ORDER BY [System.ChangedDate] DESC`;
+          try {
+            const titleResults = await adoService.searchWorkItems(titleQuery);
+            // Add items that aren't already in the list
+            const existingIds = new Set(relatedItems.map(item => item.id));
+            const newResults = titleResults.filter(item => !existingIds.has(item.id));
+            relatedItems.push(...newResults.slice(0, maxResults - relatedItems.length));
+            console.log('[AI Actions] Added', newResults.length, 'title-based results');
+          } catch (error) {
+            console.error('[AI Actions] Title search error:', error);
+          }
         }
       }
 

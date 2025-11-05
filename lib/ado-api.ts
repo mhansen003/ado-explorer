@@ -479,6 +479,66 @@ export class ADOService {
   }
 
   /**
+   * Get related work items for a specific work item by fetching its relations
+   */
+  async getRelatedWorkItems(workItemId: number): Promise<WorkItem[]> {
+    try {
+      console.log('[ADO API] Fetching related items for work item:', workItemId);
+
+      // Fetch the work item with relations expanded
+      const response = await this.orgClient.get(`/wit/workitems/${workItemId}`, {
+        params: {
+          '$expand': 'relations',
+        },
+      });
+
+      const workItem = response.data;
+      if (!workItem.relations || workItem.relations.length === 0) {
+        console.log('[ADO API] No relations found for work item:', workItemId);
+        return [];
+      }
+
+      // Extract work item IDs from relations
+      // Relations have a 'url' property like: https://dev.azure.com/.../workitems/12345
+      const relatedIds: number[] = [];
+      workItem.relations.forEach((relation: any) => {
+        if (relation.url && relation.url.includes('/workitems/')) {
+          const match = relation.url.match(/\/workitems\/(\d+)$/);
+          if (match) {
+            relatedIds.push(parseInt(match[1]));
+          }
+        }
+      });
+
+      if (relatedIds.length === 0) {
+        console.log('[ADO API] No work item relations found');
+        return [];
+      }
+
+      console.log('[ADO API] Found', relatedIds.length, 'related work item IDs:', relatedIds);
+
+      // Fetch details for all related work items
+      const detailsResponse = await this.orgClient.get('/wit/workitems', {
+        params: {
+          ids: relatedIds.join(','),
+          fields: 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.CreatedBy,System.CreatedDate,System.ChangedDate,System.ChangedBy,Microsoft.VSTS.Common.Priority,System.Description,System.Tags,System.TeamProject,System.IterationPath,System.AreaPath,Microsoft.VSTS.Scheduling.StoryPoints,Microsoft.VSTS.Common.AcceptanceCriteria',
+        },
+      });
+
+      const relatedWorkItems = detailsResponse.data.value.map((item: any) => this.mapToWorkItem(item));
+      console.log('[ADO API] Fetched', relatedWorkItems.length, 'related work items');
+
+      return relatedWorkItems;
+    } catch (error: any) {
+      console.error('[ADO API] Error fetching related work items:', {
+        workItemId,
+        message: error.message,
+      });
+      return [];
+    }
+  }
+
+  /**
    * Get all unique tags
    */
   async getTags(): Promise<string[]> {
