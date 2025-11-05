@@ -93,7 +93,9 @@ export class ADOService {
     if (command.startsWith('/board') && param) {
       // Use UNDER operator for AreaPath - Azure DevOps doesn't support CONTAINS with area path fields
       // UNDER matches the area and all child areas hierarchically
-      return `${baseQuery} WHERE [System.AreaPath] UNDER '${param}' ORDER BY [System.ChangedDate] DESC`;
+      // AreaPath must be fully qualified with project name: ProjectName\AreaPath
+      const fullAreaPath = this.project ? `${this.project}\\${param}` : param;
+      return `${baseQuery} WHERE [System.AreaPath] UNDER '${fullAreaPath}' ORDER BY [System.ChangedDate] DESC`;
     }
 
     if (command.startsWith('/created_by') && param) {
