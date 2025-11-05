@@ -748,10 +748,12 @@ export class ADOService {
 
       // Use the project-level client (includes project in URL path)
       // Azure DevOps comments API requires: /{project}/_apis/wit/workitems/{id}/comments
+      // Comments API is in preview and requires the -preview flag
       const response = await this.client.get(`/wit/workitems/${workItemId}/comments`, {
         params: {
           '$top': 200, // Get up to 200 comments
           '$expand': 'all',
+          'api-version': '7.1-preview.3', // Override default version with preview flag
         },
       });
 

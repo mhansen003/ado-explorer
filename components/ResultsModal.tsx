@@ -15,6 +15,8 @@ interface ResultsModalProps {
 
 export default function ResultsModal({ message, onClose, onExportCSV, onExportJSON }: ResultsModalProps) {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
 
   if (!message.workItems) return null;
 
@@ -29,6 +31,45 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
     return acc;
   }, {} as Record<string, number>);
 
+  // Filter work items based on selected types and states
+  const filteredWorkItems = workItems.filter(item => {
+    const typeMatch = selectedTypes.size === 0 || selectedTypes.has(item.type);
+    const stateMatch = selectedStates.size === 0 || selectedStates.has(item.state);
+    return typeMatch && stateMatch;
+  });
+
+  // Toggle functions for filters
+  const toggleType = (type: string) => {
+    setSelectedTypes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) {
+        newSet.delete(type);
+      } else {
+        newSet.add(type);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleState = (state: string) => {
+    setSelectedStates(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(state)) {
+        newSet.delete(state);
+      } else {
+        newSet.add(state);
+      }
+      return newSet;
+    });
+  };
+
+  const clearAllFilters = () => {
+    setSelectedTypes(new Set());
+    setSelectedStates(new Set());
+  };
+
+  const hasActiveFilters = selectedTypes.size > 0 || selectedStates.size > 0;
+
   return (
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -37,7 +78,23 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
           <div className="flex items-center justify-between p-6 border-b border-rh-border">
             <div>
               <h2 className="text-xl font-semibold text-rh-text">All Results</h2>
-              <p className="text-sm text-rh-text-secondary mt-1">{workItems.length} work items</p>
+              <p className="text-sm text-rh-text-secondary mt-1">
+                {hasActiveFilters ? (
+                  <>
+                    Showing {filteredWorkItems.length} of {workItems.length} work items
+                    {hasActiveFilters && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="ml-2 text-rh-green hover:text-rh-green/80 underline"
+                      >
+                        (clear filters)
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  `${workItems.length} work items`
+                )}
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -63,27 +120,59 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
             </div>
           </div>
 
-          {/* Summary Stats */}
+          {/* Summary Stats - Interactive Filters */}
           <div className="px-6 py-4 bg-rh-dark border-b border-rh-border">
             <div className="flex gap-6">
               <div>
-                <p className="text-xs text-rh-text-secondary mb-1">By Type:</p>
+                <p className="text-xs text-rh-text-secondary mb-2">
+                  Filter by Type:
+                  <span className="ml-2 text-rh-text font-medium">
+                    {selectedTypes.size > 0 ? `${selectedTypes.size} selected` : 'Click to filter'}
+                  </span>
+                </p>
                 <div className="flex gap-2 flex-wrap">
-                  {Object.entries(typeCounts).map(([type, count]) => (
-                    <span key={type} className={`text-xs px-2 py-1 rounded-full ${getTypeColor(type)}`}>
-                      {type}: {count}
-                    </span>
-                  ))}
+                  {Object.entries(typeCounts).map(([type, count]) => {
+                    const isActive = selectedTypes.has(type);
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => toggleType(type)}
+                        className={`text-xs px-3 py-1.5 rounded-full transition-all ${
+                          isActive
+                            ? `${getTypeColor(type)} ring-2 ring-rh-green ring-offset-2 ring-offset-rh-dark shadow-lg`
+                            : `${getTypeColor(type)} opacity-50 hover:opacity-100`
+                        }`}
+                      >
+                        {type}: {count}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <div>
-                <p className="text-xs text-rh-text-secondary mb-1">By State:</p>
+                <p className="text-xs text-rh-text-secondary mb-2">
+                  Filter by State:
+                  <span className="ml-2 text-rh-text font-medium">
+                    {selectedStates.size > 0 ? `${selectedStates.size} selected` : 'Click to filter'}
+                  </span>
+                </p>
                 <div className="flex gap-2 flex-wrap">
-                  {Object.entries(stateCounts).map(([state, count]) => (
-                    <span key={state} className={`text-xs px-2 py-1 rounded-full bg-rh-card border border-rh-border ${getStateColor(state)}`}>
-                      {state}: {count}
-                    </span>
-                  ))}
+                  {Object.entries(stateCounts).map(([state, count]) => {
+                    const isActive = selectedStates.has(state);
+                    return (
+                      <button
+                        key={state}
+                        onClick={() => toggleState(state)}
+                        className={`text-xs px-3 py-1.5 rounded-full bg-rh-card border transition-all ${
+                          isActive
+                            ? `border-rh-green ${getStateColor(state)} ring-2 ring-rh-green ring-offset-2 ring-offset-rh-dark shadow-lg`
+                            : `border-rh-border ${getStateColor(state)} opacity-50 hover:opacity-100`
+                        }`}
+                      >
+                        {state}: {count}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -104,7 +193,7 @@ export default function ResultsModal({ message, onClose, onExportCSV, onExportJS
                 </tr>
               </thead>
               <tbody>
-                {workItems.map((item, index) => (
+                {filteredWorkItems.map((item, index) => (
                   <tr
                     key={item.id}
                     onClick={() => setSelectedItem(item)}
