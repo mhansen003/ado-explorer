@@ -5,6 +5,30 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-01-05
+
+### 🔧 Fixed
+- **CRITICAL: Multi-team sprint fetching** - Now fetches sprints from ALL teams, not just first team
+  - Previous behavior: Only fetched sprints from first team ("Parks and Recreation")
+  - New behavior: Fetches sprints from all 16 teams in parallel
+  - Fixes "marketing sprint" queries that failed because Marketing Experience sprints weren't loaded
+  - Deduplicates sprints by path (some teams share sprints)
+  - Sorts by most recent first
+
+### 🚀 Enhanced
+- **Sprint context completeness** - AI now has access to sprints from all teams
+  - Can correctly answer queries like "show me marketing sprint items"
+  - Can find sprints for any team/area (CX, Marketing, Engineering, etc.)
+  - Better sprint name matching across all teams
+
+### 🛠️ Technical Details
+- Modified `getSprints()` to fetch from all teams when no specific team requested
+- Added `getSprintsForTeam()` helper method for per-team fetching
+- Uses `Promise.allSettled()` for parallel fetching with error resilience
+- Added `team` field to sprint objects for traceability
+
+---
+
 ## [0.1.1] - 2025-01-05
 
 ### 🔧 Fixed

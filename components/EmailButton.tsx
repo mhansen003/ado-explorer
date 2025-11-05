@@ -1,11 +1,12 @@
 /**
  * EmailButton Component
- * Button to send email reports with loading and success states
+ * Button to send email reports with toast notifications
  */
 
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/components/ui/ToastContainer';
 
 interface EmailButtonProps {
   onClick: () => Promise<void>;
@@ -21,33 +22,24 @@ export default function EmailButton({
   className = '',
 }: EmailButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState(false);
+  const { showToast } = useToast();
 
   const handleClick = async () => {
     if (loading) return;
 
     try {
       setLoading(true);
-      setError(false);
-      setSuccess(false);
 
       await onClick();
 
-      setSuccess(true);
-
-      // Reset success state after 3 seconds
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
-    } catch (err) {
+      // Show success toast
+      showToast('success', '📧 Report sent to your email successfully!');
+    } catch (err: any) {
       console.error('Email button error:', err);
-      setError(true);
 
-      // Reset error state after 3 seconds
-      setTimeout(() => {
-        setError(false);
-      }, 3000);
+      // Show error toast with specific message
+      const errorMessage = err?.message || 'Failed to send email. Please try again.';
+      showToast('error', `❌ ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -67,20 +59,13 @@ export default function EmailButton({
     icon: 'bg-transparent hover:bg-rh-card/50 text-rh-green p-2',
   };
 
-  // State-specific classes
-  const stateClass = success
-    ? 'bg-green-600 hover:bg-green-600'
-    : error
-    ? 'bg-red-600 hover:bg-red-600'
-    : '';
-
   return (
     <button
       onClick={handleClick}
       disabled={loading}
       className={`
         ${variant === 'icon' ? '' : sizeClasses[size]}
-        ${stateClass || variantClasses[variant]}
+        ${variantClasses[variant]}
         rounded-lg font-medium
         transition-all duration-200
         flex items-center gap-2
@@ -112,40 +97,6 @@ export default function EmailButton({
             />
           </svg>
           {variant !== 'icon' && <span>Sending...</span>}
-        </>
-      ) : success ? (
-        <>
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-          {variant !== 'icon' && <span>Sent!</span>}
-        </>
-      ) : error ? (
-        <>
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-          {variant !== 'icon' && <span>Failed</span>}
         </>
       ) : (
         <>

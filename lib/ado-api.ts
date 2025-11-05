@@ -977,24 +977,72 @@ export class ADOService {
 
       console.log('[ADO getSprints] Fetching sprints for project:', targetProject);
 
-      // If no team specified, get sprints from the default team
-      let targetTeam = teamName;
-      if (!targetTeam) {
-        // Get the first team for the project
-        const teams = await this.getTeams(targetProject);
-        if (teams.length === 0) {
-          console.warn('[ADO getSprints] No teams found for project:', targetProject);
-          return [];
-        }
-        targetTeam = teams[0].name;
-        console.log('[ADO getSprints] Using default team:', targetTeam);
+      // If team specified, only get sprints from that team
+      if (teamName) {
+        return await this.getSprintsForTeam(targetProject, teamName);
       }
 
+      // If no team specified, get sprints from ALL teams
+      const teams = await this.getTeams(targetProject);
+      if (teams.length === 0) {
+        console.warn('[ADO getSprints] No teams found for project:', targetProject);
+        return [];
+      }
+
+      console.log(`[ADO getSprints] Fetching sprints from ALL ${teams.length} teams`);
+
+      // Fetch sprints from all teams in parallel
+      const sprintPromises = teams.map(team => this.getSprintsForTeam(targetProject, team.name));
+      const sprintArrays = await Promise.allSettled(sprintPromises);
+
+      // Flatten and deduplicate by path (some teams may share sprints)
+      const allSprints: any[] = [];
+      const seenPaths = new Set<string>();
+
+      for (const result of sprintArrays) {
+        if (result.status === 'fulfilled') {
+          for (const sprint of result.value) {
+            if (!seenPaths.has(sprint.path)) {
+              seenPaths.add(sprint.path);
+              allSprints.push(sprint);
+            }
+          }
+        } else {
+          console.warn('[ADO getSprints] Failed to fetch sprints from a team:', result.reason?.message);
+        }
+      }
+
+      // Sort by start date (most recent first)
+      allSprints.sort((a, b) => {
+        if (!a.startDate) return 1;
+        if (!b.startDate) return -1;
+        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+      });
+
+      console.log('[ADO getSprints] Found', allSprints.length, 'unique sprints across all teams');
+      return allSprints;
+    } catch (error: any) {
+      console.error('[ADO getSprints] Error fetching sprints:', {
+        project: projectName || this.project,
+        team: teamName,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.message,
+        url: error.config?.url,
+        responseData: error.response?.data,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Get sprints for a specific team (helper method)
+   */
+  private async getSprintsForTeam(projectName: string, teamName: string): Promise<any[]> {
+    try {
       // Use the Work API to get team iterations
       // https://dev.azure.com/{organization}/{project}/{team}/_apis/work/teamsettings/iterations
-      const url = `https://dev.azure.com/${this.organization}/${encodeURIComponent(targetProject)}/${encodeURIComponent(targetTeam)}/_apis/work/teamsettings/iterations`;
-
-      console.log('[ADO getSprints] Fetching from URL:', url);
+      const url = `https://dev.azure.com/${this.organization}/${encodeURIComponent(projectName)}/${encodeURIComponent(teamName)}/_apis/work/teamsettings/iterations`;
 
       const response = await axios.get(url, {
         headers: {
@@ -1013,19 +1061,16 @@ export class ADOService {
         startDate: sprint.attributes?.startDate,
         finishDate: sprint.attributes?.finishDate,
         timeFrame: sprint.attributes?.timeFrame, // 'past', 'current', or 'future'
+        team: teamName, // Add team name for reference
       }));
 
-      console.log('[ADO getSprints] Found', sprints.length, 'sprints');
       return sprints;
     } catch (error: any) {
-      console.error('[ADO getSprints] Error fetching sprints:', {
-        project: projectName || this.project,
+      console.error('[ADO getSprintsForTeam] Error fetching sprints for team:', {
+        project: projectName,
         team: teamName,
         status: error.response?.status,
-        statusText: error.response?.statusText,
         message: error.message,
-        url: error.config?.url,
-        responseData: error.response?.data,
       });
       return [];
     }
