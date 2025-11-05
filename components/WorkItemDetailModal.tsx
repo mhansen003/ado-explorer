@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { WorkItem, Comment } from '@/types';
 import { X, User, Calendar, AlertCircle, Tag, ExternalLink, Sparkles, FileText, Share2, CheckSquare, Target, TrendingUp, Link2, MessageSquare, ArrowUp, ArrowDown, Network, Maximize2, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import html2canvas from 'html2canvas';
 import RelationshipDiagram from './RelationshipDiagram';
 import RelationshipModal from './RelationshipModal';
 import EmailButton from './EmailButton';
@@ -37,6 +38,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
   const [copiedCriteria, setCopiedCriteria] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [criteriaExpanded, setCriteriaExpanded] = useState(false);
+  const relationshipDiagramRef = useRef<HTMLDivElement>(null);
 
   // Relationship type filters
   const [relationshipFilters, setRelationshipFilters] = useState({
@@ -61,10 +63,10 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     setLoadingRelationships(false);
   }, [workItem.id]);
 
-  // Fetch comments when discussion tab is opened
+  // Preload comments immediately on mount (not waiting for tab click)
   useEffect(() => {
     const fetchComments = async () => {
-      if (activeTab === 'discussion' && !hasFetchedComments && !loadingComments) {
+      if (!hasFetchedComments && !loadingComments) {
         setLoadingComments(true);
         setHasFetchedComments(true);
 
@@ -106,12 +108,12 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     };
 
     fetchComments();
-  }, [activeTab, workItem.id, hasFetchedComments, loadingComments]);
+  }, [workItem.id, hasFetchedComments, loadingComments]);
 
-  // Fetch relationships when relationships tab is opened
+  // Preload relationships immediately on mount (not waiting for tab click)
   useEffect(() => {
     const fetchRelationships = async () => {
-      if (activeTab === 'relationships' && !hasFetchedRelationships && !loadingRelationships) {
+      if (!hasFetchedRelationships && !loadingRelationships) {
         setLoadingRelationships(true);
         setHasFetchedRelationships(true);
 
@@ -147,7 +149,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     };
 
     fetchRelationships();
-  }, [activeTab, workItem.id, hasFetchedRelationships, loadingRelationships]);
+  }, [workItem.id, hasFetchedRelationships, loadingRelationships]);
 
   // Sanitize the HTML description to prevent XSS attacks
   const sanitizedDescription = useMemo(() => {
@@ -249,9 +251,26 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
     }
   };
 
-  // Email handler for comprehensive work item report
+  // Email handler for comprehensive work item report with relationship map
   const handleEmailWorkItem = async () => {
     try {
+      let relationshipMapImage = null;
+
+      // Capture relationship diagram if it exists and has related items
+      if (relationshipDiagramRef.current && relatedWorkItems && relatedWorkItems.length > 0) {
+        try {
+          const canvas = await html2canvas(relationshipDiagramRef.current, {
+            backgroundColor: '#1a1f2e',
+            scale: 2, // Higher resolution
+            logging: false,
+          });
+          relationshipMapImage = canvas.toDataURL('image/png');
+        } catch (canvasError) {
+          console.error('Failed to capture relationship diagram:', canvasError);
+          // Continue without the image
+        }
+      }
+
       const response = await fetch('/api/email-work-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -259,6 +278,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
           workItem,
           comments,
           relatedWorkItems: relatedWorkItems || [],
+          relationshipMapImage,
         }),
       });
 
@@ -925,7 +945,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
             </div>
           ) : (
             /* Relationships Tab */
-            <div className="h-full relative">
+            <div className="h-full relative" ref={relationshipDiagramRef}>
               {loadingRelationships ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="flex items-center gap-3 text-rh-text-secondary">

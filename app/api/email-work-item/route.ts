@@ -13,6 +13,7 @@ interface EmailWorkItemRequest {
   workItem: WorkItem;
   comments: Comment[];
   relatedWorkItems: WorkItem[];
+  relationshipMapImage?: string | null;
 }
 
 function createEmailTransporter() {
@@ -50,7 +51,8 @@ function generateEmailHTML(
   userEmail: string,
   workItem: WorkItem,
   comments: Comment[],
-  relatedWorkItems: WorkItem[]
+  relatedWorkItems: WorkItem[],
+  relationshipMapImage?: string | null
 ): string {
   const descriptionText = workItem.description ? stripHTML(workItem.description) : 'No description provided';
   const criteriaText = workItem.acceptanceCriteria ? stripHTML(workItem.acceptanceCriteria) : 'No acceptance criteria';
@@ -231,6 +233,15 @@ function generateEmailHTML(
       <div class="section">
         <div class="section-title">🔗 Related Work Items (${relatedWorkItems.length})</div>
         ${relationshipsHTML}
+
+        ${relationshipMapImage ? `
+        <div style="margin-top: 32px;">
+          <div style="color: #10b981; font-size: 16px; font-weight: 600; margin-bottom: 16px;">📊 Relationship Map</div>
+          <div style="background: #000000; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden; padding: 20px;">
+            <img src="${relationshipMapImage}" alt="Work Item Relationship Map" style="max-width: 100%; height: auto; display: block; border-radius: 8px;" />
+          </div>
+        </div>
+        ` : ''}
       </div>
     </div>
     <div class="footer">
@@ -265,12 +276,13 @@ export async function POST(request: NextRequest) {
 
     const userEmail = session.email;
     const body: EmailWorkItemRequest = await request.json();
-    const { workItem, comments, relatedWorkItems } = body;
+    const { workItem, comments, relatedWorkItems, relationshipMapImage } = body;
 
     console.log('[Email Work Item] Generating report for:', userEmail, 'Work Item:', workItem.id);
+    console.log('[Email Work Item] Relationship map included:', !!relationshipMapImage);
 
     // Generate HTML email
-    const htmlContent = generateEmailHTML(userEmail, workItem, comments, relatedWorkItems);
+    const htmlContent = generateEmailHTML(userEmail, workItem, comments, relatedWorkItems, relationshipMapImage);
 
     // Send email
     const transporter = createEmailTransporter();
