@@ -905,7 +905,10 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
         <RelationshipModal
           currentWorkItem={workItem}
           relatedWorkItems={relatedWorkItems}
-          onClose={() => setShowFullScreenRelationships(false)}
+          onClose={() => {
+            setShowFullScreenRelationships(false);
+            setActiveTab('details'); // Return to details tab when closing expanded view
+          }}
           onNavigate={(item) => {
             setShowFullScreenRelationships(false);
             setSelectedRelatedItem(item);
