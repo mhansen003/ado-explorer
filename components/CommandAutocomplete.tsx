@@ -167,10 +167,10 @@ export default function CommandAutocomplete({
                 )}
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-rh-text font-medium">{suggestion.value}</span>
+                    <span className="text-rh-text font-medium">{suggestion.description || suggestion.value}</span>
                   </div>
-                  {suggestion.description && (
-                    <p className="text-xs text-rh-text-secondary mt-0.5">{suggestion.description}</p>
+                  {suggestion.metadata && (
+                    <p className="text-xs text-rh-text-secondary mt-0.5">{suggestion.metadata}</p>
                   )}
                 </div>
               </button>

@@ -239,9 +239,9 @@ export default function TemplateInputBuilder({
                         {isSelected && <Check className="w-3 h-3 text-rh-dark" />}
                       </div>
                     )}
-                    <span className="flex-1">{item.value}</span>
-                    {item.description && (
-                      <span className="text-xs text-rh-text-secondary">{item.description}</span>
+                    <span className="flex-1">{item.description || item.value}</span>
+                    {item.metadata && (
+                      <span className="text-xs text-rh-text-secondary">{item.metadata}</span>
                     )}
                   </button>
                 );
