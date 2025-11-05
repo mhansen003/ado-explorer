@@ -4,6 +4,7 @@ import WorkItemGrid from './WorkItemGrid';
 import WorkItemChart from './WorkItemChart';
 import AnalyticsInsights from './AnalyticsInsights';
 import HierarchicalWorkItemList from './HierarchicalWorkItemList';
+import HierarchicalWorkItemGrid from './HierarchicalWorkItemGrid';
 import { Bot, User, Download, Table, BarChart3, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ResultsModal from './ResultsModal';
@@ -361,41 +362,59 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
 
                   {/* Conditional rendering: Grid View or Card View */}
                   {viewPreferences.useGridView ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="border-b-2 border-rh-border">
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">ID</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Type</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">State</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Title</th>
-                            <th className="px-3 py-2 text-center text-xs font-medium text-rh-text-secondary">Priority</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Assigned</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Project</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Area</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Changed</th>
-                            <th className="px-3 py-2 text-center text-xs font-medium text-rh-text-secondary">SP</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {message.workItems.slice(0, message.workItems.length <= 10 ? message.workItems.length : 10).map((item) => (
-                            <WorkItemGrid key={item.id} workItem={item} />
-                          ))}
-                        </tbody>
-                      </table>
+                    <>
+                      {/* Check if work items have hierarchical relationships for grid view */}
+                      {(() => {
+                        const hasHierarchy = hasHierarchicalRelations(message.workItems);
 
-                      {/* Show "and X more" message if > 10 for grid view */}
-                      {message.workItems.length > 10 && (
-                        <div className="text-center py-3">
-                          <button
-                            onClick={() => setModalMessage(message)}
-                            className="text-sm text-rh-green hover:text-green-400 transition-colors"
-                          >
-                            ... and {message.workItems.length - 10} more items (click &quot;View All&quot; to see them)
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        if (hasHierarchy) {
+                          // Use hierarchical grid display
+                          const { roots } = buildHierarchy(message.workItems);
+                          return <HierarchicalWorkItemGrid items={roots} maxInitialItems={10} />;
+                        } else {
+                          // Use flat grid display
+                          return (
+                            <>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="border-b-2 border-rh-border">
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">ID</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Type</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">State</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Title</th>
+                                      <th className="px-3 py-2 text-center text-xs font-medium text-rh-text-secondary">Priority</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Assigned</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Project</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Area</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Changed</th>
+                                      <th className="px-3 py-2 text-center text-xs font-medium text-rh-text-secondary">SP</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {message.workItems.slice(0, message.workItems.length <= 10 ? message.workItems.length : 10).map((item) => (
+                                      <WorkItemGrid key={item.id} workItem={item} />
+                                    ))}
+                                  </tbody>
+                                </table>
+
+                                {/* Show "and X more" message if > 10 for grid view */}
+                                {message.workItems.length > 10 && (
+                                  <div className="text-center py-3">
+                                    <button
+                                      onClick={() => setModalMessage(message)}
+                                      className="text-sm text-rh-green hover:text-green-400 transition-colors"
+                                    >
+                                      ... and {message.workItems.length - 10} more items (click &quot;View All&quot; to see them)
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          );
+                        }
+                      })()}
+                    </>
                   ) : (
                     <>
                       {/* Check if work items have hierarchical relationships */}
