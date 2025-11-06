@@ -19,7 +19,7 @@ export function detectCollectionQuery(query: string): CollectionDetectionResult 
 
   // Projects - HIGH confidence patterns
   if (
-    /^(list|show|get|display|what|all)\s+(all\s+)?(the\s+)?projects?/i.test(lowerQuery) ||
+    /^(list|show|get|display|what|all)\s+(all\s+)?(of\s+)?(the\s+)?projects?/i.test(lowerQuery) ||
     lowerQuery === 'projects' ||
     lowerQuery === 'list projects' ||
     lowerQuery === 'show me projects' ||
@@ -30,7 +30,7 @@ export function detectCollectionQuery(query: string): CollectionDetectionResult 
 
   // Teams - HIGH confidence patterns
   if (
-    /^(list|show|get|display|what|all)\s+(all\s+)?(the\s+)?(teams?|boards?)/i.test(lowerQuery) ||
+    /^(list|show|get|display|what|all)\s+(all\s+)?(of\s+)?(the\s+)?(teams?|boards?)/i.test(lowerQuery) ||
     lowerQuery === 'teams' ||
     lowerQuery === 'boards' ||
     lowerQuery === 'list teams' ||
@@ -41,7 +41,7 @@ export function detectCollectionQuery(query: string): CollectionDetectionResult 
 
   // Users - HIGH confidence patterns
   if (
-    /^(list|show|get|display|what|all)\s+(all\s+)?(the\s+)?(users?|people|members?|team members?)/i.test(lowerQuery) ||
+    /^(list|show|get|display|what|all)\s+(all\s+)?(of\s+)?(the\s+)?(users?|people|members?|team members?)/i.test(lowerQuery) ||
     lowerQuery === 'users' ||
     lowerQuery === 'people' ||
     lowerQuery === 'team members' ||
@@ -53,7 +53,7 @@ export function detectCollectionQuery(query: string): CollectionDetectionResult 
 
   // States - HIGH confidence patterns
   if (
-    /^(what|list|show|get|display)\s+(all\s+)?(the\s+)?(work item\s+)?states?/i.test(lowerQuery) ||
+    /^(what|list|show|get|display)\s+(all\s+)?(of\s+)?(the\s+)?(work item\s+)?states?/i.test(lowerQuery) ||
     lowerQuery === 'states' ||
     lowerQuery.match(/what states? (are )?(available|exist)/i) ||
     lowerQuery.match(/available states/i)
@@ -63,7 +63,7 @@ export function detectCollectionQuery(query: string): CollectionDetectionResult 
 
   // Types - HIGH confidence patterns
   if (
-    /^(what|list|show|get|display)\s+(all\s+)?(the\s+)?(work item\s+)?types?/i.test(lowerQuery) ||
+    /^(what|list|show|get|display)\s+(all\s+)?(of\s+)?(the\s+)?(work item\s+)?types?/i.test(lowerQuery) ||
     lowerQuery === 'types' ||
     lowerQuery.match(/what types? (of work items?)? (are )?(available|exist)/i) ||
     lowerQuery.match(/available (work item\s+)?types/i) ||
@@ -74,7 +74,7 @@ export function detectCollectionQuery(query: string): CollectionDetectionResult 
 
   // Tags - HIGH confidence patterns
   if (
-    /^(what|list|show|get|display)\s+(all\s+)?(the\s+)?tags?/i.test(lowerQuery) ||
+    /^(what|list|show|get|display)\s+(all\s+)?(of\s+)?(the\s+)?tags?/i.test(lowerQuery) ||
     lowerQuery === 'tags' ||
     lowerQuery.match(/what tags? (are )?(available|exist|being used)/i) ||
     lowerQuery.match(/available tags/i)
