@@ -5,6 +5,7 @@ import { WorkItem } from '@/types';
 import { ExternalLink } from 'lucide-react';
 import WorkItemDetailModal from './WorkItemDetailModal';
 import { getTypeColor } from '@/lib/colors';
+import { formatDatePST } from '@/lib/date-utils';
 
 interface WorkItemGridProps {
   workItem: WorkItem;
@@ -66,7 +67,7 @@ export default function WorkItemGrid({ workItem }: WorkItemGridProps) {
 
         {/* Changed Date */}
         <td className="px-3 py-2 text-xs text-rh-text-secondary whitespace-nowrap">
-          {workItem.changedDate ? new Date(workItem.changedDate).toLocaleDateString() : 'N/A'}
+          {formatDatePST(workItem.changedDate)}
         </td>
 
         {/* Story Points */}

@@ -5,6 +5,7 @@ import { WorkItem } from '@/types';
 import { Calendar, User, AlertCircle, CheckCircle, Clock, Tag, MapPin, Zap, UserPlus } from 'lucide-react';
 import WorkItemDetailModal from './WorkItemDetailModal';
 import { getTypeColor, getStateColor } from '@/lib/colors';
+import { formatDatePST, formatDateTimePST } from '@/lib/date-utils';
 
 interface WorkItemCardProps {
   workItem: WorkItem;
@@ -76,8 +77,8 @@ export default function WorkItemCard({ workItem }: WorkItemCardProps) {
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  <span title={`Last modified: ${workItem.changedDate ? new Date(workItem.changedDate).toLocaleString() : 'Unknown'}`}>
-                    {workItem.changedDate ? new Date(workItem.changedDate).toLocaleDateString() : 'N/A'}
+                  <span title={`Last modified: ${formatDateTimePST(workItem.changedDate)}`}>
+                    {formatDatePST(workItem.changedDate)}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">

@@ -11,6 +11,7 @@ import RelationshipDiagram from './RelationshipDiagram';
 import RelationshipModal from './RelationshipModal';
 import EmailButton from './EmailButton';
 import { getTypeColorDetailed, getStateColor } from '@/lib/colors';
+import { formatDatePST, formatDateTimePST } from '@/lib/date-utils';
 
 interface WorkItemDetailModalProps {
   workItem: WorkItem;
@@ -517,8 +518,8 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
               <div className="flex items-center gap-2">
                 <Calendar className="w-3.5 h-3.5 text-rh-text-secondary flex-shrink-0" />
                 <span className="text-rh-text-secondary text-xs">Created:</span>
-                <span className="text-rh-text text-xs">
-                  {new Date(workItem.createdDate).toLocaleDateString()}
+                <span className="text-rh-text text-xs" title={formatDateTimePST(workItem.createdDate)}>
+                  {formatDatePST(workItem.createdDate)}
                 </span>
               </div>
 
@@ -541,8 +542,8 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5 text-rh-text-secondary flex-shrink-0" />
                   <span className="text-rh-text-secondary text-xs">Modified:</span>
-                  <span className="text-rh-text text-xs">
-                    {new Date(workItem.changedDate).toLocaleDateString()}
+                  <span className="text-rh-text text-xs" title={formatDateTimePST(workItem.changedDate)}>
+                    {formatDatePST(workItem.changedDate)}
                   </span>
                 </div>
               )}
@@ -904,18 +905,12 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                                 <span className="text-sm font-medium text-rh-text">{comment.createdBy}</span>
                               )}
                               <span className="text-xs text-rh-text-secondary">
-                                {new Date(comment.createdDate).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                })}
+                                {formatDatePST(comment.createdDate, true)}
                               </span>
                             </div>
                             {comment.modifiedDate && comment.modifiedDate !== comment.createdDate && (
                               <span className="text-xs text-rh-text-secondary italic">
-                                (edited {new Date(comment.modifiedDate).toLocaleDateString()})
+                                (edited {formatDatePST(comment.modifiedDate)})
                               </span>
                             )}
                           </div>
