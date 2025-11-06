@@ -5,7 +5,7 @@ import WorkItemChart from './WorkItemChart';
 import AnalyticsInsights from './AnalyticsInsights';
 import HierarchicalWorkItemList from './HierarchicalWorkItemList';
 import HierarchicalWorkItemGrid from './HierarchicalWorkItemGrid';
-import { Bot, User, Download, Table, BarChart3, ChevronDown } from 'lucide-react';
+import { Bot, User, Download, Table, BarChart3, ChevronDown, CheckSquare, Trash2, AlertTriangle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ResultsModal from './ResultsModal';
 import EmailButton from './EmailButton';
@@ -27,6 +27,9 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<Message | null>(null);
   const [chartDropdownOpen, setChartDropdownOpen] = useState<string | null>(null);
+  const [selectedWorkItems, setSelectedWorkItems] = useState<Set<number>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -127,6 +130,65 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to send email');
+    }
+  };
+
+  // Bulk selection handlers
+  const handleToggleSelect = (workItemId: number) => {
+    setSelectedWorkItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(workItemId)) {
+        newSet.delete(workItemId);
+      } else {
+        newSet.add(workItemId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (workItems: any[]) => {
+    setSelectedWorkItems(new Set(workItems.map(item => item.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedWorkItems(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedWorkItems.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/work-items/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workItemIds: Array.from(selectedWorkItems) }),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[MessageList] Deleted ${data.deletedCount} work items`);
+
+        // Remove deleted items from UI
+        messages.forEach(msg => {
+          if (msg.workItems) {
+            msg.workItems = msg.workItems.filter(item => !selectedWorkItems.has(item.id));
+          }
+        });
+
+        // Clear selection
+        setSelectedWorkItems(new Set());
+        setShowDeleteConfirm(false);
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete work items: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('[MessageList] Bulk delete failed:', error);
+      alert('Failed to delete work items. Check console for details.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
