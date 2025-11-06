@@ -81,12 +81,15 @@ export default function ChatInterface() {
 
   // Persist active conversation ID to localStorage
   useEffect(() => {
-    if (activeConversationId) {
-      localStorage.setItem('ado-active-conversation', activeConversationId);
-    } else {
-      localStorage.removeItem('ado-active-conversation');
+    // Only persist after initialization to avoid clearing on mount
+    if (conversationInitialized) {
+      if (activeConversationId) {
+        localStorage.setItem('ado-active-conversation', activeConversationId);
+      } else {
+        localStorage.removeItem('ado-active-conversation');
+      }
     }
-  }, [activeConversationId]);
+  }, [activeConversationId, conversationInitialized]);
 
   // Auto-create conversation on mount and cleanup old conversations
   useEffect(() => {
@@ -95,6 +98,10 @@ export default function ChatInterface() {
 
       // Check if there's a saved conversation in localStorage
       const savedConversationId = localStorage.getItem('ado-active-conversation');
+      console.log('[ChatInterface] Mount - checking localStorage:', {
+        hasSavedConversation: !!savedConversationId,
+        savedConversationId,
+      });
 
       if (savedConversationId) {
         // Verify the conversation still exists
@@ -141,9 +148,13 @@ export default function ChatInterface() {
     }
   }, [activeConversationId, conversationInitialized]);
 
-  // Initialize with welcome message on first load
+  // Initialize with welcome message on first load (only if not restoring from localStorage)
   useEffect(() => {
-    if (messages.length === 0) {
+    // Check if we're restoring a conversation from localStorage
+    const savedConversationId = localStorage.getItem('ado-active-conversation');
+
+    // Only show welcome message if there's no saved conversation and no messages
+    if (messages.length === 0 && !savedConversationId) {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
