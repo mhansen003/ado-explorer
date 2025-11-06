@@ -79,11 +79,50 @@ export default function ChatInterface() {
   const [conversationInitialized, setConversationInitialized] = useState(false);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
 
+  // Persist active conversation ID to localStorage
+  useEffect(() => {
+    if (activeConversationId) {
+      localStorage.setItem('ado-active-conversation', activeConversationId);
+    } else {
+      localStorage.removeItem('ado-active-conversation');
+    }
+  }, [activeConversationId]);
+
   // Auto-create conversation on mount and cleanup old conversations
   useEffect(() => {
     if (!activeConversationId && !conversationInitialized) {
       setConversationInitialized(true);
-      createNewConversation();
+
+      // Check if there's a saved conversation in localStorage
+      const savedConversationId = localStorage.getItem('ado-active-conversation');
+
+      if (savedConversationId) {
+        // Verify the conversation still exists
+        fetch(`/api/conversations/${savedConversationId}`, {
+          credentials: 'include',
+        })
+          .then(res => {
+            if (res.ok) {
+              // Conversation exists, restore it
+              console.log('[ChatInterface] Restoring conversation from localStorage:', savedConversationId);
+              handleSelectConversation(savedConversationId);
+            } else {
+              // Conversation no longer exists, remove from localStorage and create new
+              console.log('[ChatInterface] Saved conversation no longer exists, creating new');
+              localStorage.removeItem('ado-active-conversation');
+              createNewConversation();
+            }
+          })
+          .catch(err => {
+            console.error('[ChatInterface] Failed to restore conversation:', err);
+            localStorage.removeItem('ado-active-conversation');
+            createNewConversation();
+          });
+      } else {
+        // No saved conversation, create new
+        console.log('[ChatInterface] No saved conversation, creating new');
+        createNewConversation();
+      }
 
       // Cleanup conversations older than 5 days
       fetch('/api/conversations/cleanup', {
