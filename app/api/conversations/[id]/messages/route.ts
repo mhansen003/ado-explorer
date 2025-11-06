@@ -163,27 +163,30 @@ export async function POST(
 
     // **NEW: Intelligent Query Processing (Three-Stage Architecture)**
     // Stage 1: Analyze the query to understand intent and data needs
-    console.log('[Messages API] Stage 1: Analyzing query with intelligent processor...');
+    console.log('[Intelligent Query] ═══════════════════════════════════════');
+    console.log('[Intelligent Query] Stage 1: Analyzing query...');
+    console.log('[Intelligent Query] User query:', content);
     const queryAnalysis = await analyzeQuery(content, contextMessages);
-    console.log('[Messages API] Query analysis:', {
-      needsAdoData: queryAnalysis.needsAdoData,
-      intent: queryAnalysis.intent,
-      requiresSummary: queryAnalysis.requiresSummary,
-      searchCriteria: queryAnalysis.searchCriteria,
-    });
+    console.log('[Intelligent Query] ✅ Analysis complete:');
+    console.log('[Intelligent Query]   needsAdoData:', queryAnalysis.needsAdoData);
+    console.log('[Intelligent Query]   intent:', queryAnalysis.intent);
+    console.log('[Intelligent Query]   requiresSummary:', queryAnalysis.requiresSummary);
+    console.log('[Intelligent Query]   searchCriteria:', JSON.stringify(queryAnalysis.searchCriteria, null, 2));
 
     let intelligentContext = '';
     let workItemData: any = null;
 
     // Stage 2: Fetch data if needed (only for work item queries, not collection queries)
     if (queryAnalysis.needsAdoData && queryAnalysis.searchCriteria) {
-      console.log('[Messages API] Stage 2: Fetching work items based on search criteria...');
+      console.log('[Intelligent Query] Stage 2: Fetching work items...');
+      console.log('[Intelligent Query]   Criteria:', JSON.stringify(queryAnalysis.searchCriteria, null, 2));
 
       const result = await fetchWorkItemsFromCriteria(queryAnalysis.searchCriteria);
 
       if (result && result.workItems) {
         workItemData = result;
-        console.log('[Messages API] Successfully fetched', result.count, 'work items');
+        console.log('[Intelligent Query] ✅ Stage 2 complete: Fetched', result.count, 'work items');
+        console.log('[Intelligent Query]   First 3 items:', result.workItems.slice(0, 3).map((wi: any) => `#${wi.id}: ${wi.title} (${wi.state})`));
 
         // Stage 3: Generate intelligent summary if requested
         if (queryAnalysis.requiresSummary) {
@@ -196,7 +199,15 @@ export async function POST(
           );
 
           // Build intelligent context to inject into Claude
-          intelligentContext = `\n\n<intelligent_analysis>
+          intelligentContext = `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 PRE-FETCHED DATA - DO NOT USE MCP SEARCH TOOLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**IMPORTANT:** The data below has already been fetched and analyzed.
+DO NOT call mcp__azure-devops__search_work_items or any other search tools.
+Use ONLY the data provided below to answer the user's question.
+
+<intelligent_analysis>
 **Query Analysis:** ${queryAnalysis.intent}
 
 **Summary:** ${processedResponse.summary}
@@ -205,22 +216,43 @@ export async function POST(
 ${processedResponse.insights.map((insight, idx) => `${idx + 1}. ${insight}`).join('\n')}
 
 **Data Available:** ${result.count} work items matching the criteria
-</intelligent_analysis>`;
+
+**All Work Items:**
+${result.workItems.map((wi: any) => `- #${wi.id}: ${wi.title} (${wi.state}, ${wi.type}, Priority: ${wi.priority || 'N/A'}, Assigned: ${wi.assignedTo})`).join('\n')}
+</intelligent_analysis>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
           console.log('[Messages API] Generated intelligent summary with', processedResponse.insights.length, 'insights');
         } else {
           // Just provide a simple data context
-          intelligentContext = `\n\n<work_items_data>
+          intelligentContext = `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 PRE-FETCHED DATA - DO NOT USE MCP SEARCH TOOLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**IMPORTANT:** The data below has already been fetched.
+DO NOT call mcp__azure-devops__search_work_items.
+Use ONLY the data provided below.
+
+<work_items_data>
 Found ${result.count} work items matching the query.
-${result.workItems.slice(0, 5).map((wi: any) => `- #${wi.id}: ${wi.title} (${wi.state})`).join('\n')}
-${result.count > 5 ? `... and ${result.count - 5} more` : ''}
-</work_items_data>`;
+
+**All Work Items:**
+${result.workItems.map((wi: any) => `- #${wi.id}: ${wi.title} (${wi.state}, ${wi.type}, Priority: ${wi.priority || 'N/A'}, Assigned: ${wi.assignedTo})`).join('\n')}
+</work_items_data>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
         }
       } else {
-        console.log('[Messages API] No work items found or error fetching data');
+        console.log('[Intelligent Query] ⚠️  No work items found or error fetching data');
         intelligentContext = '\n\n<note>No work items found matching the search criteria.</note>';
       }
+    } else {
+      console.log('[Intelligent Query] ⏭️  Skipping intelligent data fetch');
+      console.log('[Intelligent Query]   needsAdoData:', queryAnalysis.needsAdoData);
+      console.log('[Intelligent Query]   hasSearchCriteria:', !!queryAnalysis.searchCriteria);
     }
+    console.log('[Intelligent Query] ═══════════════════════════════════════');
 
     // **NEW: Detect if this is a collection query**
     const collectionDetection = detectCollectionQuery(content);
