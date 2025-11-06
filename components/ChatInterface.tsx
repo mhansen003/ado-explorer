@@ -977,6 +977,9 @@ Type **/help** for more info`,
         setShowAutocomplete(false);
         setCommandHistory([]);
 
+        // Save welcome message to conversation history
+        await saveMessageToConversation('assistant', welcomeMessage.content);
+
         // Trigger sidebar refresh to show new conversation immediately
         setSidebarRefreshKey(Date.now());
       }
