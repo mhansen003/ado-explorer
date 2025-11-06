@@ -59,6 +59,20 @@ export async function GET(
     const messages = await conversationService.getMessages(conversationId, 100);
 
     console.log('[Conversation Detail] Retrieved conversation:', conversationId);
+    console.log('[Conversation Detail] Messages count:', messages.length);
+
+    // Log metadata for debugging
+    const messagesWithMetadata = messages.filter(m => m.metadata && Object.keys(m.metadata).length > 0);
+    console.log('[Conversation Detail] Messages with metadata:', {
+      total: messagesWithMetadata.length,
+      details: messagesWithMetadata.map(m => ({
+        role: m.role,
+        hasWorkItems: !!m.metadata?.workItems,
+        workItemsCount: m.metadata?.workItems?.length || 0,
+        hasListItems: !!m.metadata?.listItems,
+        listItemsCount: m.metadata?.listItems?.length || 0,
+      }))
+    });
 
     return NextResponse.json({
       success: true,

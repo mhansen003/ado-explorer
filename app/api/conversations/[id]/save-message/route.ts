@@ -85,7 +85,15 @@ export async function POST(
         score: message.timestamp,
         value: JSON.stringify(message),
       });
-      console.log('[Save Message API] Saved message with metadata:', Object.keys(metadata));
+      console.log('[Save Message API] Saved message with metadata:', {
+        keys: Object.keys(metadata),
+        hasWorkItems: !!metadata.workItems,
+        workItemsCount: metadata.workItems?.length || 0,
+        hasListItems: !!metadata.listItems,
+        listItemsCount: metadata.listItems?.length || 0,
+      });
+    } else {
+      console.log('[Save Message API] No metadata provided for this message');
     }
 
     // Auto-generate/update title from user messages

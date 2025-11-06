@@ -165,12 +165,21 @@ Type **/help** for more info`,
     if (!activeConversationId) return;
 
     try {
+      if (metadata) {
+        console.log('[ChatInterface] Saving message with metadata:', {
+          role,
+          hasWorkItems: !!metadata.workItems,
+          workItemsCount: metadata.workItems?.length || 0,
+          hasListItems: !!metadata.listItems,
+          listItemsCount: metadata.listItems?.length || 0,
+        });
+      }
+
       await fetch(`/api/conversations/${activeConversationId}/save-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role, content, metadata }),
       });
-      console.log('[ChatInterface] Saved message to conversation', metadata ? 'with metadata' : '');
 
       // Refresh sidebar to show updated title/timestamp
       if (role === 'user') {
@@ -968,8 +977,13 @@ Type **/help** for more info`,
         const data = await response.json();
         setActiveConversationId(conversationId);
 
+        console.log('[ChatInterface] Loading conversation:', {
+          messagesCount: data.messages.length,
+          messagesWithMetadata: data.messages.filter((m: any) => m.metadata && Object.keys(m.metadata).length > 0).length,
+        });
+
         // Convert conversation messages to UI Message format
-        const uiMessages: Message[] = data.messages.map((msg: any) => {
+        const uiMessages: Message[] = data.messages.map((msg: any, index: number) => {
           if (msg.role === 'user') {
             return {
               id: msg.id,
@@ -978,6 +992,17 @@ Type **/help** for more info`,
               timestamp: new Date(msg.timestamp),
             };
           } else if (msg.role === 'assistant') {
+            // Log what we're restoring for debugging
+            if (msg.metadata) {
+              console.log(`[ChatInterface] Restoring message ${index}:`, {
+                hasWorkItems: !!msg.metadata?.workItems,
+                workItemsCount: msg.metadata?.workItems?.length || 0,
+                hasListItems: !!msg.metadata?.listItems,
+                listItemsCount: msg.metadata?.listItems?.length || 0,
+                listItemsPreview: msg.metadata?.listItems ? msg.metadata.listItems.slice(0, 2) : null,
+              });
+            }
+
             // Assistant messages - restore full data from metadata
             return {
               id: msg.id,
