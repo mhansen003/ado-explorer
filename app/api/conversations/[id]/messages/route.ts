@@ -13,10 +13,83 @@ import Anthropic from '@anthropic-ai/sdk';
 import { detectCollectionQuery, fetchCollectionData, formatCollectionContext } from '@/lib/collection-detector';
 import { generateSuggestions } from '@/lib/suggestion-generator';
 import { validateResponse, quickValidate } from '@/lib/quality-check';
+import { analyzeQuery, generateIntelligentSummary, QueryAnalysis } from '@/lib/intelligent-query-processor';
+import { ADOService } from '@/lib/ado-api';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
+
+/**
+ * Helper function to fetch work items based on query analysis search criteria
+ */
+async function fetchWorkItemsFromCriteria(searchCriteria: QueryAnalysis['searchCriteria']): Promise<any> {
+  if (!searchCriteria) {
+    return null;
+  }
+
+  // Get ADO configuration
+  const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
+  const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
+  const pat = process.env.ADO_PAT;
+
+  if (!organization || !pat || !project) {
+    console.error('[Intelligent Query] Missing ADO configuration');
+    return null;
+  }
+
+  try {
+    // Create ADO service instance
+    const adoService = new ADOService(organization, pat, project);
+
+    // Build WIQL query from search criteria
+    let conditions: string[] = [];
+
+    if (searchCriteria.status) {
+      conditions.push(`[System.State] = '${searchCriteria.status}'`);
+    }
+
+    if (searchCriteria.workItemType) {
+      conditions.push(`[System.WorkItemType] = '${searchCriteria.workItemType}'`);
+    }
+
+    if (searchCriteria.assignedTo) {
+      conditions.push(`[System.AssignedTo] CONTAINS '${searchCriteria.assignedTo}'`);
+    }
+
+    if (searchCriteria.priority) {
+      conditions.push(`[Microsoft.VSTS.Common.Priority] = ${searchCriteria.priority}`);
+    }
+
+    if (searchCriteria.searchText) {
+      conditions.push(`([System.Title] CONTAINS '${searchCriteria.searchText}' OR [System.Description] CONTAINS '${searchCriteria.searchText}')`);
+    }
+
+    if (searchCriteria.tags && searchCriteria.tags.length > 0) {
+      const tagConditions = searchCriteria.tags.map(tag => `[System.Tags] CONTAINS '${tag}'`).join(' OR ');
+      conditions.push(`(${tagConditions})`);
+    }
+
+    if (searchCriteria.projectName) {
+      conditions.push(`[System.TeamProject] = '${searchCriteria.projectName}'`);
+    }
+
+    // Build the full query
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const query = `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [Microsoft.VSTS.Common.Priority], [System.Tags], [System.CreatedDate], [System.ChangedDate] FROM WorkItems ${whereClause} ORDER BY [System.ChangedDate] DESC`;
+
+    console.log('[Intelligent Query] Generated WIQL:', query);
+
+    // Execute query using ADOService
+    const workItems = await adoService.searchWorkItems(query);
+    console.log('[Intelligent Query] Fetched', workItems.length, 'work items');
+
+    return { workItems, count: workItems.length };
+  } catch (error: any) {
+    console.error('[Intelligent Query] Error fetching work items:', error.message);
+    return null;
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -81,6 +154,74 @@ export async function POST(
 
     console.log('[Messages API] User message added to', conversationId);
 
+    // Get context messages early for intelligent query processing
+    const contextMessages = await conversationService.getRecentMessagesForContext(
+      conversationId,
+      160000, // Claude Sonnet 4 token limit
+      0.8 // Use 80% of limit
+    );
+
+    // **NEW: Intelligent Query Processing (Three-Stage Architecture)**
+    // Stage 1: Analyze the query to understand intent and data needs
+    console.log('[Messages API] Stage 1: Analyzing query with intelligent processor...');
+    const queryAnalysis = await analyzeQuery(content, contextMessages);
+    console.log('[Messages API] Query analysis:', {
+      needsAdoData: queryAnalysis.needsAdoData,
+      intent: queryAnalysis.intent,
+      requiresSummary: queryAnalysis.requiresSummary,
+      searchCriteria: queryAnalysis.searchCriteria,
+    });
+
+    let intelligentContext = '';
+    let workItemData: any = null;
+
+    // Stage 2: Fetch data if needed (only for work item queries, not collection queries)
+    if (queryAnalysis.needsAdoData && queryAnalysis.searchCriteria) {
+      console.log('[Messages API] Stage 2: Fetching work items based on search criteria...');
+
+      const result = await fetchWorkItemsFromCriteria(queryAnalysis.searchCriteria);
+
+      if (result && result.workItems) {
+        workItemData = result;
+        console.log('[Messages API] Successfully fetched', result.count, 'work items');
+
+        // Stage 3: Generate intelligent summary if requested
+        if (queryAnalysis.requiresSummary) {
+          console.log('[Messages API] Stage 3: Generating intelligent summary...');
+
+          const processedResponse = await generateIntelligentSummary(
+            content,
+            result.workItems,
+            queryAnalysis
+          );
+
+          // Build intelligent context to inject into Claude
+          intelligentContext = `\n\n<intelligent_analysis>
+**Query Analysis:** ${queryAnalysis.intent}
+
+**Summary:** ${processedResponse.summary}
+
+**Key Insights:**
+${processedResponse.insights.map((insight, idx) => `${idx + 1}. ${insight}`).join('\n')}
+
+**Data Available:** ${result.count} work items matching the criteria
+</intelligent_analysis>`;
+
+          console.log('[Messages API] Generated intelligent summary with', processedResponse.insights.length, 'insights');
+        } else {
+          // Just provide a simple data context
+          intelligentContext = `\n\n<work_items_data>
+Found ${result.count} work items matching the query.
+${result.workItems.slice(0, 5).map((wi: any) => `- #${wi.id}: ${wi.title} (${wi.state})`).join('\n')}
+${result.count > 5 ? `... and ${result.count - 5} more` : ''}
+</work_items_data>`;
+        }
+      } else {
+        console.log('[Messages API] No work items found or error fetching data');
+        intelligentContext = '\n\n<note>No work items found matching the search criteria.</note>';
+      }
+    }
+
     // **NEW: Detect if this is a collection query**
     const collectionDetection = detectCollectionQuery(content);
     console.log('[Messages API] Collection detection:', collectionDetection);
@@ -118,13 +259,6 @@ export async function POST(
       }
     }
 
-    // Get context messages
-    const contextMessages = await conversationService.getRecentMessagesForContext(
-      conversationId,
-      160000, // Claude Sonnet 4 token limit
-      0.8 // Use 80% of limit
-    );
-
     // Build Claude messages array (exclude system messages, include user/assistant only)
     const claudeMessages = contextMessages
       .filter(m => m.role !== 'system')
@@ -137,6 +271,12 @@ export async function POST(
     if (collectionContext && claudeMessages.length > 0 && claudeMessages[claudeMessages.length - 1].role === 'user') {
       claudeMessages[claudeMessages.length - 1].content += collectionContext;
       console.log('[Messages API] Appended collection context to user message');
+    }
+
+    // **NEW: If we generated intelligent analysis, append it to the last user message**
+    if (intelligentContext && claudeMessages.length > 0 && claudeMessages[claudeMessages.length - 1].role === 'user') {
+      claudeMessages[claudeMessages.length - 1].content += intelligentContext;
+      console.log('[Messages API] Appended intelligent analysis context to user message');
     }
 
     // Get system prompt from metadata or use enhanced default

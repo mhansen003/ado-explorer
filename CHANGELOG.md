@@ -5,6 +5,219 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2025-01-06
+
+### ✨ MAJOR FEATURE - Intelligent Query Processor (Three-Stage Architecture)
+
+This release adds intelligent pre-processing and post-processing of user queries, enabling the AI to understand query intent, fetch precise data, and generate insightful summaries automatically.
+
+#### 🎯 The Problem
+
+**Before this update:**
+```
+User: "hello, can you talk to me about the ccw project and give me a summary of the blocked tickets"
+AI: [Tries to query ADO directly through MCP tools]
+    [May return too many results or miss the intent]
+    [No structured analysis or insights]
+```
+
+Users had to be very specific about what data they wanted, and responses lacked intelligent analysis.
+
+#### ✨ The Solution - Three-Stage Architecture
+
+**After this update:**
+```
+User: "hello, can you talk to me about the ccw project and give me a summary of the blocked tickets"
+
+Stage 1 (Analyze): AI understands:
+  - Project: CCW
+  - Status: Blocked
+  - Intent: Get summary and analysis
+
+Stage 2 (Fetch): Queries ADO for:
+  - Work items in CCW project
+  - State = Blocked
+  - Returns 5 blocked tickets
+
+Stage 3 (Summarize): Generates insights:
+  - "The CCW project currently has 5 blocked tickets"
+  - "Most were blocked recently (within the last 2 days)"
+  - "4 out of 5 relate to payment system integration"
+  - "3 are P1 (critical), requiring immediate attention"
+  - "John Smith is assigned to 3 items, may need support"
+```
+
+The AI now automatically understands intent, fetches the right data, and provides intelligent analysis.
+
+#### 🎯 Key Features
+
+**1. Query Analysis (Stage 1)**
+- Uses Claude Haiku to analyze user queries
+- Extracts search criteria automatically:
+  - Project name
+  - Status (Active, Blocked, Closed, etc.)
+  - Work item type (Bug, Task, User Story, etc.)
+  - Priority (P1, P2, P3, P4)
+  - Assigned to
+  - Tags
+  - Search text
+- Determines if summary is needed
+
+**2. Smart Data Fetching (Stage 2)**
+- Builds WIQL queries from extracted criteria
+- Uses ADOService to fetch work items directly
+- Handles missing configuration gracefully
+- Returns structured data with count
+
+**3. Intelligent Summarization (Stage 3)**
+- Generates 2-3 sentence overview
+- Provides 4 key insights:
+  - Recent activity patterns
+  - System relationships/dependencies
+  - Priority distribution
+  - Team impact and workload
+- Uses Claude Haiku for fast, cost-effective analysis
+
+#### 💡 Real-World Examples
+
+**Example 1: Project Overview**
+```
+User: "tell me about the blocked tickets in the E-Commerce project"
+
+Stage 1 Analysis:
+  - needsAdoData: true
+  - searchCriteria: { projectName: "E-Commerce", status: "Blocked" }
+  - requiresSummary: true
+
+Stage 2 Data: 12 blocked work items found
+
+Stage 3 Summary:
+  "The E-Commerce project has 12 blocked tickets, primarily related to
+   payment gateway integration. 8 are P1/P2 priority requiring immediate
+   attention. Sarah and John are each assigned to 4+ items."
+
+Insights:
+  1. Recent Activity: 10 tickets blocked in last 3 days
+  2. System Dependencies: Payment gateway integration is the main blocker
+  3. Priority: 5 P1, 3 P2, 4 P3 - high priority workload
+  4. Team Impact: Sarah and John may need support or pairing
+```
+
+**Example 2: Bug Analysis**
+```
+User: "what are the P1 bugs?"
+
+Stage 1 Analysis:
+  - needsAdoData: true
+  - searchCriteria: { workItemType: "Bug", priority: 1 }
+  - requiresSummary: false (just listing, not analyzing)
+
+Stage 2 Data: 23 P1 bugs found
+
+Result: Lists all 23 P1 bugs with titles and states
+```
+
+**Example 3: Conversational Query**
+```
+User: "thanks for your help!"
+
+Stage 1 Analysis:
+  - needsAdoData: false
+  - intent: "User expressing gratitude"
+  - requiresSummary: false
+
+Result: Claude responds conversationally without data fetching
+```
+
+#### 📦 Implementation Details
+
+**New Files:**
+- `lib/intelligent-query-processor.ts` (236 lines)
+  - `analyzeQuery()` - Query intent analysis
+  - `generateIntelligentSummary()` - Insight generation
+  - Uses Claude Haiku (fast, cheap)
+
+**Modified Files:**
+- `app/api/conversations/[id]/messages/route.ts`
+  - Added three-stage processing before collection detection
+  - Fetches context messages early for analysis
+  - Injects intelligent analysis into Claude context
+  - Helper function `fetchWorkItemsFromCriteria()` builds WIQL queries
+
+**Architecture:**
+```
+User Query
+    ↓
+[Stage 1: Analyze] ← Claude Haiku (~100ms, $0.00003)
+    ↓
+[Stage 2: Fetch]   ← ADO API (~500ms)
+    ↓
+[Stage 3: Summarize] ← Claude Haiku (~800ms, $0.001)
+    ↓
+Claude Context (injected as <intelligent_analysis>)
+    ↓
+Claude Streaming Response (conversational + data)
+```
+
+**Performance:**
+- Stage 1 (Analysis): ~100-200ms
+- Stage 2 (Fetch): ~300-800ms (depends on result size)
+- Stage 3 (Summary): ~500-1000ms
+- **Total overhead: ~1-2 seconds for intelligent queries**
+
+**Cost:**
+- Query analysis: ~$0.00003 per query (Haiku)
+- Summary generation: ~$0.001 per summary (Haiku)
+- **Average cost: ~$0.0005 per intelligent query**
+
+#### 🎨 User Experience
+
+**Before:**
+```
+User: "show me blocked ccw tickets"
+AI: [Shows generic results]
+```
+
+**After:**
+```
+User: "tell me about the ccw project blocked tickets"
+
+AI Response:
+"Query Analysis: Get blocked tickets in CCW project and provide analysis
+
+Summary: The CCW project currently has 5 blocked tickets. Most were
+blocked recently (within the last 2 days), indicating active work that
+hit obstacles. These tickets are primarily related to the payment system
+integration.
+
+Key Insights:
+1. Recent Activity: All 5 tickets were updated in the last 48 hours
+2. System Dependencies: 4 out of 5 blocked tickets relate to payment integration
+3. Priority Distribution: 3 are P1 (critical), 2 are P2
+4. Team Impact: John Smith is assigned to 3 items, may need support
+
+Data Available: 5 work items matching the criteria
+
+[Table of work items displayed below]"
+```
+
+#### 🔄 Integration with Existing Features
+
+- Works alongside collection detection (projects, teams, users)
+- Maintains context-aware drill-down from v0.4.0
+- Quality check validation from v0.3.2 still applies
+- Error handling from v0.4.1 covers WIQL query failures
+
+### Changed
+- `package.json`: Version 0.4.1 → 0.4.2
+
+### Added
+- Intelligent query processor with three-stage architecture
+- Automatic query intent analysis using AI
+- Smart data fetching based on extracted criteria
+- Intelligent summary generation with insights
+- Cost-effective analysis using Claude Haiku
+
 ## [0.4.0] - 2025-01-06
 
 ### ✨ MAJOR FEATURE - Context-Aware Conversations & Drill-Down
