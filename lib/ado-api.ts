@@ -926,43 +926,52 @@ export class ADOService {
   }
 
   /**
-   * Get all iterations/sprints for the project
+   * Get all iterations/sprints from all projects
    */
   async getIterations(): Promise<string[]> {
     try {
-      if (!this.project) {
-        console.warn('[ADO getIterations] Project required for iterations, returning empty array');
-        return [];
-      }
+      const allIterations = new Set<string>();
 
-      console.log('[ADO getIterations] Fetching iterations for project:', this.project);
+      // Get all projects
+      const projects = await this.getProjects();
+      console.log('[ADO getIterations] Fetching iterations from', projects.length, 'projects');
 
-      // Get classification nodes for iterations
-      const response = await this.client.get(`/wit/classificationnodes/Iterations?$depth=10`);
-
-      console.log('[ADO getIterations] Iteration response:', response.data);
-
-      // Extract all iteration paths recursively
-      const iterations = new Set<string>();
-
-      const extractIterations = (node: any, parentPath: string = '') => {
+      // Helper to extract iterations recursively
+      const extractIterations = (node: any, parentPath: string = '', projectName: string = '') => {
         const currentPath = parentPath ? `${parentPath}\\${node.name}` : node.name;
 
         // Skip the root "Iteration" node itself, but add child iterations
+        // Prefix with project name for clarity
         if (parentPath !== '') {
-          iterations.add(currentPath);
+          const fullPath = projectName ? `${projectName}\\${currentPath}` : currentPath;
+          allIterations.add(fullPath);
         }
 
         // Recursively process children
         if (node.children && Array.isArray(node.children)) {
-          node.children.forEach((child: any) => extractIterations(child, currentPath));
+          node.children.forEach((child: any) => extractIterations(child, currentPath, projectName));
         }
       };
 
-      extractIterations(response.data);
+      // Fetch iterations for each project
+      for (const project of projects) {
+        try {
+          const url = `https://dev.azure.com/${this.organization}/${encodeURIComponent(project.name)}/_apis/wit/classificationnodes/Iterations?$depth=10&api-version=7.1`;
+          const response = await axios.get(url, {
+            headers: {
+              Authorization: this.orgClient.defaults.headers.Authorization as string,
+              'Content-Type': 'application/json',
+            },
+          });
 
-      const iterationArray = Array.from(iterations).sort();
-      console.log('[ADO getIterations] Found', iterationArray.length, 'iterations');
+          extractIterations(response.data, '', project.name);
+        } catch (err: any) {
+          console.warn(`[ADO getIterations] Could not fetch iterations for project ${project.name}:`, err.message);
+        }
+      }
+
+      const iterationArray = Array.from(allIterations).sort();
+      console.log('[ADO getIterations] Found', iterationArray.length, 'iterations across all projects');
       return iterationArray;
     } catch (error) {
       console.error('[ADO getIterations] Error fetching iterations:', error);

@@ -20,14 +20,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!project) {
-      console.warn('[ADO Iterations API] No project configured, returning empty array');
-      return NextResponse.json({ iterations: [] });
-    }
-
     const adoService = new ADOService(organization, pat, project);
     const iterations = await adoService.getIterations();
-    console.log('[ADO Iterations API] Found iterations:', iterations.length);
+    console.log('[ADO Iterations API] Found iterations across all projects:', iterations.length);
 
     return NextResponse.json({ iterations });
   } catch (error: any) {
