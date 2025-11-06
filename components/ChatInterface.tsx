@@ -79,11 +79,26 @@ export default function ChatInterface() {
   const [conversationInitialized, setConversationInitialized] = useState(false);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
 
-  // Auto-create conversation on mount
+  // Auto-create conversation on mount and cleanup old conversations
   useEffect(() => {
     if (!activeConversationId && !conversationInitialized) {
       setConversationInitialized(true);
       createNewConversation();
+
+      // Cleanup conversations older than 5 days
+      fetch('/api/conversations/cleanup', {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.deletedCount > 0) {
+            console.log(`[ChatInterface] Cleaned up ${data.deletedCount} old conversations`);
+            // Refresh sidebar to remove deleted conversations
+            setSidebarRefreshKey(Date.now());
+          }
+        })
+        .catch(err => console.error('[ChatInterface] Cleanup failed:', err));
     }
   }, [activeConversationId, conversationInitialized]);
 

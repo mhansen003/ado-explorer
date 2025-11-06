@@ -220,8 +220,27 @@ export default function ConversationSidebar({
                             {conversation.lastMessagePreview}
                           </div>
                         )}
-                        <div className="text-xs text-rh-text-muted mt-1">
-                          {conversation.messageCount} messages
+                        <div className="text-xs text-rh-text-muted mt-1 flex items-center gap-2">
+                          <span>{conversation.messageCount} messages</span>
+                          {(() => {
+                            const age = Date.now() - conversation.updatedAt;
+                            const daysOld = Math.floor(age / (24 * 60 * 60 * 1000));
+                            const daysLeft = 5 - daysOld;
+                            if (daysLeft <= 2 && daysLeft > 0) {
+                              return (
+                                <span className="text-orange-400">
+                                  • Deletes in {daysLeft}d
+                                </span>
+                              );
+                            } else if (daysLeft <= 0) {
+                              return (
+                                <span className="text-red-400">
+                                  • Archiving soon
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </div>
                       <button
