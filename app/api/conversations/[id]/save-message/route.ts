@@ -33,7 +33,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { content, role } = body;
+    const { content, role, metadata } = body;
 
     if (!content || !role) {
       return NextResponse.json(
@@ -76,6 +76,17 @@ export async function POST(
       role,
       content
     );
+
+    // If metadata provided (workItems, listItems, etc.), update the message with metadata
+    if (metadata && Object.keys(metadata).length > 0) {
+      message.metadata = metadata;
+      // Re-store the full message with metadata (overwrites the simple version)
+      await redis.zAdd(`conversation:${conversationId}:messages`, {
+        score: message.timestamp,
+        value: JSON.stringify(message),
+      });
+      console.log('[Save Message API] Saved message with metadata:', Object.keys(metadata));
+    }
 
     return NextResponse.json({
       success: true,

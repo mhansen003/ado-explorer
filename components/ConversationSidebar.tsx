@@ -200,12 +200,16 @@ export default function ConversationSidebar({
                   <button
                     key={conversation.id}
                     onClick={() => onSelectConversation(conversation.id)}
-                    className={`w-full px-4 py-3 text-left hover:bg-rh-darker transition-colors group ${
+                    className={`w-full px-4 py-3 text-left hover:bg-rh-darker transition-colors group relative ${
                       conversation.id === currentConversationId
-                        ? 'bg-rh-darker border-l-2 border-rh-green'
+                        ? 'bg-rh-green/10 border-l-4 border-rh-green'
                         : ''
                     }`}
                   >
+                    {/* Active indicator dot */}
+                    {conversation.id === currentConversationId && (
+                      <div className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-rh-green rounded-full animate-pulse" />
+                    )}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-rh-text truncate">

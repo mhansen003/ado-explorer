@@ -134,17 +134,28 @@ Type **/help** for more info`,
     }
   };
 
-  // Helper: Save message to conversation
-  const saveMessageToConversation = async (role: 'user' | 'assistant', content: string) => {
+  // Helper: Save message to conversation with full data (workItems, listItems, etc.)
+  const saveMessageToConversation = async (
+    role: 'user' | 'assistant',
+    content: string,
+    metadata?: {
+      workItems?: any[];
+      listItems?: any[];
+      conversationalAnswer?: string;
+      suggestions?: string[];
+      chartData?: any;
+      [key: string]: any;
+    }
+  ) => {
     if (!activeConversationId) return;
 
     try {
       await fetch(`/api/conversations/${activeConversationId}/save-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, content }),
+        body: JSON.stringify({ role, content, metadata }),
       });
-      console.log('[ChatInterface] Saved message to conversation');
+      console.log('[ChatInterface] Saved message to conversation', metadata ? 'with metadata' : '');
     } catch (error) {
       console.error('[ChatInterface] Failed to save message:', error);
     }
@@ -944,14 +955,17 @@ Type **/help** for more info`,
               timestamp: new Date(msg.timestamp),
             };
           } else if (msg.role === 'assistant') {
-            // Assistant messages should be displayed as results with conversationalAnswer
+            // Assistant messages - restore full data from metadata
             return {
               id: msg.id,
               type: 'results',
-              content: '', // Content is shown in conversationalAnswer
+              content: msg.content,
               timestamp: new Date(msg.timestamp),
-              conversationalAnswer: msg.content,
-              workItems: [], // Empty for now - would need to be stored in metadata
+              conversationalAnswer: msg.metadata?.conversationalAnswer || msg.content,
+              workItems: msg.metadata?.workItems || [],
+              listItems: msg.metadata?.listItems,
+              suggestions: msg.metadata?.suggestions,
+              responseType: msg.metadata?.responseType,
             };
           } else {
             // System messages
@@ -1041,9 +1055,9 @@ Type **/help** for more info`,
           };
           setMessages(prev => [...prev.slice(0, -1), resultMessage]);
 
-          // Save to conversation
-          const summary = `Found ${result.count} ${collectionDetection.type}: ${listItems.slice(0, 10).map((item: any) => item.value).join(', ')}${result.count > 10 ? '...' : ''}`;
-          saveMessageToConversation('assistant', summary);
+          // Save to conversation WITH listItems data
+          const summary = `Found ${result.count} ${collectionDetection.type}`;
+          saveMessageToConversation('assistant', summary, { listItems });
 
           return; // Exit early - don't go to AI prompt
         } catch (error: any) {
@@ -1128,9 +1142,13 @@ Type **/help** for more info`,
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
 
-        // Save AI response to conversation if available
+        // Save AI response WITH workItems and suggestions
         if (data.conversationalAnswer) {
-          saveMessageToConversation('assistant', data.conversationalAnswer);
+          saveMessageToConversation('assistant', data.conversationalAnswer, {
+            workItems: data.workItems,
+            suggestions: data.suggestions,
+            responseType: data.responseType,
+          });
         }
       } catch (error: any) {
         const errorMessage: Message = {
@@ -1305,9 +1323,11 @@ Just type naturally - I understand questions like:
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
 
-        // Save query result to conversation
+        // Save query result WITH workItems
         const resultSummary = `Executed query "${queryName}" - found ${data.workItems?.length || 0} work items${filterSummary}`;
-        saveMessageToConversation('assistant', resultSummary);
+        saveMessageToConversation('assistant', resultSummary, {
+          workItems: data.workItems,
+        });
       } catch (error: any) {
         console.error('Query error:', error.message);
         const errorMessage: Message = {
@@ -1358,9 +1378,11 @@ Just type naturally - I understand questions like:
       };
       setMessages(prev => [...prev.slice(0, -1), resultMessage]);
 
-      // Save slash command result to conversation
+      // Save slash command result WITH workItems
       const resultSummary = `${command}${searchScope} returned ${data.workItems?.length || 0} work items${filterSummary}`;
-      saveMessageToConversation('assistant', resultSummary);
+      saveMessageToConversation('assistant', resultSummary, {
+        workItems: data.workItems,
+      });
     } catch (error: any) {
       // Show error message
       console.error('API error:', error.message);
