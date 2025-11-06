@@ -70,22 +70,22 @@ export async function POST(
       );
     }
 
-    // Add message
-    const message = await conversationService.addMessage(
-      conversationId,
-      role,
-      content
-    );
+    // Create message with metadata if provided
+    // DO NOT use addMessage if we have metadata, to avoid duplicate entries
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const timestamp = Date.now();
 
-    // If metadata provided (workItems, listItems, etc.), update the message with metadata
+    const message: any = {
+      id: messageId,
+      role,
+      content,
+      timestamp,
+    };
+
+    // Add metadata if provided
     if (metadata && Object.keys(metadata).length > 0) {
       message.metadata = metadata;
-      // Re-store the full message with metadata (overwrites the simple version)
-      await redis.zAdd(`conversation:${conversationId}:messages`, {
-        score: message.timestamp,
-        value: JSON.stringify(message),
-      });
-      console.log('[Save Message API] Saved message with metadata:', {
+      console.log('[Save Message API] Creating message with metadata:', {
         keys: Object.keys(metadata),
         hasWorkItems: !!metadata.workItems,
         workItemsCount: metadata.workItems?.length || 0,
@@ -93,8 +93,23 @@ export async function POST(
         listItemsCount: metadata.listItems?.length || 0,
       });
     } else {
-      console.log('[Save Message API] No metadata provided for this message');
+      console.log('[Save Message API] Creating message without metadata');
     }
+
+    // Save message to Redis (single save, no duplicates)
+    await redis.zAdd(`conversation:${conversationId}:messages`, {
+      score: timestamp,
+      value: JSON.stringify(message),
+    });
+
+    // Update conversation metadata (increment message count, etc.)
+    const newMessageCount = conversation.messageCount + 1;
+    const lastMessagePreview = content.substring(0, 100);
+
+    await conversationService.updateConversation(conversationId, {
+      messageCount: newMessageCount,
+      lastMessagePreview,
+    });
 
     // Auto-generate/update title from user messages
     if (role === 'user') {
