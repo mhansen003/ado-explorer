@@ -1226,6 +1226,10 @@ Just type naturally - I understand questions like:
           workItems: data.workItems || [],
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
+
+        // Save query result to conversation
+        const resultSummary = `Executed query "${queryName}" - found ${data.workItems?.length || 0} work items${filterSummary}`;
+        saveMessageToConversation('assistant', resultSummary);
       } catch (error: any) {
         console.error('Query error:', error.message);
         const errorMessage: Message = {
@@ -1275,6 +1279,10 @@ Just type naturally - I understand questions like:
         workItems: data.workItems || [],
       };
       setMessages(prev => [...prev.slice(0, -1), resultMessage]);
+
+      // Save slash command result to conversation
+      const resultSummary = `${command}${searchScope} returned ${data.workItems?.length || 0} work items${filterSummary}`;
+      saveMessageToConversation('assistant', resultSummary);
     } catch (error: any) {
       // Show error message
       console.error('API error:', error.message);
