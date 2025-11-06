@@ -88,6 +88,28 @@ export async function POST(
       console.log('[Save Message API] Saved message with metadata:', Object.keys(metadata));
     }
 
+    // Auto-generate title from first user message
+    if (role === 'user' && conversation.messageCount === 0) {
+      const now = new Date();
+      const dateTime = now.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      // Generate title from first message (max 50 chars) + timestamp
+      let title = content.trim();
+      if (title.length > 50) {
+        title = title.substring(0, 47) + '...';
+      }
+      title = `${title} (${dateTime})`;
+
+      await conversationService.updateConversation(conversationId, { title });
+      console.log('[Save Message API] Auto-generated title:', title);
+    }
+
     return NextResponse.json({
       success: true,
       message,

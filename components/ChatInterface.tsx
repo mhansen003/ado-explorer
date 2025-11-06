@@ -936,6 +936,9 @@ Type **/help** for more info`,
   };
 
   const handleSelectConversation = async (conversationId: string) => {
+    // Clear messages immediately to avoid showing old conversation
+    setMessages([]);
+
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
         credentials: 'include',
