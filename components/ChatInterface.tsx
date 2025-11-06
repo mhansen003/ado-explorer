@@ -919,6 +919,27 @@ Type **/help** for more info`,
   const handleNewConversation = async () => {
     // Create a new conversation in Redis immediately
     try {
+      // First, check conversation count and delete oldest if needed
+      const listResponse = await fetch('/api/conversations', {
+        credentials: 'include',
+      });
+      const listData = await listResponse.json();
+
+      if (listData.success && listData.conversations.length >= 15) {
+        // Sort by updatedAt to find oldest
+        const sorted = [...listData.conversations].sort((a, b) => a.updatedAt - b.updatedAt);
+        const oldest = sorted[0];
+
+        console.log(`[ChatInterface] Conversation limit reached (${listData.conversations.length}). Deleting oldest:`, oldest.id);
+
+        // Delete the oldest conversation
+        await fetch(`/api/conversations/${oldest.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+      }
+
+      // Now create the new conversation
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

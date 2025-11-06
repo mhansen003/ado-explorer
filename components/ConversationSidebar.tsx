@@ -29,6 +29,8 @@ export default function ConversationSidebar({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteTitle, setConfirmDeleteTitle] = useState<string>('');
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -90,6 +92,31 @@ export default function ConversationSidebar({
   const handleCancelDelete = () => {
     setConfirmDeleteId(null);
     setConfirmDeleteTitle('');
+  };
+
+  const handleDeleteAll = async () => {
+    if (conversations.length === 0) return;
+
+    setIsDeletingAll(true);
+    try {
+      // Delete all conversations
+      const deletePromises = conversations.map(conv =>
+        fetch(`/api/conversations/${conv.id}`, { method: 'DELETE' })
+      );
+      await Promise.all(deletePromises);
+
+      // Clear local state
+      setConversations([]);
+      setShowDeleteAllConfirm(false);
+
+      // Create a new conversation
+      onNewConversation();
+    } catch (error) {
+      console.error('Failed to delete all conversations:', error);
+      alert('Failed to delete some conversations. Please try again.');
+    } finally {
+      setIsDeletingAll(false);
+    }
   };
 
   // Group conversations by date
@@ -165,6 +192,14 @@ export default function ConversationSidebar({
             title="New conversation"
           >
             <Plus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowDeleteAllConfirm(true)}
+            disabled={conversations.length === 0}
+            className="p-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Delete all conversations"
+          >
+            <Trash2 className="w-4 h-4 text-red-400" />
           </button>
           {onToggleCollapse && (
             <button
@@ -314,6 +349,76 @@ export default function ConversationSidebar({
                   <>
                     <Trash2 className="w-4 h-4" />
                     Delete Conversation
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Confirmation Modal */}
+      {showDeleteAllConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+          <div className="bg-rh-card border-2 border-red-500/30 rounded-xl max-w-md w-full shadow-2xl animate-scale-in">
+            {/* Header with warning icon */}
+            <div className="flex items-start gap-4 p-6 border-b border-rh-border">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-rh-text mb-1">
+                  Delete All Conversations?
+                </h3>
+                <p className="text-sm text-rh-text-muted">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="bg-rh-darker border border-rh-border rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium text-rh-text mb-2">
+                  You are about to delete <span className="font-bold text-red-400">{conversations.length}</span> conversations:
+                </p>
+                <ul className="text-xs text-rh-text-muted space-y-1 max-h-32 overflow-y-auto">
+                  {conversations.slice(0, 5).map((conv, idx) => (
+                    <li key={conv.id}>• {conv.title}</li>
+                  ))}
+                  {conversations.length > 5 && (
+                    <li className="text-rh-text-secondary italic">... and {conversations.length - 5} more</li>
+                  )}
+                </ul>
+              </div>
+              <p className="text-sm text-rh-text-muted">
+                All messages in all conversations will be permanently deleted. A new empty conversation will be created.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-rh-border bg-rh-darker/50">
+              <button
+                onClick={() => setShowDeleteAllConfirm(false)}
+                disabled={isDeletingAll}
+                className="px-4 py-2 text-sm font-medium text-rh-text bg-rh-dark border border-rh-border rounded-lg hover:bg-rh-darker transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={isDeletingAll}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isDeletingAll ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Deleting All...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete All ({conversations.length})
                   </>
                 )}
               </button>
