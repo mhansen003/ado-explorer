@@ -44,30 +44,38 @@ SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [conditi
 - System.AreaPath - Team/Area (use UNDER for hierarchical search)
 
 ## ⚠️ CRITICAL - Sprint/Iteration Path Rules (MUST FOLLOW):
-AZURE DEVOPS DOES NOT ALLOW CONTAINS OPERATOR ON ITERATIONPATH!
+AZURE DEVOPS REQUIRES EXACT PATHS FOR ITERATIONPATH!
 
 **ONLY THESE OPERATORS ARE ALLOWED FOR System.IterationPath:**
 1. UNDER - For hierarchical matching (RECOMMENDED)
 2. = - For exact path match
+3. <> '' - For "any sprint" filter
 
 **NEVER USE:**
 - ❌ CONTAINS - Will cause 400 error!
-- ❌ Multiple CONTAINS on IterationPath
-- ❌ Partial path matching with CONTAINS
+- ❌ Partial paths - Will cause 400 error!
+- ❌ Made-up paths - Will cause 400 error!
+
+**CRITICAL: PATH VALIDATION**
+- You will be given a list of available sprints with their EXACT paths
+- ONLY use paths that appear in that list EXACTLY
+- If the user asks for a sprint that doesn't exist (e.g., "marketing sprints" when only "Triad Sprint" exists):
+  - ✅ Use generic filter: [System.IterationPath] <> ''
+  - ✅ Or search System.Title/System.Description for the term
+  - ❌ DO NOT create a partial path like 'ProjectName\\Triad Sprint'
+  - ❌ DO NOT guess at paths
 
 **Sprint Query Patterns:**
 
-For "current sprint" or "latest sprint":
-✅ Use: [System.IterationPath] UNDER 'ProjectName'
-(Returns all items in all sprints, then filter by date in application)
+For "current sprint":
+✅ Use the exact current sprint path from the context: [System.IterationPath] UNDER 'Next Gen LOS\\Triad Sprint 8'
 
-For "sprint in Marketing" or "Marketing sprint":
-✅ Use: [System.IterationPath] UNDER 'ProjectName\\\\Marketing Experience'
-(UNDER matches the path and all children - note the double backslashes)
+For "sprint X" where X is in the available list:
+✅ Use the exact path: [System.IterationPath] UNDER 'Next Gen LOS\\Triad Sprint 15'
 
-For specific sprint by name:
-✅ Use: [System.IterationPath] = 'ProjectName\\\\Marketing Experience\\\\Sprint 23'
-(Exact match to full path)
+For "X sprints" where X doesn't exist in available sprints:
+✅ Use generic sprint filter: [System.IterationPath] <> ''
+❌ DO NOT create 'ProjectName\\X Sprint' - this path doesn't exist!
 
 **Sprint paths use backslash separator:** ProjectName\\AreaPath\\SprintName
 Example: Next Gen LOS\\Marketing Experience\\MX Sprint 2025.11.12 (23)
@@ -398,7 +406,7 @@ No sprint information available. Use generic sprint query: [System.IterationPath
   }
 
   const currentSprint = availableSprints.find(s => s.timeFrame === 'current');
-  const recentSprints = availableSprints.slice(0, 5);
+  const recentSprints = availableSprints.slice(0, 10); // Show top 10 instead of 5
 
   let context = `\n\n**Sprint Context for ${projectName}:**\n`;
 
@@ -408,22 +416,37 @@ No sprint information available. Use generic sprint query: [System.IterationPath
   }
 
   if (recentSprints.length > 0) {
-    context += `\nAvailable Sprints:\n`;
+    context += `\nAvailable Sprints (showing ${recentSprints.length} of ${availableSprints.length} total):\n`;
     recentSprints.forEach(sprint => {
       const marker = sprint.timeFrame === 'current' ? ' (CURRENT)' : '';
       context += `- "${sprint.name}"${marker} → Path: ${sprint.path}\n`;
     });
+
+    // Show unique sprint name patterns to help AI understand naming
+    const uniqueNames = new Set(availableSprints.map(s => {
+      // Extract the base name pattern (e.g., "Triad Sprint" from "Triad Sprint 15")
+      const parts = s.name.split(/\s+/);
+      return parts.slice(0, -1).join(' '); // Remove last part (usually a number)
+    }));
+
+    if (uniqueNames.size > 0 && uniqueNames.size < availableSprints.length) {
+      context += `\nSprint Name Patterns: ${Array.from(uniqueNames).filter(n => n).join(', ')}\n`;
+    }
   }
 
-  context += `\n**For sprint queries, use UNDER operator with the full path:**\n`;
-  context += `Example: [System.IterationPath] UNDER '${currentSprint?.path || recentSprints[0]?.path || projectName}'\n`;
-  context += `\n⚠️ NEVER use CONTAINS with IterationPath!`;
+  context += `\n**CRITICAL RULES for Sprint Queries:**\n`;
+  context += `1. ONLY use paths that EXACTLY match the paths listed above\n`;
+  context += `2. NEVER create partial paths (e.g., 'Project\\Triad Sprint' is INVALID)\n`;
+  context += `3. NEVER use CONTAINS with IterationPath\n`;
+  context += `4. If user asks for a sprint name that doesn't exist (e.g., "marketing"), use generic filter: [System.IterationPath] <> ''\n`;
+  context += `\nExample of valid query: [System.IterationPath] UNDER '${currentSprint?.path || recentSprints[0]?.path || projectName}'\n`;
 
   return context;
 }
 
 /**
  * Validate and fix WIQL query to prevent CONTAINS on IterationPath
+ * AND validate that UNDER paths actually exist
  * This is a safety check in case the AI still generates invalid queries
  */
 export function validateAndFixWiqlQuery(
@@ -433,12 +456,111 @@ export function validateAndFixWiqlQuery(
 ): { query: string; wasFixed: boolean; fixReason?: string } {
   // Check if query has CONTAINS with IterationPath (case insensitive)
   const containsIterationPathRegex = /\[System\.IterationPath\]\s+CONTAINS\s+'([^']+)'/gi;
-  const matches = [...wiqlQuery.matchAll(containsIterationPathRegex)];
+  const containsMatches = [...wiqlQuery.matchAll(containsIterationPathRegex)];
 
-  if (matches.length === 0) {
-    // Query is valid
+  // Check if query has UNDER with IterationPath and validate the path exists
+  const underIterationPathRegex = /\[System\.IterationPath\]\s+UNDER\s+'([^']+)'/gi;
+  const underMatches = [...wiqlQuery.matchAll(underIterationPathRegex)];
+
+  if (containsMatches.length === 0 && underMatches.length === 0) {
+    // Query is valid (or doesn't have iteration path filters)
     return { query: wiqlQuery, wasFixed: false };
   }
+
+  // Handle CONTAINS matches (always invalid)
+  if (containsMatches.length > 0) {
+    return fixContainsMatches(wiqlQuery, containsMatches, availableSprints, projectName);
+  }
+
+  // Handle UNDER matches - validate paths exist
+  if (underMatches.length > 0) {
+    return validateUnderPaths(wiqlQuery, underMatches, availableSprints, projectName);
+  }
+
+  return { query: wiqlQuery, wasFixed: false };
+}
+
+/**
+ * Validate that UNDER paths actually exist in available sprints
+ */
+function validateUnderPaths(
+  wiqlQuery: string,
+  matches: RegExpMatchArray[],
+  availableSprints: Array<{ name: string; path: string; timeFrame?: string }> | undefined,
+  projectName: string
+): { query: string; wasFixed: boolean; fixReason?: string } {
+  if (!availableSprints || availableSprints.length === 0) {
+    // Can't validate without sprint data
+    return { query: wiqlQuery, wasFixed: false };
+  }
+
+  let fixedQuery = wiqlQuery;
+  let wasFixed = false;
+  let fixReason = '';
+
+  for (const match of matches) {
+    const fullMatch = match[0];
+    const pathInQuery = match[1];
+
+    // Check if this path exists in available sprints
+    const pathExists = availableSprints.some(s => s.path === pathInQuery);
+
+    if (pathExists) {
+      // Path is valid, continue
+      console.log(`[WIQL Validator] ✅ Valid path: ${pathInQuery}`);
+      continue;
+    }
+
+    // Path doesn't exist - try to fix it
+    console.warn(`[WIQL Validator] ❌ Invalid path: ${pathInQuery}`);
+
+    // Extract search term from the invalid path
+    const pathParts = pathInQuery.split('\\');
+    const searchTerm = pathParts[pathParts.length - 1]; // Last part of path
+
+    // Try to find a sprint that matches the search term
+    const matchingSprints = availableSprints.filter(s =>
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.path.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (matchingSprints.length === 1) {
+      // Found exact match, use it
+      const replacement = `[System.IterationPath] UNDER '${matchingSprints[0].path}'`;
+      fixedQuery = fixedQuery.replace(fullMatch, replacement);
+      fixReason = `Fixed invalid path '${pathInQuery}' to existing sprint: ${matchingSprints[0].path}`;
+      wasFixed = true;
+      console.log(`[WIQL Validator] ✅ Fixed to: ${matchingSprints[0].path}`);
+    } else if (matchingSprints.length > 1) {
+      // Multiple matches - use the first one (or current sprint if available)
+      const currentSprint = matchingSprints.find(s => s.timeFrame === 'current') || matchingSprints[0];
+      const replacement = `[System.IterationPath] UNDER '${currentSprint.path}'`;
+      fixedQuery = fixedQuery.replace(fullMatch, replacement);
+      fixReason = `Fixed invalid path '${pathInQuery}' to sprint: ${currentSprint.path} (found ${matchingSprints.length} matches)`;
+      wasFixed = true;
+      console.log(`[WIQL Validator] ✅ Fixed to: ${currentSprint.path} (${matchingSprints.length} matches)`);
+    } else {
+      // No matches found - use generic sprint filter
+      const replacement = `[System.IterationPath] <> ''`;
+      fixedQuery = fixedQuery.replace(fullMatch, replacement);
+      fixReason = `Fixed invalid path '${pathInQuery}' to generic sprint filter (no matching sprints found)`;
+      wasFixed = true;
+      console.log(`[WIQL Validator] ⚠️ No matches, using generic filter`);
+    }
+  }
+
+  return { query: fixedQuery, wasFixed, fixReason };
+}
+
+/**
+ * Fix CONTAINS matches (always invalid)
+ */
+function fixContainsMatches(
+  wiqlQuery: string,
+  matches: RegExpMatchArray[],
+  availableSprints: Array<{ name: string; path: string; timeFrame?: string }> | undefined,
+  projectName: string
+): { query: string; wasFixed: boolean; fixReason?: string } {
 
   console.warn('[WIQL Validator] Found invalid CONTAINS on IterationPath, attempting to fix...');
 
