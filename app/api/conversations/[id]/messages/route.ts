@@ -12,6 +12,7 @@ import { SendMessageRequest, ADOCollection } from '@/types/chat';
 import Anthropic from '@anthropic-ai/sdk';
 import { detectCollectionQuery, fetchCollectionData, formatCollectionContext } from '@/lib/collection-detector';
 import { generateSuggestions } from '@/lib/suggestion-generator';
+import { validateResponse, quickValidate } from '@/lib/quality-check';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -270,11 +271,63 @@ When you receive collection_data:
           // For now, we'll rely on Claude to mention the data in its response
           console.log('[Messages API] Streaming completed, collections:', collections.length);
 
-          // Save assistant response
+          // **NEW: Quality Check - Validate response against actual data**
+          let finalResponse = fullResponse;
+          console.log('[Messages API] Running quality check on response...');
+
+          // Send verifying event to UI
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: 'verifying' })}\n\n`)
+          );
+
+          try {
+            // Quick pre-check to see if validation is needed
+            const quickCheck = quickValidate(fullResponse, collectionContext);
+
+            if (quickCheck.needsValidation) {
+              console.log('[Messages API] Quick check detected issue:', quickCheck.reason);
+              console.log('[Messages API] Running full AI validation...');
+
+              // Run full AI validation
+              const validationResult = await validateResponse({
+                userQuery: content,
+                aiResponse: fullResponse,
+                actualData: collectionContext,
+                collectionType: collectionData?.type,
+                collectionData: collectionData?.data,
+              });
+
+              if (!validationResult.isAccurate && validationResult.correctedResponse) {
+                console.log('[Messages API] ❌ Response inaccurate, using corrected version');
+                console.log('[Messages API] Issues found:', validationResult.issues);
+
+                finalResponse = validationResult.correctedResponse;
+
+                // Send correction event to UI
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({
+                    type: 'correction',
+                    correctedContent: finalResponse,
+                    issues: validationResult.issues,
+                  })}\n\n`)
+                );
+              } else {
+                console.log('[Messages API] ✅ Response validated as accurate');
+              }
+            } else {
+              console.log('[Messages API] ✅ Quick check passed, skipping full validation');
+            }
+          } catch (qualityCheckError: any) {
+            console.error('[Messages API] Quality check failed:', qualityCheckError.message);
+            // Continue with original response if quality check fails
+            console.log('[Messages API] Using original response due to quality check error');
+          }
+
+          // Save assistant response (corrected version if validation found issues)
           const assistantMessage = await conversationService.addMessage(
             conversationId,
             'assistant',
-            fullResponse
+            finalResponse
           );
 
           // Auto-generate title if this is the 3rd message

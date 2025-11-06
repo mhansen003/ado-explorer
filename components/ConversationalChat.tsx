@@ -20,6 +20,7 @@ export default function ConversationalChat() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [hasAutoCreated, setHasAutoCreated] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Auto-create a conversation if none exists
   useEffect(() => {
@@ -162,11 +163,21 @@ Just ask me anything about your Azure DevOps organization in plain English!`,
 
             if (data.type === 'token') {
               setStreamingContent(prev => prev + data.content);
+            } else if (data.type === 'verifying') {
+              // Quality check started
+              console.log('Quality check in progress...');
+              setIsVerifying(true);
+            } else if (data.type === 'correction') {
+              // Response was corrected by quality check
+              console.log('Response corrected:', data.issues);
+              setStreamingContent(data.correctedContent);
+              setIsVerifying(false);
             } else if (data.type === 'suggestions') {
               // Received AI-generated suggestions
               console.log('Received suggestions:', data.suggestions);
               setStreamingSuggestions(data.suggestions || []);
             } else if (data.type === 'done') {
+              setIsVerifying(false);
               // Replace temp user message with real one
               setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== userMessage.id);
@@ -249,6 +260,7 @@ Just ask me anything about your Azure DevOps organization in plain English!`,
               streamingContent={streamingContent}
               streamingSuggestions={streamingSuggestions}
               onSuggestionClick={handleSuggestionClick}
+              isVerifying={isVerifying}
             />
             <MessageInput
               onSendMessage={handleSendMessage}

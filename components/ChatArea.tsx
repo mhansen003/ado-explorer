@@ -17,6 +17,7 @@ interface ChatAreaProps {
   streamingContent?: string;
   streamingSuggestions?: string[];
   onSuggestionClick?: (suggestion: string) => void;
+  isVerifying?: boolean;
 }
 
 export default function ChatArea({
@@ -25,6 +26,7 @@ export default function ChatArea({
   streamingContent = '',
   streamingSuggestions = [],
   onSuggestionClick,
+  isVerifying = false,
 }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -178,7 +180,14 @@ export default function ChatArea({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm font-medium text-rh-text">Assistant</span>
-              <span className="text-xs text-rh-text-muted">typing...</span>
+              {isVerifying ? (
+                <span className="text-xs text-orange-400 flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
+                  verifying response before sending...
+                </span>
+              ) : (
+                <span className="text-xs text-rh-text-muted">typing...</span>
+              )}
             </div>
             <div className="rounded-lg p-4 bg-rh-dark border border-rh-border">
               <div className="prose prose-invert prose-sm max-w-none
