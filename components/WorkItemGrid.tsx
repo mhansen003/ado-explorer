@@ -9,17 +9,39 @@ import { formatDatePST } from '@/lib/date-utils';
 
 interface WorkItemGridProps {
   workItem: WorkItem;
+  selected?: boolean;
+  onToggleSelect?: (workItemId: string) => void;
 }
 
-export default function WorkItemGrid({ workItem }: WorkItemGridProps) {
+export default function WorkItemGrid({ workItem, selected = false, onToggleSelect }: WorkItemGridProps) {
   const [showDetail, setShowDetail] = useState(false);
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleSelect) {
+      onToggleSelect(workItem.id);
+    }
+  };
 
   return (
     <>
       <tr
         onClick={() => setShowDetail(true)}
-        className="border-b border-rh-border hover:bg-rh-border/30 cursor-pointer transition-colors"
+        className={`border-b border-rh-border hover:bg-rh-border/30 cursor-pointer transition-colors ${
+          selected ? 'bg-rh-green/10' : ''
+        }`}
       >
+        {/* Checkbox */}
+        {onToggleSelect && (
+          <td className="px-3 py-2 w-8" onClick={handleCheckboxClick}>
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => {}}
+              className="w-4 h-4 rounded border-rh-border bg-rh-bg text-rh-green focus:ring-rh-green focus:ring-offset-rh-bg cursor-pointer"
+            />
+          </td>
+        )}
         {/* ID */}
         <td className="px-3 py-2 text-xs font-mono text-rh-green whitespace-nowrap">
           {workItem.id}
