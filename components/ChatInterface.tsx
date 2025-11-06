@@ -7,6 +7,7 @@ import CommandAutocomplete from './CommandAutocomplete';
 import TemplateInputBuilder from './TemplateInputBuilder';
 import FilterBar from './FilterBar';
 import ChangelogModal from './ChangelogModal';
+import ConversationSidebar from './ConversationSidebar';
 import { Message, Command, DynamicSuggestion, GlobalFilters, ViewPreferences, CommandTemplate } from '@/types';
 import { COMMAND_TEMPLATES } from '@/lib/command-templates';
 
@@ -70,6 +71,36 @@ export default function ChatInterface() {
 
   // Filter bar expansion state
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+
+  // Conversation state
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [showConversationSidebar, setShowConversationSidebar] = useState(true);
+
+  // Initialize with welcome message on first load
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: Date.now().toString(),
+        type: 'system',
+        content: `🤖 Welcome to ADO Explorer!
+
+✨ **[Click here to see the latest features](#changelog)** ✨
+
+💬 **Natural Language Search:**
+Just type naturally! Examples:
+• "show me all active bugs"
+• "find tasks assigned to john"
+• "ticket #12345"
+• "what are the P1 items?"
+
+**Tip:** Press ↑ (up arrow) to recall previous commands
+
+Type **/help** for more info`,
+        timestamp: new Date(),
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, []); // Only run once on mount
 
   useEffect(() => {
     // Don't override if Tab autocomplete is showing
@@ -703,17 +734,45 @@ Type **/help** for more info`,
   const handleSend = async () => {
     if (!input.trim()) return;
 
+    const trimmedInput = input.trim();
+
+    // Auto-create conversation if none exists
+    if (!activeConversationId) {
+      try {
+        const response = await fetch('/api/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: trimmedInput.slice(0, 50), // Use first 50 chars as initial title
+            model: 'claude-sonnet-4',
+            systemPrompt: 'You are a helpful AI assistant integrated with Azure DevOps. You help users manage work items, understand project status, and provide insights.',
+          }),
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setActiveConversationId(data.conversation.id);
+        }
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+        // Continue anyway - UI will still work without persistence
+      }
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: input,
+      content: trimmedInput,
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
 
+    // Save user message to conversation (non-blocking)
+    saveMessageToConversation(trimmedInput, 'user');
+
     // Add to command history (avoid duplicates at the end)
-    const trimmedInput = input.trim();
     setCommandHistory(prev => {
       const filtered = prev.filter(cmd => cmd !== trimmedInput);
       const newHistory = [...filtered, trimmedInput];
@@ -738,8 +797,28 @@ Type **/help** for more info`,
     await processCommand(trimmedInput);
   };
 
-  const handleClearChat = () => {
-    // Clear and reshow welcome message
+  // Helper to save message to active conversation (non-blocking)
+  const saveMessageToConversation = async (content: string, role: 'user' | 'assistant') => {
+    if (!activeConversationId) return;
+
+    try {
+      await fetch(`/api/conversations/${activeConversationId}/save-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          role,
+        }),
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Failed to save message to conversation:', error);
+      // Don't throw - this is best-effort persistence
+    }
+  };
+
+  const handleClearChat = async () => {
+    // Clear and show welcome message
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       type: 'system',
@@ -763,6 +842,87 @@ Type **/help** for more info`,
     setMessages([welcomeMessage]);
     setInput('');
     setShowAutocomplete(false);
+
+    // Start a new conversation (will be created on first message)
+    setActiveConversationId(null);
+  };
+
+  // Conversation handlers
+  const handleNewConversation = () => {
+    // Clear and show welcome message
+    const welcomeMessage: Message = {
+      id: Date.now().toString(),
+      type: 'system',
+      content: `🤖 Welcome to ADO Explorer!
+
+✨ **[Click here to see the latest features](#changelog)** ✨
+
+💬 **Natural Language Search:**
+Just type naturally! Examples:
+• "show me all active bugs"
+• "find tasks assigned to john"
+• "ticket #12345"
+• "what are the P1 items?"
+
+**Tip:** Press ↑ (up arrow) to recall previous commands
+
+Type **/help** for more info`,
+      timestamp: new Date(),
+    };
+
+    setMessages([welcomeMessage]);
+    setInput('');
+    setShowAutocomplete(false);
+
+    // Clear conversation ID (will be created on first message)
+    setActiveConversationId(null);
+  };
+
+  const handleSelectConversation = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setActiveConversationId(conversationId);
+
+        // Convert conversation messages to UI Message format
+        const uiMessages: Message[] = data.messages.map((msg: any) => {
+          if (msg.role === 'user') {
+            return {
+              id: msg.id,
+              type: 'user',
+              content: msg.content,
+              timestamp: new Date(msg.timestamp),
+            };
+          } else if (msg.role === 'assistant') {
+            // Assistant messages should be displayed as results with conversationalAnswer
+            return {
+              id: msg.id,
+              type: 'results',
+              content: '', // Content is shown in conversationalAnswer
+              timestamp: new Date(msg.timestamp),
+              conversationalAnswer: msg.content,
+              workItems: [], // Empty for now - would need to be stored in metadata
+            };
+          } else {
+            // System messages
+            return {
+              id: msg.id,
+              type: 'system',
+              content: msg.content,
+              timestamp: new Date(msg.timestamp),
+            };
+          }
+        });
+
+        setMessages(uiMessages);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
   };
 
   const processCommand = async (command: string) => {
@@ -811,6 +971,9 @@ Type **/help** for more info`,
               isError: true, // Show in red - needs better prompting
             };
             setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+
+            // Save error response to conversation
+            saveMessageToConversation(data.conversationalAnswer, 'assistant');
             return;
           }
           throw new Error(data.error || 'Failed to process prompt');
@@ -841,6 +1004,11 @@ Type **/help** for more info`,
           isError: isErrorResponse, // Show in red if AI is describing an error
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
+
+        // Save AI response to conversation if available
+        if (data.conversationalAnswer) {
+          saveMessageToConversation(data.conversationalAnswer, 'assistant');
+        }
       } catch (error: any) {
         const errorMessage: Message = {
           id: Date.now().toString(),
@@ -1505,8 +1673,19 @@ Just type naturally - I understand questions like:
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <MessageList
+    <div className="flex flex-1 overflow-hidden">
+      {/* Conversation Sidebar - LEFT */}
+      <ConversationSidebar
+        currentConversationId={activeConversationId || undefined}
+        onSelectConversation={handleSelectConversation}
+        onNewConversation={handleNewConversation}
+        isCollapsed={!showConversationSidebar}
+        onToggleCollapse={() => setShowConversationSidebar(!showConversationSidebar)}
+      />
+
+      {/* Main Chat Area */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <MessageList
         messages={messages}
         onListItemClick={handleListItemClick}
         onSuggestionClick={handleSuggestionClick}
@@ -1590,10 +1769,11 @@ Just type naturally - I understand questions like:
         </div>
       </div>
 
-      {/* Changelog Modal */}
-      {showChangelog && (
-        <ChangelogModal onClose={() => setShowChangelog(false)} />
-      )}
+        {/* Changelog Modal */}
+        {showChangelog && (
+          <ChangelogModal onClose={() => setShowChangelog(false)} />
+        )}
+      </div>
     </div>
   );
 }

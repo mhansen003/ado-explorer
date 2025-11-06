@@ -16,8 +16,21 @@ export default function ConversationalChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [streamingSuggestions, setStreamingSuggestions] = useState<string[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [hasAutoCreated, setHasAutoCreated] = useState(false);
+
+  // Auto-create a conversation if none exists
+  useEffect(() => {
+    if (!currentConversationId && !hasAutoCreated) {
+      setHasAutoCreated(true);
+      // Small delay to let UI render first
+      setTimeout(() => {
+        handleNewConversation();
+      }, 100);
+    }
+  }, [currentConversationId, hasAutoCreated]);
 
   // Load conversation when selected
   useEffect(() => {
@@ -32,7 +45,34 @@ export default function ConversationalChat() {
       const data = await response.json();
 
       if (data.success) {
-        setMessages(data.messages);
+        // If this is a new conversation with no messages, add welcome message
+        if (data.messages.length === 0) {
+          const welcomeMessage: Message = {
+            id: 'welcome-' + Date.now(),
+            role: 'assistant',
+            content: `👋 Welcome to ADO Explorer AI!
+
+I'm your AI-powered assistant for exploring Azure DevOps. I can help you with:
+
+💬 **Natural Language Queries:**
+- "list all projects"
+- "show me active bugs"
+- "what's in the current sprint?"
+- "who are all the users?"
+
+✨ **Smart Features:**
+- Collection browsing (projects, teams, users, states, types, tags)
+- Contextual follow-up suggestions after each response
+- Conversation history and memory
+- Beautiful data formatting with tables
+
+Just ask me anything about your Azure DevOps organization in plain English!`,
+            timestamp: Date.now(),
+          };
+          setMessages([welcomeMessage]);
+        } else {
+          setMessages(data.messages);
+        }
       }
     } catch (error) {
       console.error('Failed to load conversation:', error);
@@ -122,6 +162,10 @@ export default function ConversationalChat() {
 
             if (data.type === 'token') {
               setStreamingContent(prev => prev + data.content);
+            } else if (data.type === 'suggestions') {
+              // Received AI-generated suggestions
+              console.log('Received suggestions:', data.suggestions);
+              setStreamingSuggestions(data.suggestions || []);
             } else if (data.type === 'done') {
               // Replace temp user message with real one
               setMessages(prev => {
@@ -139,11 +183,13 @@ export default function ConversationalChat() {
                     role: 'assistant',
                     content: streamingContent,
                     timestamp: Date.now(),
+                    suggestions: streamingSuggestions.length > 0 ? streamingSuggestions : undefined,
                   },
                 ];
               });
               setIsStreaming(false);
               setStreamingContent('');
+              setStreamingSuggestions([]);
             } else if (data.type === 'title_update') {
               // Title was updated, refresh sidebar
               // Sidebar will auto-refresh on next load
@@ -151,6 +197,7 @@ export default function ConversationalChat() {
               console.error('Streaming error:', data.error);
               setIsStreaming(false);
               setStreamingContent('');
+              setStreamingSuggestions([]);
             }
           }
         }
@@ -175,6 +222,12 @@ export default function ConversationalChat() {
     }
   };
 
+  // Handle clicking a suggestion - send it as a new message
+  const handleSuggestionClick = (suggestion: string) => {
+    console.log('Suggestion clicked:', suggestion);
+    handleSendMessage(suggestion);
+  };
+
   return (
     <div className="flex h-screen bg-rh-darker">
       {/* Sidebar */}
@@ -194,6 +247,8 @@ export default function ConversationalChat() {
               messages={messages}
               isStreaming={isStreaming}
               streamingContent={streamingContent}
+              streamingSuggestions={streamingSuggestions}
+              onSuggestionClick={handleSuggestionClick}
             />
             <MessageInput
               onSendMessage={handleSendMessage}
@@ -204,19 +259,19 @@ export default function ConversationalChat() {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <h2 className="text-2xl font-semibold text-rh-text mb-4">
-                Welcome to ADO Explorer AI
-              </h2>
-              <p className="text-rh-text-muted mb-6 max-w-md">
-                Start a new conversation to ask questions about your Azure DevOps work items,
-                sprints, and project status.
-              </p>
-              <button
-                onClick={handleNewConversation}
-                className="px-6 py-3 bg-rh-green hover:bg-rh-green-hover text-white rounded-lg transition-colors"
-              >
-                Start New Conversation
-              </button>
+              <div className="mb-6">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rh-green/20 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-rh-green animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-semibold text-rh-text mb-2">
+                  Initializing conversation...
+                </h2>
+                <p className="text-rh-text-muted text-sm">
+                  Setting up your AI-powered Azure DevOps assistant
+                </p>
+              </div>
             </div>
           </div>
         )}

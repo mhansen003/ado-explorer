@@ -3,6 +3,13 @@
  * For Redis-backed conversational AI feature
  */
 
+export interface ADOCollection {
+  type: 'projects' | 'teams' | 'users' | 'states' | 'types' | 'tags' | 'work_items';
+  data: any[];
+  count: number;
+  query?: string; // The query that was used to fetch this data
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -10,6 +17,8 @@ export interface Message {
   timestamp: number;
   tokenCount?: number;
   metadata?: Record<string, any>;
+  collections?: ADOCollection[]; // Support for ADO collections returned by MCP tools
+  suggestions?: string[]; // AI-generated follow-up suggestions
 }
 
 export interface Conversation {
@@ -52,8 +61,14 @@ export interface ConversationContext {
 }
 
 export interface StreamingResponse {
-  type: 'token' | 'done' | 'error';
+  type: 'token' | 'done' | 'error' | 'tool_use' | 'tool_result' | 'suggestions';
   content?: string;
   messageId?: string;
+  userMessageId?: string;
   error?: string;
+  toolName?: string;
+  toolInput?: any;
+  toolResult?: any;
+  collections?: ADOCollection[];
+  suggestions?: string[];
 }

@@ -15,12 +15,16 @@ interface ChatAreaProps {
   messages: Message[];
   isStreaming?: boolean;
   streamingContent?: string;
+  streamingSuggestions?: string[];
+  onSuggestionClick?: (suggestion: string) => void;
 }
 
 export default function ChatArea({
   messages,
   isStreaming = false,
   streamingContent = '',
+  streamingSuggestions = [],
+  onSuggestionClick,
 }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -128,11 +132,36 @@ export default function ChatArea({
                   prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-pre:p-3 prose-pre:rounded-lg
                   prose-a:text-rh-green prose-a:no-underline hover:prose-a:underline
                   prose-blockquote:border-l-rh-green prose-blockquote:text-rh-text-muted prose-blockquote:italic
+                  prose-table:w-full prose-table:border-collapse prose-table:my-4
+                  prose-table:bg-rh-card/30 prose-table:border prose-table:border-rh-border prose-table:rounded-lg prose-table:overflow-hidden
+                  prose-thead:bg-rh-card
+                  prose-th:px-4 prose-th:py-3 prose-th:text-left prose-th:font-semibold prose-th:text-rh-green prose-th:border-b prose-th:border-rh-border
+                  prose-td:px-4 prose-td:py-3 prose-td:text-rh-text prose-td:border-b prose-td:border-rh-border/50
+                  prose-tr:transition-colors hover:prose-tr:bg-rh-card/50
                   [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
                 ">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {message.content}
                   </ReactMarkdown>
+                </div>
+              )}
+
+              {/* Suggestion buttons for assistant messages */}
+              {message.role === 'assistant' && message.suggestions && message.suggestions.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {message.suggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => onSuggestionClick?.(suggestion)}
+                      className="px-3 py-1.5 text-sm bg-rh-card border border-rh-border rounded-lg
+                                 text-rh-text hover:border-rh-green hover:bg-rh-green/10
+                                 transition-all duration-200 hover:scale-[1.02]
+                                 flex items-center gap-1.5 group"
+                    >
+                      <span className="text-rh-text-muted group-hover:text-rh-green transition-colors">✨</span>
+                      <span>{suggestion}</span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -162,12 +191,37 @@ export default function ChatArea({
                 prose-li:leading-relaxed
                 prose-code:text-cyan-400 prose-code:bg-rh-card/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
                 prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-pre:p-3 prose-pre:rounded-lg
+                prose-table:w-full prose-table:border-collapse prose-table:my-4
+                prose-table:bg-rh-card/30 prose-table:border prose-table:border-rh-border prose-table:rounded-lg prose-table:overflow-hidden
+                prose-thead:bg-rh-card
+                prose-th:px-4 prose-th:py-3 prose-th:text-left prose-th:font-semibold prose-th:text-rh-green prose-th:border-b prose-th:border-rh-border
+                prose-td:px-4 prose-td:py-3 prose-td:text-rh-text prose-td:border-b prose-td:border-rh-border/50
+                prose-tr:transition-colors hover:prose-tr:bg-rh-card/50
                 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
               ">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {streamingContent + '▊'}
                 </ReactMarkdown>
               </div>
+
+              {/* Suggestion buttons while streaming (if received early) */}
+              {streamingSuggestions && streamingSuggestions.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2 animate-fade-in">
+                  {streamingSuggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => onSuggestionClick?.(suggestion)}
+                      className="px-3 py-1.5 text-sm bg-rh-card border border-rh-border rounded-lg
+                                 text-rh-text hover:border-rh-green hover:bg-rh-green/10
+                                 transition-all duration-200 hover:scale-[1.02]
+                                 flex items-center gap-1.5 group opacity-80 hover:opacity-100"
+                    >
+                      <span className="text-rh-text-muted group-hover:text-rh-green transition-colors">✨</span>
+                      <span>{suggestion}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

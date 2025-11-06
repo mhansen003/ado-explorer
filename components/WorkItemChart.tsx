@@ -101,14 +101,20 @@ export default function WorkItemChart({ chartData, workItems }: WorkItemChartPro
     }
   }, [currentDataKey, workItems, chartType, initialDataKey, chartData.data]);
 
-  // Custom tooltip
+  // Custom tooltip - shows descriptive item name and count
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const itemName = payload[0].name || payload[0].payload?.name || 'Unknown';
+      const itemValue = payload[0].value || 0;
+
+      // Get a human-readable label for the data key
+      const dataKeyLabel = pivotOptions.find(o => o.value === currentDataKey)?.label || 'Items';
+
       return (
         <div className="bg-rh-card border border-rh-border rounded-lg p-3 shadow-lg">
-          <p className="text-rh-text font-medium">{payload[0].name}</p>
+          <p className="text-rh-text font-semibold mb-1">{itemName}</p>
           <p className="text-rh-green text-sm">
-            Count: <span className="font-bold">{payload[0].value}</span>
+            {itemValue} {itemValue === 1 ? 'item' : 'items'}
           </p>
         </div>
       );

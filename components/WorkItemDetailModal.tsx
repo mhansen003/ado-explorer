@@ -131,10 +131,6 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
           if (response.ok && data.relatedWorkItems) {
             setRelatedWorkItems(data.relatedWorkItems);
-            // Auto-open full screen view when relationships are loaded
-            if (data.relatedWorkItems.length > 0) {
-              setShowFullScreenRelationships(true);
-            }
           } else {
             console.error('Failed to fetch relationships:', data.error);
             setRelatedWorkItems([]);
@@ -378,7 +374,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={handleClose}>
-      <div className="bg-rh-card border border-rh-border rounded-xl max-w-5xl w-full max-h-[85vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-rh-card border border-rh-border rounded-xl max-w-5xl w-full h-[90vh] flex flex-col overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-rh-border">
           <div className="flex items-center gap-3">
@@ -471,7 +467,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
         </div>
 
         {/* Content */}
-        <div className={`${activeTab === 'relationships' ? 'p-0' : 'px-5 py-4'} overflow-y-auto max-h-[calc(85vh-155px)]`}>
+        <div className={`${activeTab === 'relationships' ? 'p-0' : 'px-5 py-4'} overflow-y-auto flex-1`}>
           {activeTab === 'details' ? (
             <>
               {/* Compact Header with Badges */}
@@ -716,29 +712,29 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
                   </button>
                 )}
               </div>
-              <div className="bg-rh-dark border border-rh-border rounded-xl p-6 text-base max-h-[600px] overflow-y-auto shadow-inner">
+              <div className="bg-rh-dark border border-rh-border rounded-xl p-8 text-base overflow-y-auto shadow-inner">
                 {loading ? (
                   <div className="flex items-center gap-2 text-rh-text-secondary">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-rh-green border-t-transparent"></div>
                     <span>Generating with AI...</span>
                   </div>
                 ) : (
-                  <div className="prose prose-invert prose-base max-w-none
-                    prose-headings:text-rh-text prose-headings:font-semibold prose-headings:mb-4 prose-headings:mt-6 first:prose-headings:mt-0
-                    prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base
-                    prose-p:text-rh-text prose-p:leading-relaxed prose-p:mb-4
-                    prose-strong:text-rh-green prose-strong:font-semibold
-                    prose-ul:my-4 prose-ul:space-y-2 prose-ul:text-rh-text prose-ul:list-disc prose-ul:pl-6
-                    prose-ol:my-4 prose-ol:space-y-2 prose-ol:text-rh-text prose-ol:list-decimal prose-ol:pl-6
-                    prose-li:text-rh-text prose-li:leading-relaxed prose-li:pl-2
-                    prose-code:text-cyan-400 prose-code:bg-rh-card/50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm
-                    prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-pre:rounded-lg prose-pre:p-4 prose-pre:my-4
-                    prose-a:text-rh-green prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-green-400
-                    prose-blockquote:border-l-4 prose-blockquote:border-rh-green prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-rh-text-secondary prose-blockquote:my-4
-                    prose-hr:border-rh-border prose-hr:my-6
-                    prose-table:border-collapse prose-table:w-full prose-table:my-4
-                    prose-th:border prose-th:border-rh-border prose-th:bg-rh-card prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:font-semibold
-                    prose-td:border prose-td:border-rh-border prose-td:px-4 prose-td:py-2
+                  <div className="prose prose-invert prose-lg max-w-none
+                    prose-headings:text-rh-text prose-headings:font-bold prose-headings:mb-6 prose-headings:mt-8 first:prose-headings:mt-0
+                    prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-h4:text-lg
+                    prose-p:text-rh-text prose-p:leading-loose prose-p:mb-6
+                    prose-strong:text-rh-green prose-strong:font-bold
+                    prose-ul:my-6 prose-ul:space-y-3 prose-ul:text-rh-text prose-ul:list-disc prose-ul:pl-8
+                    prose-ol:my-6 prose-ol:space-y-3 prose-ol:text-rh-text prose-ol:list-decimal prose-ol:pl-8
+                    prose-li:text-rh-text prose-li:leading-loose prose-li:pl-3 prose-li:mb-2
+                    prose-code:text-cyan-400 prose-code:bg-rh-card/50 prose-code:px-2.5 prose-code:py-1 prose-code:rounded prose-code:font-mono prose-code:text-base
+                    prose-pre:bg-rh-card prose-pre:border prose-pre:border-rh-border prose-pre:rounded-lg prose-pre:p-6 prose-pre:my-6
+                    prose-a:text-rh-green prose-a:underline prose-a:underline-offset-4 hover:prose-a:text-green-400
+                    prose-blockquote:border-l-4 prose-blockquote:border-rh-green prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-rh-text-secondary prose-blockquote:my-6
+                    prose-hr:border-rh-border prose-hr:my-8
+                    prose-table:border-collapse prose-table:w-full prose-table:my-6
+                    prose-th:border prose-th:border-rh-border prose-th:bg-rh-card prose-th:px-6 prose-th:py-3 prose-th:text-left prose-th:font-bold
+                    prose-td:border prose-td:border-rh-border prose-td:px-6 prose-td:py-3
                     [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
                   ">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -978,7 +974,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
         </div>
 
         {/* Actions - Always visible on all tabs */}
-        <div className="flex gap-3 p-6 border-t border-rh-border bg-rh-card">
+        <div className="flex gap-3 p-6 border-t border-rh-border bg-rh-card flex-shrink-0">
           <button
             onClick={handleOpenInAdo}
             className="flex items-center gap-2 px-4 py-2 bg-rh-green text-rh-dark rounded-lg font-medium hover:bg-green-600 transition-colors"

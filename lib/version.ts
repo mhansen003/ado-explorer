@@ -1,4 +1,4 @@
-export const VERSION = 'v1.6';
+export const VERSION = 'v2.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,60 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v2.0',
+    date: '2025-01-13',
+    changes: [
+      {
+        category: 'Feature',
+        description: '💬 Conversation History System - Complete conversation management with persistent chat history stored in Redis for each authenticated user',
+      },
+      {
+        category: 'Feature',
+        description: '📂 Conversation Sidebar - Beautiful right-side sidebar displaying all conversations grouped by date (Today, Yesterday, Last 7 Days, Last 30 Days, Older)',
+      },
+      {
+        category: 'Feature',
+        description: '🔄 Continue Conversations - Click any previous conversation to load full message history and continue contextual discussions with AI memory',
+      },
+      {
+        category: 'Feature',
+        description: '✨ New Conversation Button - Instantly start fresh conversations while preserving all previous chat histories',
+      },
+      {
+        category: 'Feature',
+        description: '✏️ Inline Rename - Edit conversation titles directly in the sidebar with save/cancel controls',
+      },
+      {
+        category: 'Feature',
+        description: '🗑️ Delete Conversations - Remove conversations with confirmation dialog, auto-switches to another conversation',
+      },
+      {
+        category: 'Feature',
+        description: '📊 Conversation Stats - Each conversation shows message count and preview of last message',
+      },
+      {
+        category: 'Enhancement',
+        description: '🧠 AI Context Retention - Full conversation context maintained across sessions with 160k token window (80% utilized for context)',
+      },
+      {
+        category: 'Enhancement',
+        description: '⚡ Auto-Title Generation - Conversations automatically titled after 3rd message using AI analysis',
+      },
+      {
+        category: 'Enhancement',
+        description: '🎨 Active Conversation Highlighting - Current conversation highlighted with green left border in sidebar',
+      },
+      {
+        category: 'Enhancement',
+        description: '💾 Redis Persistence - All conversations, messages, and metadata stored in Redis with user-keyed data structure',
+      },
+      {
+        category: 'Enhancement',
+        description: '🔐 User-Scoped Data - Each authenticated user has isolated conversation history accessible only to them',
+      },
+    ],
+  },
   {
     version: 'v1.6',
     date: '2025-01-12',
