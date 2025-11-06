@@ -10,6 +10,7 @@ import ChangelogModal from './ChangelogModal';
 import ConversationSidebar from './ConversationSidebar';
 import { Message, Command, DynamicSuggestion, GlobalFilters, ViewPreferences, CommandTemplate } from '@/types';
 import { COMMAND_TEMPLATES } from '@/lib/command-templates';
+import { detectCollectionQuery, fetchCollectionData } from '@/lib/collection-detector';
 
 const COMMANDS: Command[] = [
   { name: 'help', description: 'Show available commands', icon: '❓' },
@@ -981,6 +982,83 @@ Type **/help** for more info`,
 
     // If input doesn't start with '/', treat it as an AI prompt
     if (!command.startsWith('/')) {
+      // **FIRST: Check if this is a collection query (projects, teams, users, etc.)**
+      const collectionDetection = detectCollectionQuery(command);
+      console.log('[ChatInterface] Collection detection:', collectionDetection);
+
+      if (collectionDetection.confidence === 'high' && collectionDetection.type !== 'none') {
+        // This is a collection query - fetch data directly, don't use AI prompt
+        const loadingMessage: Message = {
+          id: Date.now().toString(),
+          type: 'system',
+          content: `🔍 Fetching ${collectionDetection.type}...`,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, loadingMessage]);
+
+        try {
+          // Determine base URL for API calls
+          const baseUrl = typeof window !== 'undefined'
+            ? window.location.origin
+            : 'http://localhost:3000';
+
+          const result = await fetchCollectionData(collectionDetection.type, baseUrl);
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          // Create a list message with the collection data
+          const listItems = result.data.map((item: any) => {
+            if (collectionDetection.type === 'projects') {
+              return {
+                value: item.name || item.Name,
+                description: item.description || item.Description || `State: ${item.state || item.State || 'Active'}`,
+              };
+            } else if (collectionDetection.type === 'teams') {
+              return {
+                value: item.name || item.Name,
+                description: item.projectName || item.ProjectName ? `Project: ${item.projectName || item.ProjectName}` : undefined,
+              };
+            } else if (collectionDetection.type === 'users') {
+              return {
+                value: item.displayName || item.name || 'Unknown',
+                description: item.emailAddress || item.email || undefined,
+              };
+            } else if (collectionDetection.type === 'states' || collectionDetection.type === 'types' || collectionDetection.type === 'tags') {
+              const name = typeof item === 'string' ? item : (item.name || item.Name || item);
+              return { value: name };
+            }
+            return { value: String(item) };
+          });
+
+          const resultMessage: Message = {
+            id: Date.now().toString(),
+            type: 'results',
+            content: `📋 Found ${result.count} ${collectionDetection.type}`,
+            timestamp: new Date(),
+            listItems,
+          };
+          setMessages(prev => [...prev.slice(0, -1), resultMessage]);
+
+          // Save to conversation
+          const summary = `Found ${result.count} ${collectionDetection.type}: ${listItems.slice(0, 10).map((item: any) => item.value).join(', ')}${result.count > 10 ? '...' : ''}`;
+          saveMessageToConversation('assistant', summary);
+
+          return; // Exit early - don't go to AI prompt
+        } catch (error: any) {
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            type: 'system',
+            content: `❌ Error fetching ${collectionDetection.type}: ${error.message}`,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+          return;
+        }
+      }
+
+      // Not a collection query - proceed with AI prompt for work items
       const loadingMessage: Message = {
         id: Date.now().toString(),
         type: 'system',
