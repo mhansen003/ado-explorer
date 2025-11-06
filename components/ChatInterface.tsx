@@ -76,6 +76,7 @@ export default function ChatInterface() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [showConversationSidebar, setShowConversationSidebar] = useState(true);
   const [conversationInitialized, setConversationInitialized] = useState(false);
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
 
   // Auto-create conversation on mount
   useEffect(() => {
@@ -123,6 +124,9 @@ Type **/help** for more info`,
       if (data.success) {
         setActiveConversationId(data.conversation.id);
         console.log('[ChatInterface] Created conversation:', data.conversation.id);
+
+        // Trigger sidebar refresh to show new conversation
+        setSidebarRefreshKey(Date.now());
       }
     } catch (error) {
       console.error('[ChatInterface] Failed to create conversation:', error);
@@ -871,12 +875,25 @@ Type **/help** for more info`,
   };
 
   // Conversation handlers
-  const handleNewConversation = () => {
-    // Clear and show welcome message
-    const welcomeMessage: Message = {
-      id: Date.now().toString(),
-      type: 'system',
-      content: `🤖 Welcome to ADO Explorer!
+  const handleNewConversation = async () => {
+    // Create a new conversation in Redis immediately
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Conversation' }),
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setActiveConversationId(data.conversation.id);
+        console.log('[ChatInterface] Created new conversation:', data.conversation.id);
+
+        // Clear and show welcome message
+        const welcomeMessage: Message = {
+          id: Date.now().toString(),
+          type: 'system',
+          content: `🤖 Welcome to ADO Explorer!
 
 ✨ **[Click here to see the latest features](#changelog)** ✨
 
@@ -890,15 +907,20 @@ Just type naturally! Examples:
 **Tip:** Press ↑ (up arrow) to recall previous commands
 
 Type **/help** for more info`,
-      timestamp: new Date(),
-    };
+          timestamp: new Date(),
+        };
 
-    setMessages([welcomeMessage]);
-    setInput('');
-    setShowAutocomplete(false);
+        setMessages([welcomeMessage]);
+        setInput('');
+        setShowAutocomplete(false);
+        setCommandHistory([]);
 
-    // Clear conversation ID (will be created on first message)
-    setActiveConversationId(null);
+        // Trigger sidebar refresh to show new conversation immediately
+        setSidebarRefreshKey(Date.now());
+      }
+    } catch (error) {
+      console.error('[ChatInterface] Failed to create conversation:', error);
+    }
   };
 
   const handleSelectConversation = async (conversationId: string) => {
@@ -1699,6 +1721,7 @@ Just type naturally - I understand questions like:
     <div className="flex flex-1 overflow-hidden">
       {/* Conversation Sidebar - LEFT */}
       <ConversationSidebar
+        key={sidebarRefreshKey}
         currentConversationId={activeConversationId || undefined}
         onSelectConversation={handleSelectConversation}
         onNewConversation={handleNewConversation}
