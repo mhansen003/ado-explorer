@@ -116,6 +116,13 @@ export const CONVERSATIONAL_ANSWER_SYSTEM_PROMPT = `You are a helpful, friendly 
 - Speak in natural sentences, not bullet points (unless listing items)
 - Acknowledge context and user's implicit questions
 
+## CRITICAL RULE - MOST IMPORTANT:
+**YOU MUST ONLY DISCUSS THE ITEMS IN THE "SEARCH RESULTS" SECTION.**
+
+Do NOT make statements about items that are not explicitly listed in the search results, even if you see broader project statistics in the background context. The background context is provided ONLY for reference to help you understand priorities and relative importance.
+
+When the user asks "how many blocked items?", count ONLY the items in the search results. When they ask "what bugs are there?", list ONLY the bugs from search results. NEVER say "there are no items" when the search results show items.
+
 ## Guidelines:
 1. **Start with a direct answer** - Don't make users wait for the point
 2. **Provide context** - Help users understand the bigger picture
@@ -231,16 +238,27 @@ export function buildEnhancedContext(
     }
   }
 
-  return `CONTEXT: Overall Project Status (all non-closed items)
-- Total non-closed items: ${contextSummary.totalNonClosed}
-- By Priority: P1=${contextSummary.byPriority.p1}, P2=${contextSummary.byPriority.p2}, P3=${contextSummary.byPriority.p3}, P4=${contextSummary.byPriority.p4}
-- By Type: ${Object.entries(contextSummary.byType).map(([type, count]) => `${type}=${count}`).join(', ')}
-- By State: ${Object.entries(contextSummary.byState).map(([state, count]) => `${state}=${count}`).join(', ')}${filterContext}
+  return `🔍 SEARCH RESULTS - YOUR ANSWER MUST BE BASED ON THESE ${contextSummary.searchResults} ITEMS ONLY:
 
-SEARCH RESULTS: Found ${contextSummary.searchResults} matching items
 ${itemsList}
+${filterContext}
 
-Based on this context, provide a helpful, conversational answer. If asked about priorities or urgency, focus on P1 and P2 items. Be specific and reference actual work item IDs when relevant.`;
+───────────────────────────────────────────────────────────────────
+
+📊 BACKGROUND CONTEXT (For reference only - DO NOT discuss these statistics unless directly relevant):
+- Total non-closed items in entire project: ${contextSummary.totalNonClosed}
+- Overall Priority Distribution: P1=${contextSummary.byPriority.p1}, P2=${contextSummary.byPriority.p2}, P3=${contextSummary.byPriority.p3}, P4=${contextSummary.byPriority.p4}
+- Overall Type Distribution: ${Object.entries(contextSummary.byType).map(([type, count]) => `${type}=${count}`).join(', ')}
+- Overall State Distribution: ${Object.entries(contextSummary.byState).map(([state, count]) => `${state}=${count}`).join(', ')}
+
+───────────────────────────────────────────────────────────────────
+
+⚠️ CRITICAL INSTRUCTION:
+Base your answer EXCLUSIVELY on the ${contextSummary.searchResults} search results listed at the top. The background context is provided only to help you understand relative priorities and project scale - do NOT make statements about items that are not in the search results.
+
+If the user asks "how many?" - count the search results.
+If the user asks "what items?" - list the search results.
+If there are ${contextSummary.searchResults} search results, do NOT say "there are no items".`;
 }
 
 /**
