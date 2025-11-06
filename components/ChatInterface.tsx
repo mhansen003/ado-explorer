@@ -72,9 +72,18 @@ export default function ChatInterface() {
   // Filter bar expansion state
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
-  // Conversation state
+  // Conversation state - ENABLE conversation saving
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [showConversationSidebar, setShowConversationSidebar] = useState(true);
+  const [conversationInitialized, setConversationInitialized] = useState(false);
+
+  // Auto-create conversation on mount
+  useEffect(() => {
+    if (!activeConversationId && !conversationInitialized) {
+      setConversationInitialized(true);
+      createNewConversation();
+    }
+  }, [activeConversationId, conversationInitialized]);
 
   // Initialize with welcome message on first load
   useEffect(() => {
@@ -101,6 +110,40 @@ Type **/help** for more info`,
       setMessages([welcomeMessage]);
     }
   }, []); // Only run once on mount
+
+  // Helper: Create new conversation
+  const createNewConversation = async () => {
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Conversation' }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setActiveConversationId(data.conversation.id);
+        console.log('[ChatInterface] Created conversation:', data.conversation.id);
+      }
+    } catch (error) {
+      console.error('[ChatInterface] Failed to create conversation:', error);
+    }
+  };
+
+  // Helper: Save message to conversation
+  const saveMessageToConversation = async (role: 'user' | 'assistant', content: string) => {
+    if (!activeConversationId) return;
+
+    try {
+      await fetch(`/api/conversations/${activeConversationId}/save-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, content }),
+      });
+      console.log('[ChatInterface] Saved message to conversation');
+    } catch (error) {
+      console.error('[ChatInterface] Failed to save message:', error);
+    }
+  };
 
   useEffect(() => {
     // Don't override if Tab autocomplete is showing
@@ -770,7 +813,7 @@ Type **/help** for more info`,
     setMessages(prev => [...prev, userMessage]);
 
     // Save user message to conversation (non-blocking)
-    saveMessageToConversation(trimmedInput, 'user');
+    saveMessageToConversation('user', trimmedInput);
 
     // Add to command history (avoid duplicates at the end)
     setCommandHistory(prev => {
@@ -795,26 +838,6 @@ Type **/help** for more info`,
 
     // Process command
     await processCommand(trimmedInput);
-  };
-
-  // Helper to save message to active conversation (non-blocking)
-  const saveMessageToConversation = async (content: string, role: 'user' | 'assistant') => {
-    if (!activeConversationId) return;
-
-    try {
-      await fetch(`/api/conversations/${activeConversationId}/save-message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content,
-          role,
-        }),
-        credentials: 'include',
-      });
-    } catch (error) {
-      console.error('Failed to save message to conversation:', error);
-      // Don't throw - this is best-effort persistence
-    }
   };
 
   const handleClearChat = async () => {
@@ -973,7 +996,7 @@ Type **/help** for more info`,
             setMessages(prev => [...prev.slice(0, -1), errorMessage]);
 
             // Save error response to conversation
-            saveMessageToConversation(data.conversationalAnswer, 'assistant');
+            saveMessageToConversation('assistant', data.conversationalAnswer);
             return;
           }
           throw new Error(data.error || 'Failed to process prompt');
@@ -1007,7 +1030,7 @@ Type **/help** for more info`,
 
         // Save AI response to conversation if available
         if (data.conversationalAnswer) {
-          saveMessageToConversation(data.conversationalAnswer, 'assistant');
+          saveMessageToConversation('assistant', data.conversationalAnswer);
         }
       } catch (error: any) {
         const errorMessage: Message = {
