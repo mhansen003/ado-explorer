@@ -5,6 +5,109 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2025-01-06
+
+### 🔧 CRITICAL FIX - Sprint Path Validation
+
+This release fixes 400 errors when querying for non-existent sprints by validating iteration paths against available sprints.
+
+#### 🐛 Bug Fixed
+
+**Problem:**
+```
+User: "what are the marketing sprints?"
+AI generates: UNDER 'Next Gen LOS\Triad Sprint'
+Azure DevOps: ❌ 400 Error
+Error: "TF51011: The specified iteration path does not exist"
+```
+
+When users asked for sprints that don't exist (e.g., "marketing sprints"), the AI would generate invalid partial paths causing 400 errors from Azure DevOps.
+
+**Root Cause:**
+The WIQL validator only checked for CONTAINS operator violations but didn't validate that UNDER paths actually exist in the available sprints list.
+
+#### ✨ Solution - Three-Layer Defense
+
+**1. Enhanced Path Validator**
+- New `validateUnderPaths()` function validates UNDER paths exist
+- Searches for matching sprints when invalid path detected
+- Single match → uses exact path
+- Multiple matches → prefers current sprint
+- No matches → uses generic filter `[System.IterationPath] <> ''`
+
+**2. Improved Sprint Context**
+- Shows top 10 sprints (was 5) for better AI visibility
+- Displays sprint name patterns (e.g., "Triad Sprint, Marketing Sprint")
+- Added "CRITICAL RULES" section with explicit path instructions
+- Shows total sprint count: "showing 10 of 68 total"
+
+**3. Stronger WIQL Prompt**
+- Added "CRITICAL: PATH VALIDATION" section
+- Explicit: "ONLY use paths that appear in the list EXACTLY"
+- Clear examples of invalid patterns to avoid
+- Guidance for handling non-existent sprint queries
+
+#### 🎯 Fix Flow Example
+
+**User Query:** "what are the marketing sprints?"
+
+**New Behavior:**
+```
+1. AI generates: UNDER 'Next Gen LOS\Triad Sprint'
+2. Validator detects: ❌ Invalid path (not in available sprints)
+3. Validator searches: "Triad Sprint" in sprint names
+4. Validator finds: No "marketing" in any sprint names
+5. Validator fixes: [System.IterationPath] <> '' (all sprints)
+6. Azure DevOps: ✅ Returns all sprint items
+7. AI explains: "No marketing sprints found, showing all sprints"
+```
+
+#### 📦 Files Modified
+
+**lib/enhanced-ai-prompts.ts**
+- Lines 46-81: Updated WIQL_GENERATION_SYSTEM_PROMPT
+  - Added path validation rules
+  - Examples of valid vs invalid patterns
+  - Explicit handling for non-existent sprints
+- Lines 390-437: Enhanced buildSprintContext()
+  - Shows 10 sprints instead of 5
+  - Displays sprint name patterns
+  - Added "CRITICAL RULES" section
+- Lines 439-531: Refactored validateAndFixWiqlQuery()
+  - New path existence validation
+  - Separated logic into helper functions
+  - Better error messages and logging
+
+#### 🎯 Impact
+
+- **✅ No More 400 Errors** - Invalid paths caught and fixed automatically
+- **✅ Graceful Handling** - Non-existent sprint queries return all sprints
+- **✅ Better AI Context** - Shows more sprints and patterns for smarter decisions
+- **✅ Automatic Correction** - Validator fixes paths when possible
+- **✅ Clear Fallback** - Generic filter used when sprint doesn't exist
+
+#### 💡 Edge Cases Handled
+
+**Case 1: Partial Path**
+```
+Query: 'Next Gen LOS\Triad Sprint' (partial)
+Fix: → 'Next Gen LOS\Triad Sprint 8' (current sprint)
+```
+
+**Case 2: Non-Existent Sprint**
+```
+Query: 'Next Gen LOS\Marketing Sprint 1' (doesn't exist)
+Fix: → [System.IterationPath] <> '' (all sprints)
+```
+
+**Case 3: Ambiguous Match**
+```
+Query: 'Next Gen LOS\Sprint 1' (matches multiple)
+Fix: → Uses current sprint from matches
+```
+
+---
+
 ## [0.3.2] - 2025-01-06
 
 ### ✨ NEW FEATURE - AI Quality Check System (Defense in Depth)
