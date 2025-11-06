@@ -1099,6 +1099,9 @@ Type **/help** for more info`,
             } else if (collectionDetection.type === 'tags') {
               const name = typeof item === 'string' ? item : (item.name || item.Name || item);
               return { value: name, commandName: 'tag' };
+            } else if (collectionDetection.type === 'iterations') {
+              const name = typeof item === 'string' ? item : (item.name || item.Name || item.path || item);
+              return { value: name, commandName: 'sprint' };
             }
             return { value: String(item) };
           });

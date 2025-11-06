@@ -926,6 +926,51 @@ export class ADOService {
   }
 
   /**
+   * Get all iterations/sprints for the project
+   */
+  async getIterations(): Promise<string[]> {
+    try {
+      if (!this.project) {
+        console.warn('[ADO getIterations] Project required for iterations, returning empty array');
+        return [];
+      }
+
+      console.log('[ADO getIterations] Fetching iterations for project:', this.project);
+
+      // Get classification nodes for iterations
+      const response = await this.client.get(`/wit/classificationnodes/Iterations?$depth=10`);
+
+      console.log('[ADO getIterations] Iteration response:', response.data);
+
+      // Extract all iteration paths recursively
+      const iterations = new Set<string>();
+
+      const extractIterations = (node: any, parentPath: string = '') => {
+        const currentPath = parentPath ? `${parentPath}\\${node.name}` : node.name;
+
+        // Skip the root "Iteration" node itself, but add child iterations
+        if (parentPath !== '') {
+          iterations.add(currentPath);
+        }
+
+        // Recursively process children
+        if (node.children && Array.isArray(node.children)) {
+          node.children.forEach((child: any) => extractIterations(child, currentPath));
+        }
+      };
+
+      extractIterations(response.data);
+
+      const iterationArray = Array.from(iterations).sort();
+      console.log('[ADO getIterations] Found', iterationArray.length, 'iterations');
+      return iterationArray;
+    } catch (error) {
+      console.error('[ADO getIterations] Error fetching iterations:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get all shared queries for the project
    */
   async getQueries(): Promise<{ id: string; name: string; path: string; wiql?: string }[]> {

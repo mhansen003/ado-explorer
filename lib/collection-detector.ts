@@ -3,7 +3,7 @@
  * Detects when user is asking for ADO collections and fetches the appropriate data
  */
 
-export type CollectionType = 'projects' | 'teams' | 'users' | 'states' | 'types' | 'tags' | 'none';
+export type CollectionType = 'projects' | 'teams' | 'users' | 'states' | 'types' | 'tags' | 'iterations' | 'none';
 
 export interface CollectionDetectionResult {
   type: CollectionType;
@@ -82,6 +82,21 @@ export function detectCollectionQuery(query: string): CollectionDetectionResult 
     return { type: 'tags', confidence: 'high', keywords: ['tags', 'available'] };
   }
 
+  // Iterations/Sprints - HIGH confidence patterns
+  if (
+    /^(what|list|show|get|display)\s+(all\s+)?(of\s+)?(the\s+)?(iterations?|sprints?)/i.test(lowerQuery) ||
+    lowerQuery === 'iterations' ||
+    lowerQuery === 'sprints' ||
+    lowerQuery === 'list iterations' ||
+    lowerQuery === 'list sprints' ||
+    lowerQuery === 'show me iterations' ||
+    lowerQuery === 'show me sprints' ||
+    lowerQuery.match(/what (iterations?|sprints?) (are )?(available|exist)/i) ||
+    lowerQuery.match(/available (iterations?|sprints?)/i)
+  ) {
+    return { type: 'iterations', confidence: 'high', keywords: ['iterations', 'sprints'] };
+  }
+
   return { type: 'none', confidence: 'low', keywords: [] };
 }
 
@@ -104,6 +119,7 @@ export async function fetchCollectionData(
       states: '/api/states',
       types: '/api/types',
       tags: '/api/tags',
+      iterations: '/api/iterations',
     }[type];
 
     console.log(`[Collection Detector] Fetching ${type} from ${endpoint}`);
@@ -128,7 +144,7 @@ export async function fetchCollectionData(
     const result = await response.json();
 
     // Extract the array from the response
-    const data = result[type] || result.teams || result.boards || result.users || result.states || result.types || result.tags || [];
+    const data = result[type] || result.teams || result.boards || result.users || result.states || result.types || result.tags || result.iterations || [];
 
     console.log(`[Collection Detector] Fetched ${data.length} ${type}`);
 
@@ -208,6 +224,14 @@ export function formatCollectionContext(type: CollectionType, data: any[]): stri
       data.forEach((tag, idx) => {
         const tagName = typeof tag === 'string' ? tag : (tag.name || tag.Name || tag);
         context += `${idx + 1}. ${tagName}\n`;
+      });
+      break;
+
+    case 'iterations':
+      context += 'Available iterations/sprints:\n';
+      data.forEach((iteration, idx) => {
+        const iterationName = typeof iteration === 'string' ? iteration : (iteration.name || iteration.Name || iteration.path || iteration);
+        context += `${idx + 1}. ${iterationName}\n`;
       });
       break;
   }
