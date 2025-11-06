@@ -91,7 +91,18 @@ export async function POST(
         workItemsCount: metadata.workItems?.length || 0,
         hasListItems: !!metadata.listItems,
         listItemsCount: metadata.listItems?.length || 0,
+        listItemsSample: metadata.listItems ? metadata.listItems.slice(0, 2) : null,
       });
+
+      // Verify metadata structure before saving
+      if (metadata.listItems) {
+        console.log('[Save Message API] ListItems structure check:', {
+          isArray: Array.isArray(metadata.listItems),
+          firstItem: metadata.listItems[0],
+          hasValue: metadata.listItems[0]?.value,
+          hasCommandName: metadata.listItems[0]?.commandName,
+        });
+      }
     } else {
       console.log('[Save Message API] Creating message without metadata');
     }

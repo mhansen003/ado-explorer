@@ -1001,6 +1001,19 @@ Type **/help** for more info`,
                 listItemsCount: msg.metadata?.listItems?.length || 0,
                 listItemsPreview: msg.metadata?.listItems ? msg.metadata.listItems.slice(0, 2) : null,
               });
+
+              // Extra detailed logging for listItems
+              if (msg.metadata?.listItems) {
+                console.log(`[ChatInterface] ListItems detailed check:`, {
+                  isArray: Array.isArray(msg.metadata.listItems),
+                  length: msg.metadata.listItems.length,
+                  firstItemStructure: msg.metadata.listItems[0],
+                  hasValue: msg.metadata.listItems[0]?.value,
+                  hasCommandName: msg.metadata.listItems[0]?.commandName,
+                });
+              } else {
+                console.log(`[ChatInterface] Message ${index} has NO listItems in metadata`);
+              }
             }
 
             // Assistant messages - restore full data from metadata
@@ -1024,6 +1037,19 @@ Type **/help** for more info`,
               timestamp: new Date(msg.timestamp),
             };
           }
+        });
+
+        console.log('[ChatInterface] Final UI messages:', {
+          total: uiMessages.length,
+          withListItems: uiMessages.filter(m => m.listItems && m.listItems.length > 0).length,
+          listItemsMessages: uiMessages
+            .filter(m => m.listItems && m.listItems.length > 0)
+            .map(m => ({
+              id: m.id,
+              type: m.type,
+              listItemsCount: m.listItems?.length,
+              firstItem: m.listItems?.[0],
+            })),
         });
 
         setMessages(uiMessages);

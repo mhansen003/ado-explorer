@@ -71,8 +71,25 @@ export async function GET(
         workItemsCount: m.metadata?.workItems?.length || 0,
         hasListItems: !!m.metadata?.listItems,
         listItemsCount: m.metadata?.listItems?.length || 0,
+        listItemsSample: m.metadata?.listItems ? m.metadata.listItems.slice(0, 2) : null,
       }))
     });
+
+    // Detailed check for listItems
+    const messagesWithListItems = messages.filter(m => m.metadata?.listItems);
+    if (messagesWithListItems.length > 0) {
+      console.log('[Conversation Detail] Messages with listItems found:', {
+        count: messagesWithListItems.length,
+        firstMessage: {
+          id: messagesWithListItems[0].id,
+          content: messagesWithListItems[0].content,
+          listItemsLength: messagesWithListItems[0].metadata?.listItems?.length,
+          firstListItem: messagesWithListItems[0].metadata?.listItems?.[0],
+        }
+      });
+    } else {
+      console.log('[Conversation Detail] NO messages with listItems found!');
+    }
 
     return NextResponse.json({
       success: true,
