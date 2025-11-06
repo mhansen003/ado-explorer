@@ -363,11 +363,12 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                   {/* Conditional rendering: Grid View or Card View */}
                   {viewPreferences.useGridView ? (
                     <>
-                      {/* Check if work items have hierarchical relationships for grid view */}
+                      {/* Check if user wants hierarchy view AND work items have hierarchical relationships */}
                       {(() => {
                         const hasHierarchy = hasHierarchicalRelations(message.workItems);
+                        const useHierarchy = viewPreferences.useHierarchyView && hasHierarchy;
 
-                        if (hasHierarchy) {
+                        if (useHierarchy) {
                           // Use hierarchical grid display
                           const { roots } = buildHierarchy(message.workItems);
                           return <HierarchicalWorkItemGrid items={roots} maxInitialItems={10} />;
@@ -417,11 +418,12 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                     </>
                   ) : (
                     <>
-                      {/* Check if work items have hierarchical relationships */}
+                      {/* Check if user wants hierarchy view AND work items have hierarchical relationships */}
                       {(() => {
                         const hasHierarchy = hasHierarchicalRelations(message.workItems);
+                        const useHierarchy = viewPreferences.useHierarchyView && hasHierarchy;
 
-                        if (hasHierarchy) {
+                        if (useHierarchy) {
                           // Use hierarchical display
                           const { roots } = buildHierarchy(message.workItems);
                           return <HierarchicalWorkItemList items={roots} maxInitialItems={5} />;
