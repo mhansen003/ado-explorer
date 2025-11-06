@@ -101,14 +101,80 @@ export async function POST(request: NextRequest) {
       stack: error.stack,
     });
 
+    // Handle specific Azure DevOps errors
+    const status = error.response?.status;
+    const errorMessage = error.response?.data?.message || error.message;
+
+    // TF51011: Iteration path doesn't exist
+    if (status === 400 && errorMessage && errorMessage.includes('TF51011')) {
+      const pathMatch = errorMessage.match(/«'([^']+)'»/);
+      const invalidPath = pathMatch ? pathMatch[1] : 'unknown path';
+
+      console.warn('[ADO API] Invalid iteration path detected:', invalidPath);
+
+      return NextResponse.json(
+        {
+          error: 'Sprint or iteration path not found',
+          message: `The sprint path "${invalidPath}" doesn't exist or may have been archived.`,
+          hint: 'This sprint may have been deleted, archived, or renamed. Try searching for a different sprint or use the current sprint instead.',
+          invalidPath,
+          errorCode: 'INVALID_ITERATION_PATH'
+        },
+        { status: 404 } // Changed to 404 (Not Found) instead of 500
+      );
+    }
+
+    // TF51005: Area path doesn't exist
+    if (status === 400 && errorMessage && errorMessage.includes('TF51005')) {
+      return NextResponse.json(
+        {
+          error: 'Area path not found',
+          message: 'The specified team or area path doesn\'t exist in this project.',
+          hint: 'This area may have been deleted or renamed. Try selecting a different team from the list.',
+          errorCode: 'INVALID_AREA_PATH'
+        },
+        { status: 404 }
+      );
+    }
+
+    // VS403403: Permission denied
+    if (status === 403 || errorMessage?.includes('VS403403')) {
+      return NextResponse.json(
+        {
+          error: 'Permission denied',
+          message: 'You don\'t have permission to access this resource.',
+          hint: 'Your Personal Access Token may not have the required permissions or may have expired.',
+          errorCode: 'PERMISSION_DENIED'
+        },
+        { status: 403 }
+      );
+    }
+
+    // Generic 400 errors
+    if (status === 400) {
+      return NextResponse.json(
+        {
+          error: 'Invalid query',
+          message: errorMessage || 'The search query is invalid.',
+          hint: 'Try rephrasing your search or check that paths and field names are correct.',
+          details: error.response?.data,
+          errorCode: 'INVALID_QUERY'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Generic error fallback
     return NextResponse.json(
       {
         error: error.message || 'Failed to search work items',
+        message: 'An unexpected error occurred while searching.',
         details: {
           status: error.response?.status,
           statusText: error.response?.statusText,
           data: error.response?.data,
-        }
+        },
+        errorCode: 'UNKNOWN_ERROR'
       },
       { status: 500 }
     );
