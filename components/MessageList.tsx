@@ -27,7 +27,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<Message | null>(null);
   const [chartDropdownOpen, setChartDropdownOpen] = useState<string | null>(null);
-  const [selectedWorkItems, setSelectedWorkItems] = useState<Set<number>>(new Set());
+  const [selectedWorkItems, setSelectedWorkItems] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -134,7 +134,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
   };
 
   // Bulk selection handlers
-  const handleToggleSelect = (workItemId: number) => {
+  const handleToggleSelect = (workItemId: string) => {
     setSelectedWorkItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(workItemId)) {
@@ -147,7 +147,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
   };
 
   const handleSelectAll = (workItems: any[]) => {
-    setSelectedWorkItems(new Set(workItems.map(item => item.id)));
+    setSelectedWorkItems(new Set(workItems.map(item => String(item.id))));
   };
 
   const handleDeselectAll = () => {
