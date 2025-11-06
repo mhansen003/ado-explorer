@@ -5,6 +5,80 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-01-06
+
+### 🔧 CRITICAL FIX - AI Summary Hallucination
+
+This release fixes a critical bug where AI-generated summaries would contradict the actual search results displayed below them.
+
+#### 🐛 Bug Fixed
+
+**AI Hallucination Problem:**
+- User asks: "how many work items are currently blocked?"
+- AI responds: "Currently, there are **no work items** marked as completed..."
+- But then displays: 5 blocked work items in table below
+- **Result**: Confusing, contradictory information that breaks user trust
+
+**Root Cause:**
+The context structure sent to OpenAI put "Overall Project Status" (all non-closed items) FIRST, then "Search Results" SECOND. This ordering caused the AI to focus on the broad project statistics instead of the specific query results, leading to hallucinated responses.
+
+#### ✨ Solution Implemented
+
+**1. Restructured Context Building (`buildEnhancedContext`):**
+```
+OLD STRUCTURE:
+├─ CONTEXT: Overall Project Status (all non-closed items)
+│  ├─ Total: 1,247 items
+│  └─ Statistics...
+└─ SEARCH RESULTS: Found 5 matching items
+   └─ [Actual results]
+
+NEW STRUCTURE:
+├─ 🔍 SEARCH RESULTS - YOUR ANSWER MUST BE BASED ON THESE 5 ITEMS ONLY
+│  └─ [Actual results] ← PRIMARY FOCUS
+├─ ─────────────────────────
+├─ 📊 BACKGROUND CONTEXT (For reference only)
+│  └─ [Project statistics]
+└─ ⚠️ CRITICAL INSTRUCTION
+   └─ Explicit examples and rules
+```
+
+**2. Enhanced System Prompt:**
+- Added "CRITICAL RULE - MOST IMPORTANT" section
+- Explicit instruction: "YOU MUST ONLY DISCUSS THE ITEMS IN THE SEARCH RESULTS SECTION"
+- Specific examples: "When user asks 'how many?' count ONLY search results"
+- Warning: "NEVER say 'there are no items' when search results show items"
+
+**3. Visual Emphasis:**
+- Emojis for section identification (🔍, 📊, ⚠️)
+- Visual separators (horizontal lines)
+- Repeated instructions at multiple levels
+- Dynamic count in warnings ("If there are 5 search results, do NOT say 'there are no items'")
+
+#### 🎯 Impact
+
+- **✅ Accurate Summaries** - AI now correctly summarizes actual search results
+- **✅ No More Hallucinations** - AI can't make up information about non-existent items
+- **✅ Better User Trust** - Summaries match the data displayed
+- **✅ Context Preserved** - Background project stats still available for relative understanding
+
+#### 📦 Files Modified
+
+- `lib/enhanced-ai-prompts.ts`
+  - Lines 110-138: Updated `CONVERSATIONAL_ANSWER_SYSTEM_PROMPT` with CRITICAL RULE section
+  - Lines 241-262: Restructured `buildEnhancedContext()` to prioritize search results
+
+#### 💡 Technical Details
+
+The fix uses a multi-layered approach to guide the AI:
+1. **Structural** - Search results physically appear first in the prompt
+2. **Visual** - Clear separators and emphasis markers
+3. **Instructional** - Explicit rules in system prompt
+4. **Repetitive** - Critical instruction repeated with examples
+5. **Dynamic** - Count-specific warnings ("there are 5 items, do NOT say no items")
+
+---
+
 ## [0.3.0] - 2025-01-05
 
 ### 🎉 Major Improvements - Conversation Management & Collection Persistence
