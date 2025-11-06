@@ -5,6 +5,138 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-01-05
+
+### 🎉 MAJOR FEATURE - Conversational AI with Memory
+
+The biggest update yet! ADO Explorer now has **full conversational AI capabilities** with persistent conversation history, context retention, and ChatGPT/Claude.ai-style interface.
+
+#### ✨ Key Features
+
+- **Persistent Conversations** - All conversations stored in Redis with 30-day retention
+- **Context-Aware Responses** - AI remembers your previous messages and maintains context throughout the conversation
+- **Conversation Sidebar** - ChatGPT/Claude.ai-style sidebar showing all your conversations
+  - Grouped by time: Today, Yesterday, Last 7 Days, Last 30 Days, Older
+  - Shows message preview and count for each conversation
+  - One-click to continue previous conversations
+  - Delete unwanted conversations
+  - Collapsible sidebar for more screen space
+
+- **Two Modes** - Toggle between "Quick Search" and "Conversations"
+  - **Quick Search Mode**: Original fast slash-command interface for rapid work item searches
+  - **Conversations Mode**: New contextual AI chat with full conversation history
+
+- **Streaming Responses** - Real-time message streaming with typing animation
+- **Auto-Title Generation** - Conversations automatically titled after 2-3 messages
+- **Smart Context Window Management** - Sliding window approach keeps conversations within Claude's 200K token limit
+  - Maintains minimum 10-15 recent messages
+  - Uses 80% of token budget efficiently
+  - Oldest messages automatically pruned when needed
+
+#### 🔧 Technical Implementation
+
+**New API Endpoints:**
+- `POST /api/conversations` - Create new conversation
+- `GET /api/conversations` - List user's conversations
+- `GET /api/conversations/[id]` - Get conversation with full message history
+- `PATCH /api/conversations/[id]` - Update conversation metadata (title, etc.)
+- `DELETE /api/conversations/[id]` - Delete conversation and all messages
+- `POST /api/conversations/[id]/messages` - Send message with Server-Sent Events streaming
+
+**Redis Data Architecture:**
+- **Conversation metadata**: Redis Hash (`conversation:{id}`)
+- **Message storage**: Redis Sorted Set (`conversation:{id}:messages`) sorted by timestamp
+- **User index**: Redis Sorted Set (`user:{userId}:conversations`) sorted by last update
+- **TTL Management**: 30 days for active conversations, 7 days for inactive
+- **Optimistic updates**: Instant UI feedback before server confirmation
+
+**New Components:**
+- `ConversationSidebar.tsx` - Conversation list with grouping and management
+- `ChatArea.tsx` - Message display with markdown rendering and syntax highlighting
+- `MessageInput.tsx` - Auto-resizing textarea with keyboard shortcuts
+- `ConversationalChat.tsx` - Main orchestrator component
+- `ChatModeWrapper.tsx` - Mode toggle between Quick Search and Conversations
+
+**New Services:**
+- `ConversationService` (lib/redis/conversationService.ts) - Complete CRUD operations
+  - Create, read, update, delete conversations
+  - Add messages with token tracking
+  - Retrieve messages with sliding window context
+  - List user conversations with pagination
+  - Auto-title generation
+
+**Type Definitions:**
+- `Message` interface with role, content, timestamp, tokenCount
+- `Conversation` interface with full metadata
+- `ConversationSummary` for list views
+- `SendMessageRequest` and streaming response types
+
+#### 🎨 UI/UX Enhancements
+
+- **Mode Toggle Bar** - Clean interface to switch between Quick Search and Conversations
+- **Markdown Rendering** - Full GitHub-Flavored Markdown support in messages
+  - Code blocks with syntax highlighting
+  - Tables, lists, blockquotes
+  - Links, emphasis, headings
+  - Inline code with cyan highlighting
+
+- **Message Formatting** - Professional chat interface
+  - User messages (blue accent) and Assistant messages (green accent)
+  - Avatar icons for visual distinction
+  - Timestamp display (relative for recent, absolute for older)
+  - Streaming animation with cursor indicator
+
+- **Keyboard Shortcuts**
+  - Enter: Send message
+  - Shift+Enter: New line in message
+  - Escape: Close modals/dropdowns
+
+#### 🔐 Security & Performance
+
+- **Authentication Required** - All conversation endpoints verify JWT tokens
+- **User Isolation** - Users can only access their own conversations
+- **Connection Pooling** - Redis client singleton with reconnection logic
+- **Streaming Efficiency** - Server-Sent Events for real-time responses
+- **Error Handling** - Graceful degradation with user-friendly error messages
+
+#### 📦 Dependencies Added
+
+- `@anthropic-ai/sdk@^0.32.0` - Claude API integration
+- `uuid@^11.0.3` - Unique ID generation
+- `@types/uuid@^10.0.0` - TypeScript definitions
+
+#### 🎯 Impact
+
+- **Enhanced User Experience** - Users can now have ongoing conversations with context
+- **Better Insights** - AI can provide more detailed answers by remembering previous context
+- **Increased Productivity** - Continue conversations where you left off
+- **ChatGPT-like Experience** - Familiar interface for users
+- **Backward Compatible** - Original Quick Search mode still available and unchanged
+
+#### 💡 Usage Examples
+
+**Starting a Conversation:**
+1. Click "Conversations" mode toggle at top
+2. Click "Start New Conversation" or the + button
+3. Ask questions naturally - AI remembers your context
+4. Continue the conversation anytime by selecting it from sidebar
+
+**Context Retention:**
+```
+You: "What bugs are assigned to me?"
+AI: "You have 5 bugs assigned... [shows list]"
+You: "What about the P1 ones?"  // AI remembers "bugs assigned to me"
+AI: "Of those 5 bugs, 2 are P1... [shows filtered list]"
+```
+
+**Conversation Management:**
+- Hover over conversation → Delete button appears
+- Click conversation to continue where you left off
+- Sidebar shows last message preview
+- Auto-generated titles make conversations easy to find
+
+---
+
 ## [0.1.9] - 2025-01-05
 
 ### 🎨 Enhanced - AI Output Formatting
