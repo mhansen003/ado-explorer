@@ -112,6 +112,7 @@ export interface GlobalFilters {
 
 export interface ViewPreferences {
   useGridView: boolean;
+  useHierarchyView: boolean;
 }
 
 export interface Comment {

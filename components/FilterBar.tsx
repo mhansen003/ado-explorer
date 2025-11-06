@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Filter, X, LayoutGrid, LayoutList, ChevronDown, Check } from 'lucide-react';
+import { Filter, X, LayoutGrid, LayoutList, Network, List } from 'lucide-react';
 import { GlobalFilters, ViewPreferences } from '@/types';
 
 interface FilterBarProps {
@@ -36,6 +36,36 @@ export default function FilterBar({
   };
   const [daysInput, setDaysInput] = useState(filters.ignoreOlderThanDays?.toString() || '30');
   const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // Load all settings from Redis on mount
+  useEffect(() => {
+    const loadAllSettings = async () => {
+      try {
+        const response = await fetch('/api/user-settings', { credentials: 'include' });
+        const data = await response.json();
+
+        if (data.success && data.settings) {
+          // Load filters from Redis if they exist
+          if (data.settings.filters) {
+            onFiltersChange(data.settings.filters);
+          }
+
+          // Load view preferences from Redis if they exist
+          if (data.settings.viewPreferences) {
+            onViewPreferencesChange(data.settings.viewPreferences);
+          }
+        }
+
+        setSettingsLoaded(true);
+      } catch (error) {
+        console.error('Failed to load user settings:', error);
+        setSettingsLoaded(true);
+      }
+    };
+
+    loadAllSettings();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch authenticated user session
   useEffect(() => {
@@ -102,10 +132,53 @@ export default function FilterBar({
     }
   }, [isExpanded, setIsExpanded]);
 
-  const handleFilterChange = (key: keyof GlobalFilters, value: any) => {
+  const handleFilterChange = async (key: keyof GlobalFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     onFiltersChange(newFilters);
     localStorage.setItem('ado-explorer-filters', JSON.stringify(newFilters));
+
+    // Save to Redis (includes both filters and view preferences)
+    if (settingsLoaded) {
+      try {
+        await fetch('/api/user-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settings: {
+              filters: newFilters,
+              viewPreferences,
+            },
+          }),
+          credentials: 'include',
+        });
+      } catch (error) {
+        console.error('Failed to save filter settings:', error);
+      }
+    }
+  };
+
+  const handleViewPreferenceChange = async (newPrefs: ViewPreferences) => {
+    onViewPreferencesChange(newPrefs);
+    localStorage.setItem('ado-explorer-view-preferences', JSON.stringify(newPrefs));
+
+    // Save to Redis (includes both filters and view preferences)
+    if (settingsLoaded) {
+      try {
+        await fetch('/api/user-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settings: {
+              filters,
+              viewPreferences: newPrefs,
+            },
+          }),
+          credentials: 'include',
+        });
+      } catch (error) {
+        console.error('Failed to save view preferences:', error);
+      }
+    }
   };
 
   const handleDaysChange = (value: string) => {
@@ -285,14 +358,12 @@ export default function FilterBar({
 
             {/* View Options */}
             <div className="pt-2 border-t border-rh-border">
-              <div className="text-sm font-medium text-rh-text mb-2">View:</div>
-              <div className="flex gap-2">
+              <div className="text-sm font-medium text-rh-text mb-2">Display Mode:</div>
+
+              {/* Layout Type */}
+              <div className="flex gap-2 mb-3">
                 <button
-                  onClick={() => {
-                    const newPrefs = { useGridView: false };
-                    onViewPreferencesChange(newPrefs);
-                    localStorage.setItem('ado-explorer-view-preferences', JSON.stringify(newPrefs));
-                  }}
+                  onClick={() => handleViewPreferenceChange({ ...viewPreferences, useGridView: false })}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                     !viewPreferences.useGridView
                       ? 'bg-rh-green text-rh-dark shadow-lg'
@@ -303,11 +374,7 @@ export default function FilterBar({
                   Cards
                 </button>
                 <button
-                  onClick={() => {
-                    const newPrefs = { useGridView: true };
-                    onViewPreferencesChange(newPrefs);
-                    localStorage.setItem('ado-explorer-view-preferences', JSON.stringify(newPrefs));
-                  }}
+                  onClick={() => handleViewPreferenceChange({ ...viewPreferences, useGridView: true })}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                     viewPreferences.useGridView
                       ? 'bg-rh-green text-rh-dark shadow-lg'
@@ -318,12 +385,38 @@ export default function FilterBar({
                   Grid
                 </button>
               </div>
+
+              {/* Hierarchy Toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleViewPreferenceChange({ ...viewPreferences, useHierarchyView: false })}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    !viewPreferences.useHierarchyView
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
+                  }`}
+                >
+                  <List className="w-3 h-3" />
+                  Single
+                </button>
+                <button
+                  onClick={() => handleViewPreferenceChange({ ...viewPreferences, useHierarchyView: true })}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    viewPreferences.useHierarchyView
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-rh-border/30 text-rh-text-secondary hover:bg-rh-border hover:text-rh-text'
+                  }`}
+                >
+                  <Network className="w-3 h-3" />
+                  Hierarchy
+                </button>
+              </div>
             </div>
 
             {/* Clear All Filters */}
             {activeFilterCount > 0 && (
               <button
-                onClick={() => {
+                onClick={async () => {
                   const clearedFilters: GlobalFilters = {
                     ignoreClosed: false,
                     ignoreStates: [],
@@ -335,6 +428,25 @@ export default function FilterBar({
                   onFiltersChange(clearedFilters);
                   localStorage.setItem('ado-explorer-filters', JSON.stringify(clearedFilters));
                   setDaysInput('30');
+
+                  // Save to Redis
+                  if (settingsLoaded) {
+                    try {
+                      await fetch('/api/user-settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          settings: {
+                            filters: clearedFilters,
+                            viewPreferences,
+                          },
+                        }),
+                        credentials: 'include',
+                      });
+                    } catch (error) {
+                      console.error('Failed to save cleared settings:', error);
+                    }
+                  }
                 }}
                 className="flex items-center gap-1 text-xs text-rh-text-secondary hover:text-rh-green transition-colors mt-2"
               >

@@ -1,4 +1,4 @@
-export const VERSION = 'v1.5';
+export const VERSION = 'v1.6';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,6 +10,24 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: 'v1.6',
+    date: '2025-01-12',
+    changes: [
+      {
+        category: 'Feature',
+        description: '🌳 Hierarchy View Toggle - Choose between Single (flat list) or Hierarchy (nested parent-child) view modes for work items',
+      },
+      {
+        category: 'Feature',
+        description: '💾 Complete Settings Persistence - All user preferences (filters, view modes, hierarchy toggle) now automatically saved to Redis and restored across sessions',
+      },
+      {
+        category: 'Enhancement',
+        description: '⚙️ Unified Settings Management - Filters and view preferences saved together in Redis user profile with 90-day retention',
+      },
+    ],
+  },
   {
     version: 'v1.5',
     date: '2025-01-12',

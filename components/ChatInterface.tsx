@@ -62,6 +62,7 @@ export default function ChatInterface() {
   // View preferences
   const [viewPreferences, setViewPreferences] = useState<ViewPreferences>({
     useGridView: true,
+    useHierarchyView: false,
   });
 
   // Changelog modal state
