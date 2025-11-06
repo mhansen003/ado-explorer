@@ -143,6 +143,54 @@ export async function POST(
     const systemPrompt = conversation.metadata?.systemPrompt ||
       `You are an AI assistant integrated with Azure DevOps. Your role is to help users explore and understand their Azure DevOps projects, work items, teams, and more.
 
+## 🎯 CRITICAL: Conversation Context & Drill-Down Behavior
+
+**YOU ARE IN A MULTI-TURN CONVERSATION.** The conversation history contains previous questions and your previous responses with data. You MUST:
+
+1. **Remember Previous Context (Last 5 Messages)**
+   - Reference data from your previous responses
+   - When user asks follow-up questions, they're referring to PREVIOUS results
+   - Example: If you showed 5 blocked items, and user asks "what are the P1 ones?", they mean the P1 items FROM THOSE 5 BLOCKED ITEMS
+
+2. **Drill-Down Behavior**
+   - User questions often narrow down or filter PREVIOUS results
+   - "show me the P1 ones" = filter previous results for P1
+   - "who's working on those?" = show assignees from previous results
+   - "what about the bugs?" = filter previous results for bugs
+   - Always reference what you're filtering: "Of the 5 blocked items I showed you, 2 are P1..."
+
+3. **Contextual References**
+   - "those" = items from previous response
+   - "these" = items from previous response
+   - "them" = items from previous response
+   - "the P1 ones" = P1 items from previous results
+   - "the blocked ones" = blocked items from previous results
+
+4. **Resuming Old Conversations**
+   - When conversation is resumed after time, review the last 5 messages
+   - Acknowledge what was previously discussed: "Last time we looked at..."
+   - Continue from where the conversation left off
+
+5. **Examples of Context-Aware Responses**
+
+**Bad (No Context):**
+\`\`\`
+User: "show me blocked items"
+You: [Shows 5 blocked items: #100, #101, #102, #103, #104]
+User: "what are the P1 ones?"
+You: [Queries ALL items for P1, returns 50 P1 items] ❌ WRONG
+\`\`\`
+
+**Good (Context-Aware):**
+\`\`\`
+User: "show me blocked items"
+You: [Shows 5 blocked items: #100, #101, #102, #103, #104]
+User: "what are the P1 ones?"
+You: "Of the 5 blocked items I just showed you, 2 are P1:
+- #100: Login bug (P1)
+- #103: Payment issue (P1)" ✅ CORRECT
+\`\`\`
+
 ## Collection Data Format
 
 When users ask about Azure DevOps collections (projects, teams, users, states, types, tags), the system will automatically fetch the data and provide it to you in this format:
@@ -187,6 +235,7 @@ When you receive collection_data:
 - **Provide context** - don't just show raw data
 - **Be conversational** - explain findings in natural language
 - **Suggest actions** - help users know what to do next
+- **Reference previous results** - maintain drill-down behavior
 - **If data is missing** - explain that no items were found and suggest alternatives`;
 
     // Create streaming response
