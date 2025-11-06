@@ -156,6 +156,11 @@ Type **/help** for more info`,
         body: JSON.stringify({ role, content, metadata }),
       });
       console.log('[ChatInterface] Saved message to conversation', metadata ? 'with metadata' : '');
+
+      // Refresh sidebar to show updated title/timestamp
+      if (role === 'user') {
+        setSidebarRefreshKey(Date.now());
+      }
     } catch (error) {
       console.error('[ChatInterface] Failed to save message:', error);
     }

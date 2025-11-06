@@ -88,8 +88,8 @@ export async function POST(
       console.log('[Save Message API] Saved message with metadata:', Object.keys(metadata));
     }
 
-    // Auto-generate title from first user message
-    if (role === 'user' && conversation.messageCount === 0) {
+    // Auto-generate/update title from user messages
+    if (role === 'user') {
       const now = new Date();
       const dateTime = now.toLocaleString('en-US', {
         month: 'short',
@@ -99,15 +99,19 @@ export async function POST(
         hour12: true
       });
 
-      // Generate title from first message (max 50 chars) + timestamp
+      // Generate title from message (max 50 chars) + timestamp
       let title = content.trim();
       if (title.length > 50) {
         title = title.substring(0, 47) + '...';
       }
-      title = `${title} (${dateTime})`;
+
+      // Add timestamp on first message, update without timestamp on subsequent
+      if (conversation.messageCount === 0) {
+        title = `${title} (${dateTime})`;
+      }
 
       await conversationService.updateConversation(conversationId, { title });
-      console.log('[Save Message API] Auto-generated title:', title);
+      console.log('[Save Message API] Updated conversation title:', title);
     }
 
     return NextResponse.json({
