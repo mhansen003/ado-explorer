@@ -1101,6 +1101,7 @@ Type **/help** for more info`,
               listItems: msg.metadata?.listItems,
               suggestions: msg.metadata?.suggestions,
               responseType: msg.metadata?.responseType,
+              isError: msg.metadata?.isError, // Preserve error state for red styling
             };
           } else {
             // System messages
@@ -1269,8 +1270,10 @@ Type **/help** for more info`,
             };
             setMessages(prev => [...prev.slice(0, -1), errorMessage]);
 
-            // Save error response to conversation
-            saveMessageToConversation('assistant', data.conversationalAnswer);
+            // Save error response to conversation with error flag
+            saveMessageToConversation('assistant', data.conversationalAnswer, {
+              isError: true,
+            });
             return;
           }
           throw new Error(data.error || 'Failed to process prompt');
@@ -1308,6 +1311,7 @@ Type **/help** for more info`,
             workItems: data.workItems,
             suggestions: data.suggestions,
             responseType: data.responseType,
+            isError: isErrorResponse, // Preserve error state in history
           });
         }
       } catch (error: any) {
