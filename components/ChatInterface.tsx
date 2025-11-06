@@ -1031,20 +1031,29 @@ Type **/help** for more info`,
               return {
                 value: item.name || item.Name,
                 description: item.description || item.Description || `State: ${item.state || item.State || 'Active'}`,
+                commandName: 'project',
               };
             } else if (collectionDetection.type === 'teams') {
               return {
                 value: item.name || item.Name,
                 description: item.projectName || item.ProjectName ? `Project: ${item.projectName || item.ProjectName}` : undefined,
+                commandName: 'board',
               };
             } else if (collectionDetection.type === 'users') {
               return {
                 value: item.displayName || item.name || 'Unknown',
                 description: item.emailAddress || item.email || undefined,
+                commandName: 'assigned_to',
               };
-            } else if (collectionDetection.type === 'states' || collectionDetection.type === 'types' || collectionDetection.type === 'tags') {
+            } else if (collectionDetection.type === 'states') {
               const name = typeof item === 'string' ? item : (item.name || item.Name || item);
-              return { value: name };
+              return { value: name, commandName: 'state' };
+            } else if (collectionDetection.type === 'types') {
+              const name = typeof item === 'string' ? item : (item.name || item.Name || item);
+              return { value: name, commandName: 'type' };
+            } else if (collectionDetection.type === 'tags') {
+              const name = typeof item === 'string' ? item : (item.name || item.Name || item);
+              return { value: name, commandName: 'tag' };
             }
             return { value: String(item) };
           });
