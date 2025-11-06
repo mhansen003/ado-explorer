@@ -9,8 +9,6 @@ import { formatDatePST, formatDateTimePST } from '@/lib/date-utils';
 
 interface WorkItemCardProps {
   workItem: WorkItem;
-  selected?: boolean;
-  onToggleSelect?: (workItemId: string) => void;
 }
 
 const getStateIcon = (state: string) => {
@@ -26,36 +24,16 @@ const getStateIcon = (state: string) => {
   }
 };
 
-export default function WorkItemCard({ workItem, selected = false, onToggleSelect }: WorkItemCardProps) {
+export default function WorkItemCard({ workItem }: WorkItemCardProps) {
   const [showDetail, setShowDetail] = useState(false);
-
-  const handleCheckboxClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onToggleSelect) {
-      onToggleSelect(workItem.id);
-    }
-  };
 
   return (
     <>
       <button
         onClick={() => setShowDetail(true)}
-        className={`w-full bg-rh-card border rounded-lg p-4 hover:border-rh-green transition-all hover:shadow-lg hover:shadow-rh-green/10 text-left ${
-          selected ? 'border-rh-green shadow-lg shadow-rh-green/20' : 'border-rh-border'
-        }`}
+        className="w-full bg-rh-card border border-rh-border rounded-lg p-4 hover:border-rh-green transition-all hover:shadow-lg hover:shadow-rh-green/10 text-left"
       >
         <div className="flex items-start gap-3">
-          {/* Checkbox */}
-          {onToggleSelect && (
-            <div className="flex items-center pt-1" onClick={handleCheckboxClick}>
-              <input
-                type="checkbox"
-                checked={selected}
-                onChange={() => {}}
-                className="w-4 h-4 rounded border-rh-border bg-rh-bg text-rh-green focus:ring-rh-green focus:ring-offset-rh-bg cursor-pointer"
-              />
-            </div>
-          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-mono text-rh-green">{workItem.id}</span>

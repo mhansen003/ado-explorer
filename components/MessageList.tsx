@@ -422,39 +422,6 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                     )}
                   </div>
 
-                  {/* Bulk Actions Toolbar */}
-                  {message.workItems && message.workItems.length > 0 && selectedWorkItems.size > 0 && (
-                    <div className="mb-3 p-3 bg-rh-green/10 border border-rh-green/30 rounded-lg flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <CheckSquare className="w-4 h-4 text-rh-green" />
-                        <span className="text-sm font-medium text-rh-text">
-                          {selectedWorkItems.size} {selectedWorkItems.size === 1 ? 'item' : 'items'} selected
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSelectAll(message.workItems!)}
-                          className="px-3 py-1.5 text-xs bg-rh-green/20 border border-rh-green/40 text-rh-green rounded-lg hover:bg-rh-green/30 transition-colors font-medium"
-                        >
-                          Select All ({message.workItems.length})
-                        </button>
-                        <button
-                          onClick={handleDeselectAll}
-                          className="px-3 py-1.5 text-xs bg-rh-border border border-rh-border text-rh-text-secondary rounded-lg hover:bg-rh-border/50 transition-colors font-medium"
-                        >
-                          Deselect All
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(true)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-600/20 border border-red-500/40 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors font-medium"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete Selected
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Conditional rendering: Grid View or Card View */}
                   {viewPreferences.useGridView ? (
                     <>
@@ -475,7 +442,6 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                                 <table className="w-full border-collapse">
                                   <thead>
                                     <tr className="border-b-2 border-rh-border">
-                                      <th className="px-3 py-2 w-8"></th>
                                       <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">ID</th>
                                       <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">Type</th>
                                       <th className="px-3 py-2 text-left text-xs font-medium text-rh-text-secondary">State</th>
@@ -490,12 +456,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                                   </thead>
                                   <tbody>
                                     {message.workItems.slice(0, message.workItems.length <= 10 ? message.workItems.length : 10).map((item) => (
-                                      <WorkItemGrid
-                                        key={item.id}
-                                        workItem={item}
-                                        selected={selectedWorkItems.has(item.id)}
-                                        onToggleSelect={handleToggleSelect}
-                                      />
+                                      <WorkItemGrid key={item.id} workItem={item} />
                                     ))}
                                   </tbody>
                                 </table>
@@ -534,12 +495,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                             <>
                               {/* Show first 5 items or all if <= 5 for card view */}
                               {message.workItems.slice(0, message.workItems.length <= 5 ? message.workItems.length : 5).map((item) => (
-                                <WorkItemCard
-                                  key={item.id}
-                                  workItem={item}
-                                  selected={selectedWorkItems.has(item.id)}
-                                  onToggleSelect={handleToggleSelect}
-                                />
+                                <WorkItemCard key={item.id} workItem={item} />
                               ))}
 
                               {/* Show "and X more" message if > 5 for card view */}
@@ -601,68 +557,6 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
           message={modalMessage}
           onClose={() => setModalMessage(null)}
         />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-rh-card border border-rh-border rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-600/20 border border-red-500/40 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-rh-text">Delete Work Items</h3>
-                <p className="text-sm text-rh-text-secondary">This action cannot be undone</p>
-              </div>
-            </div>
-
-            <div className="mb-6 p-4 bg-rh-bg border border-rh-border rounded-lg">
-              <p className="text-sm text-rh-text mb-2">
-                You are about to permanently delete <span className="font-semibold text-rh-green">{selectedWorkItems.size}</span> work {selectedWorkItems.size === 1 ? 'item' : 'items'}:
-              </p>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {Array.from(selectedWorkItems).slice(0, 10).map((id) => (
-                  <div key={id} className="text-xs text-rh-text-secondary font-mono">
-                    • Work Item #{id}
-                  </div>
-                ))}
-                {selectedWorkItems.size > 10 && (
-                  <div className="text-xs text-rh-text-secondary">
-                    ... and {selectedWorkItems.size - 10} more
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-                className="flex-1 px-4 py-2.5 text-sm bg-rh-bg border border-rh-border text-rh-text rounded-lg hover:bg-rh-border/50 transition-colors font-medium disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBulkDelete}
-                disabled={isDeleting}
-                className="flex-1 px-4 py-2.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isDeleting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Delete Forever
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </>
   );
