@@ -327,7 +327,7 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                 />
               )}
 
-              {message.type === 'results' && message.workItems && !message.isAnalytics ? (
+              {message.type === 'results' && message.workItems && message.workItems.length > 0 && !message.isAnalytics ? (
                 <div className="space-y-2 mt-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex flex-col gap-1">
