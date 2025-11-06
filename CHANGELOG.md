@@ -5,6 +5,174 @@ All notable changes to ADO Explorer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-01-06
+
+### ✨ MAJOR FEATURE - Context-Aware Conversations & Drill-Down
+
+This release adds intelligent conversation context awareness, enabling natural drill-down behavior where users can progressively filter results without re-querying the entire dataset.
+
+#### 🎯 The Problem
+
+**Before this update:**
+```
+User: "show me blocked items"
+AI: [Shows 5 blocked items: #100, #101, #102, #103, #104]
+
+User: "what are the P1 ones?"
+AI: [Queries ALL P1 items in system, returns 50 items] ❌ Lost context!
+```
+
+Users had to repeat context in every question, making conversations feel robotic and inefficient.
+
+#### ✨ The Solution
+
+**After this update:**
+```
+User: "show me blocked items"
+AI: [Shows 5 blocked items: #100, #101, #102, #103, #104]
+
+User: "what are the P1 ones?"
+AI: "Of the 5 blocked items I just showed you, 2 are P1:
+     - #100: Login bug (P1)
+     - #103: Payment issue (P1)" ✅ Maintains context!
+```
+
+The AI now remembers previous results and naturally filters them in follow-up questions.
+
+#### 🎯 Key Features
+
+**1. Context Memory (Last 5 Exchanges)**
+- AI actively remembers data from previous responses
+- Follow-up questions automatically reference PREVIOUS results
+- Explicit understanding: "the P1 ones" means P1 items FROM previous results
+
+**2. Progressive Drill-Down**
+- Each question narrows previous results
+- "show blocked" → "the P1 ones" → "who's working on those?"
+- Always references source: "Of the 5 blocked items I showed you..."
+
+**3. Contextual Reference Understanding**
+- "those" / "these" / "them" → items from previous response
+- "the P1 ones" → P1 priority items from previous results
+- "the blocked ones" → blocked items from previous results
+- "who's working on those?" → assignees from previous results
+
+**4. Conversation Resumption**
+- When reopening old conversations, AI reviews last 5 messages
+- Acknowledges previous context: "Last time we looked at..."
+- Continues seamlessly from where conversation left off
+
+**5. Explicit Training**
+- System prompt includes BAD vs GOOD examples
+- Visual markers: ❌ WRONG vs ✅ CORRECT
+- Clear rules for maintaining drill-down flow
+
+#### 💡 Real-World Example Flow
+
+```
+Conversation 1 (Initial Query):
+User: "show me sprint 15 items"
+AI: [Shows 30 items from Sprint 15]
+
+Conversation 2 (First Drill-Down):
+User: "the P1 ones"
+AI: "Of the 30 Sprint 15 items, 8 are P1 priority..."
+    [Shows 8 P1 items]
+
+Conversation 3 (Second Drill-Down):
+User: "which are bugs?"
+AI: "Of those 8 P1 items, 3 are bugs..."
+    [Shows 3 bugs: #100, #103, #107]
+
+Conversation 4 (Third Drill-Down):
+User: "who's assigned to those?"
+AI: "Those 3 P1 bugs are assigned to:
+     - #100: Login bug → John Smith
+     - #103: Payment error → Sarah Johnson
+     - #107: Crash on startup → Mike Davis"
+```
+
+Each question builds on the previous results, creating a natural exploration flow.
+
+#### 📦 Implementation Details
+
+**Enhanced System Prompt**
+- Added "🎯 CRITICAL: Conversation Context & Drill-Down Behavior" section
+- 5 detailed rules for context maintenance:
+  1. Remember previous context (last 5 messages)
+  2. Implement drill-down behavior
+  3. Understand contextual references
+  4. Handle conversation resumption
+  5. Learn from explicit examples
+
+**Context Window System**
+- Already implemented: token-based sliding window
+- Provides up to 160K tokens of context (min 10 messages = 5 exchanges)
+- New prompt tells AI HOW to use this context effectively
+
+**Reference Strategy**
+- Template: "Of the X items I showed you, Y match..."
+- Prevents ambiguity in multi-turn conversations
+- Maintains clarity even in complex drill-downs
+
+#### 🎯 Use Cases
+
+**Use Case 1: Bug Triage**
+```
+"show all bugs" → 50 bugs
+"just P1" → 10 P1 bugs
+"which are blocked?" → 3 blocked P1 bugs
+"who's working on those?" → assignees for those 3
+```
+
+**Use Case 2: Sprint Planning**
+```
+"show sprint 15 items" → 30 items
+"what's assigned to John?" → John's 8 items
+"which are incomplete?" → 5 incomplete items
+"show me the details" → detailed view of those 5
+```
+
+**Use Case 3: Resuming Old Conversation**
+```
+[User opens 2-day-old conversation]
+AI: "Last time we looked at blocked P1 bugs in Sprint 15.
+     There were 3 items: #100, #103, and #107.
+     Would you like to see updated status?"
+```
+
+#### 🎨 UX Impact
+
+- **✅ Natural Conversations** - Talk like you would to a colleague
+- **✅ Faster Exploration** - Each question narrows results, no re-querying
+- **✅ Less Repetition** - No need to repeat "from the blocked items..."
+- **✅ Continuity** - Resuming conversations feels seamless
+- **✅ Cognitive Ease** - Users don't have to remember context, AI does
+
+#### 📊 Files Modified
+
+**app/api/conversations/[id]/messages/route.ts**
+- Lines 143-239: Enhanced default system prompt
+- Added context awareness section with 5 rules
+- Included BAD vs GOOD examples
+- Instructions for resuming old conversations
+
+#### 🚀 Impact Assessment
+
+**Conversation Quality:**
+- Before: Each question independent, no memory
+- After: Natural drill-down, progressive filtering
+
+**User Efficiency:**
+- Before: 4 questions = 4 full queries
+- After: 4 questions = 1 query + 3 filters
+
+**Cognitive Load:**
+- Before: User must remember and repeat context
+- After: AI maintains context automatically
+
+---
+
 ## [0.3.3] - 2025-01-06
 
 ### 🔧 CRITICAL FIX - Sprint Path Validation
