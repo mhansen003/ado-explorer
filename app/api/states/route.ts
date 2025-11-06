@@ -18,12 +18,9 @@ export async function GET(request: NextRequest) {
     const states = await adoService.getStates();
     console.log('[ADO States API] Found states:', states.length);
 
-    return NextResponse.json(states);
+    return NextResponse.json({ states });
   } catch (error: any) {
     console.error('[ADO States API] Error:', error.message);
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch states' },
-      { status: 500 }
-    );
+    return NextResponse.json({ states: [] });
   }
 }
