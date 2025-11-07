@@ -107,7 +107,7 @@ export class ContextManager {
    */
   getRecentWorkItems(context: ConversationContext, maxItems: number = 50): WorkItem[] {
     const items: WorkItem[] = [];
-    const seenIds = new Set<number>();
+    const seenIds = new Set<string>();
 
     // Go through turns in reverse (most recent first)
     for (let i = context.turns.length - 1; i >= 0 && items.length < maxItems; i--) {
