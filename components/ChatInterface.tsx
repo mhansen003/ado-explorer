@@ -1703,14 +1703,45 @@ Just type naturally - I understand questions like:
   };
 
   const handleListItemClick = async (value: string, commandName: string) => {
-    // Execute the command with the selected value
-    const command = `/${commandName} ${value}`;
+    // Generate natural language query instead of slash command
+    // This allows AI to interpret names intelligently and handle edge cases
+    let naturalQuery = '';
+
+    switch (commandName) {
+      case 'sprint':
+        naturalQuery = `show all tickets in sprint ${value}`;
+        break;
+      case 'project':
+        naturalQuery = `show all tickets in project ${value}`;
+        break;
+      case 'board':
+        naturalQuery = `show all tickets on board ${value}`;
+        break;
+      case 'assigned_to':
+        naturalQuery = `show all tickets assigned to ${value}`;
+        break;
+      case 'created_by':
+        naturalQuery = `show all tickets created by ${value}`;
+        break;
+      case 'state':
+        naturalQuery = `show all tickets with state ${value}`;
+        break;
+      case 'type':
+        naturalQuery = `show all ${value} tickets`;
+        break;
+      case 'tag':
+        naturalQuery = `show all tickets tagged with ${value}`;
+        break;
+      default:
+        // Fallback to slash command for unknown types
+        naturalQuery = `/${commandName} ${value}`;
+    }
 
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: command,
+      content: naturalQuery,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
@@ -1718,8 +1749,8 @@ Just type naturally - I understand questions like:
     // Close filter dropdown when executing search
     setIsFilterExpanded(false);
 
-    // Process the command
-    await processCommand(command);
+    // Process the natural language query
+    await processCommand(naturalQuery);
   };
 
   const handleSuggestionClick = async (suggestion: string) => {
