@@ -34,8 +34,32 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Construct full email
-      const fullEmail = `${username.trim()}@cmgfi.com`;
+      // Smart email parsing: handle @cmgfi.com if provided, validate domain, or auto-append
+      const trimmedInput = username.trim();
+      let fullEmail: string;
+
+      if (trimmedInput.includes('@')) {
+        // User included @ symbol - validate it's @cmgfi.com
+        const [user, domain] = trimmedInput.split('@');
+
+        if (!user || user.length === 0) {
+          setError('Please enter a username before @');
+          setLoading(false);
+          return;
+        }
+
+        if (domain && domain.toLowerCase() !== 'cmgfi.com') {
+          setError('Only @cmgfi.com email addresses are allowed');
+          setLoading(false);
+          return;
+        }
+
+        // If they typed just "username@" without domain, append it
+        fullEmail = domain ? `${user}@${domain.toLowerCase()}` : `${user}@cmgfi.com`;
+      } else {
+        // No @ symbol - just append @cmgfi.com
+        fullEmail = `${trimmedInput}@cmgfi.com`;
+      }
 
       const response = await fetch('/api/auth/send-otp', {
         method: 'POST',
@@ -67,7 +91,17 @@ export default function LoginPage() {
 
     try {
       const code = otp.join('');
-      const fullEmail = `${username.trim()}@cmgfi.com`;
+
+      // Smart email parsing: handle @cmgfi.com if provided, or auto-append
+      const trimmedInput = username.trim();
+      let fullEmail: string;
+
+      if (trimmedInput.includes('@')) {
+        const [user, domain] = trimmedInput.split('@');
+        fullEmail = domain ? `${user}@${domain.toLowerCase()}` : `${user}@cmgfi.com`;
+      } else {
+        fullEmail = `${trimmedInput}@cmgfi.com`;
+      }
 
       if (code.length !== 6) {
         throw new Error('Please enter all 6 digits');
@@ -139,7 +173,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const fullEmail = `${username.trim()}@cmgfi.com`;
+      // Smart email parsing: handle @cmgfi.com if provided, or auto-append
+      const trimmedInput = username.trim();
+      let fullEmail: string;
+
+      if (trimmedInput.includes('@')) {
+        const [user, domain] = trimmedInput.split('@');
+        fullEmail = domain ? `${user}@${domain.toLowerCase()}` : `${user}@cmgfi.com`;
+      } else {
+        fullEmail = `${trimmedInput}@cmgfi.com`;
+      }
 
       const response = await fetch('/api/auth/send-otp', {
         method: 'POST',
@@ -206,7 +249,7 @@ export default function LoginPage() {
               <form onSubmit={handleSendOTP} className="space-y-6">
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-rh-text mb-2">
-                    CMG Username
+                    CMG Username or Email
                   </label>
                   <div className="relative">
                     <input
@@ -215,17 +258,14 @@ export default function LoginPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="w-full px-4 py-3 bg-rh-dark border border-rh-border rounded-xl text-rh-text placeholder-rh-text-secondary focus:outline-none focus:border-rh-green focus:ring-2 focus:ring-rh-green/20 transition-all"
-                      placeholder="Enter your username"
+                      placeholder="firstname.lastname or firstname.lastname@cmgfi.com"
                       required
                       autoComplete="username"
                       autoFocus
                     />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-rh-text-secondary text-sm pointer-events-none">
-                      @cmgfi.com
-                    </div>
                   </div>
                   <p className="mt-2 text-xs text-rh-text-secondary">
-                    Only @cmgfi.com email addresses are allowed
+                    Enter your username (we&apos;ll add @cmgfi.com) or full email
                   </p>
                 </div>
 
@@ -253,7 +293,7 @@ export default function LoginPage() {
                     Enter the 6-digit code sent to
                   </p>
                   <p className="text-rh-text font-medium">
-                    {username}@cmgfi.com
+                    {username.includes('@') ? username : `${username}@cmgfi.com`}
                   </p>
                 </div>
 
