@@ -215,13 +215,28 @@ export class QueryExecutor {
       wiqlQuery = adoService.applyFiltersToQuery(wiqlQuery, filters);
     }
 
-    // Execute WIQL
-    const workItems = await adoService.searchWorkItems(wiqlQuery);
+    try {
+      // Execute WIQL
+      const workItems = await adoService.searchWorkItems(wiqlQuery);
 
-    return {
-      workItems,
-      query: wiqlQuery,
-    };
+      return {
+        workItems,
+        query: wiqlQuery,
+      };
+    } catch (error: any) {
+      // Enhanced error logging for ADO errors
+      console.error('[Query Executor] WIQL execution failed:', {
+        query: wiqlQuery,
+        errorCode: error.code,
+        statusCode: error.response?.status,
+        errorMessage: error.response?.data?.message || error.message,
+        errorDetails: error.response?.data,
+      });
+
+      // Re-throw with enhanced message
+      const adoError = error.response?.data?.message || error.message;
+      throw new Error(`WIQL Query Failed: ${adoError}`);
+    }
   }
 
   /**
