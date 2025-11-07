@@ -141,16 +141,34 @@ export class QueryPlanner {
     if ((intent.scope === 'PROJECT' || intent.scope === 'SPRINT') && intent.sprintIdentifier) {
       const projectName = intent.projectIdentifier || this.projectName;
 
+      // Check if sprintIdentifier is already a full path (contains backslash)
+      const isFullPath = intent.sprintIdentifier.includes('\\');
+
       // Try to find actual sprint path from metadata
-      let sprintPath = `${projectName}\\${intent.sprintIdentifier}`;
+      let sprintPath = isFullPath
+        ? intent.sprintIdentifier  // Already a full path, use as-is
+        : `${projectName}\\${intent.sprintIdentifier}`;  // Just a name, construct path
+
       if (metadata?.sprints) {
-        const sprintMatch = metadata.sprints.find((s: any) =>
-          s.name?.toLowerCase().includes(intent.sprintIdentifier?.toLowerCase() || '') ||
-          s.path?.toLowerCase().includes(intent.sprintIdentifier?.toLowerCase() || '')
-        );
+        const sprintMatch = metadata.sprints.find((s: any) => {
+          const nameLower = s.name?.toLowerCase() || '';
+          const pathLower = s.path?.toLowerCase() || '';
+          const identifierLower = intent.sprintIdentifier?.toLowerCase() || '';
+
+          // If identifier is a full path, try exact match first
+          if (isFullPath) {
+            return pathLower === identifierLower;
+          }
+
+          // Otherwise, try name or path contains
+          return nameLower.includes(identifierLower) || pathLower.includes(identifierLower);
+        });
+
         if (sprintMatch && sprintMatch.path) {
           sprintPath = sprintMatch.path;
           console.log('[Query Planner] Using actual sprint path from metadata:', sprintPath);
+        } else if (isFullPath) {
+          console.log('[Query Planner] Full path provided but not found in metadata, using as-is:', sprintPath);
         }
       }
 
@@ -294,10 +312,13 @@ export class QueryPlanner {
         const userField = isCreatedByQuery ? 'System.CreatedBy' : 'System.AssignedTo';
         conditions.push(`[${userField}] CONTAINS '${intent.userIdentifier}'`);
       } else if (intent.sprintIdentifier) {
-        // Use projectIdentifier if specified, otherwise use default project
-        const projectName = intent.projectIdentifier || this.projectName;
+        // Check if sprintIdentifier is already a full path (contains backslash)
+        const isFullPath = intent.sprintIdentifier.includes('\\');
+        const sprintPath = isFullPath
+          ? intent.sprintIdentifier
+          : `${intent.projectIdentifier || this.projectName}\\\\${intent.sprintIdentifier}`;
         conditions.push(
-          `[System.IterationPath] UNDER '${projectName}\\\\${intent.sprintIdentifier}'`
+          `[System.IterationPath] UNDER '${sprintPath}'`
         );
       } else if (intent.teamIdentifier) {
         conditions.push(

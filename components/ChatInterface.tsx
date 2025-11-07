@@ -1204,8 +1204,15 @@ Type **/help** for more info`,
               const name = typeof item === 'string' ? item : (item.name || item.Name || item);
               return { value: name, commandName: 'tag' };
             } else if (collectionDetection.type === 'iterations') {
-              const name = typeof item === 'string' ? item : (item.name || item.Name || item.path || item);
-              return { value: name, commandName: 'sprint' };
+              if (typeof item === 'string') {
+                return { value: item, commandName: 'sprint' };
+              }
+              // Prefer name over path to avoid passing full path in command
+              const name = item.name || item.Name;
+              const path = item.path || item.Path;
+              const value = name || path || String(item);
+              const description = name && path && name !== path ? path : undefined;
+              return { value, description, commandName: 'sprint' };
             }
             return { value: String(item) };
           });

@@ -333,8 +333,23 @@ export class AIOrchestrator {
       reasoning: 'Slash command fast-path',
     };
 
+    // Fetch metadata if needed for query planning
+    let metadata: { sprints?: any[]; users?: string[] } | undefined;
+    if (intent.sprintIdentifier || intent.scope === 'SPRINT' || intent.scope === 'PROJECT') {
+      try {
+        // Get project name from intent or environment
+        const projectName = intent.projectIdentifier || process.env.NEXT_PUBLIC_ADO_PROJECT;
+        const sprints = await this.adoService.getSprints(projectName);
+        metadata = { sprints };
+        console.log(`[Orchestrator Slash Command] Fetched ${sprints?.length || 0} sprints for query planning from project: ${projectName}`);
+      } catch (error) {
+        console.warn('[Orchestrator Slash Command] Failed to fetch sprint metadata:', error);
+        metadata = undefined;
+      }
+    }
+
     // Plan query
-    const plan = await this.queryPlanner.plan(intent, decision);
+    const plan = await this.queryPlanner.plan(intent, decision, metadata);
 
     // Execute
     const results = await this.queryExecutor.execute(plan, input.filters);
