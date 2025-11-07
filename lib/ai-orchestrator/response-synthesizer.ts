@@ -267,6 +267,8 @@ export class ResponseSynthesizer {
     const counts: Record<string, number> = {};
 
     workItems.forEach((item) => {
+      if (!item || !item.fields) return;
+
       const value = item.fields[fieldName];
       if (value !== undefined && value !== null) {
         const key = String(value);
@@ -375,22 +377,29 @@ export class ResponseSynthesizer {
     // State distribution
     const states: Record<string, number> = {};
     workItems.forEach((item) => {
+      if (!item || !item.fields) return;
       const state = item.fields['System.State'];
-      states[state] = (states[state] || 0) + 1;
+      if (state) {
+        states[state] = (states[state] || 0) + 1;
+      }
     });
     metrics.states = states;
 
     // Type distribution
     const types: Record<string, number> = {};
     workItems.forEach((item) => {
+      if (!item || !item.fields) return;
       const type = item.fields['System.WorkItemType'];
-      types[type] = (types[type] || 0) + 1;
+      if (type) {
+        types[type] = (types[type] || 0) + 1;
+      }
     });
     metrics.types = types;
 
     // Sprint-specific metrics
     if (intent.scope === 'SPRINT') {
       const storyPoints = workItems
+        .filter((item) => item && item.fields)
         .map((item) => item.fields['Microsoft.VSTS.Scheduling.StoryPoints'] || 0)
         .reduce((sum, points) => sum + points, 0);
 
@@ -398,14 +407,16 @@ export class ResponseSynthesizer {
       metrics.completedStoryPoints = workItems
         .filter(
           (item) =>
-            item.fields['System.State'] === 'Closed' ||
-            item.fields['System.State'] === 'Resolved'
+            item &&
+            item.fields &&
+            (item.fields['System.State'] === 'Closed' ||
+              item.fields['System.State'] === 'Resolved')
         )
         .map((item) => item.fields['Microsoft.VSTS.Scheduling.StoryPoints'] || 0)
         .reduce((sum, points) => sum + points, 0);
 
       metrics.blockedCount = workItems.filter(
-        (item) => item.fields['System.State'] === 'Blocked'
+        (item) => item && item.fields && item.fields['System.State'] === 'Blocked'
       ).length;
     }
 

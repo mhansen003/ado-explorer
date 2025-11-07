@@ -293,9 +293,12 @@ ${JSON.stringify(evaluation, null, 2)}
 - Queries Executed: ${results.metadata.totalQueries}
 
 **Data Sample:**
-${results.workItems.slice(0, 10).map((item: any) =>
-  `- #${item.id}: ${item.fields['System.Title']} [${item.fields['System.State']}] (${item.fields['System.WorkItemType']})`
+${results.workItems.slice(0, 10).filter((item: any) => item && item.fields).map((item: any) =>
+  `- #${item.id}: ${item.fields['System.Title'] || 'No Title'} [${item.fields['System.State'] || 'Unknown'}] (${item.fields['System.WorkItemType'] || 'Unknown'})`
 ).join('\n')}
+
+**Available Fields:**
+${results.workItems.length > 0 && results.workItems[0]?.fields ? Object.keys(results.workItems[0].fields).slice(0, 10).join(', ') : 'No items or fields'}
 
 **Task:**
 Create a response that:
