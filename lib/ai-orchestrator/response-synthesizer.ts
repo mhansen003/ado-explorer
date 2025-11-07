@@ -19,7 +19,7 @@ import {
   RESPONSE_SYNTHESIS_SYSTEM_PROMPT,
   buildSynthesisPrompt,
 } from '../ai-prompts/synthesis-prompts';
-import { WorkItem } from '../types/index';
+import { WorkItem } from '@/types';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

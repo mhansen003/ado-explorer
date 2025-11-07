@@ -6,7 +6,7 @@
  */
 
 import { ConversationContext, ConversationTurn, Intent, OrchestratedResponse } from '../types/ai-types';
-import { WorkItem, GlobalFilters } from '../types/index';
+import { WorkItem, GlobalFilters } from '@/types';
 import { CacheService } from '../redis/cacheService';
 import { v4 as uuidv4 } from 'uuid';
 

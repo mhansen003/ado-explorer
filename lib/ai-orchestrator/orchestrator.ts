@@ -18,7 +18,7 @@ import {
   OrchestratedResponse,
   ConversationContext,
 } from '../types/ai-types';
-import { GlobalFilters } from '../types/index';
+import { GlobalFilters } from '@/types';
 import IntentAnalyzer from './intent-analyzer';
 import DecisionEngine from './decision-engine';
 import QueryPlanner from './query-planner';

@@ -6,7 +6,7 @@
  */
 
 import { QueryPlan, PlannedQuery, QueryResults, QueryResult } from '../types/ai-types';
-import { WorkItem, GlobalFilters } from '../types/index';
+import { WorkItem, GlobalFilters } from '@/types';
 import { ADOService } from '../ado-api';
 import { CacheService } from '../redis/cacheService';
 

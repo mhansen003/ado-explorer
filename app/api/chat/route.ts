@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AIOrchestrator } from '@/lib/ai-orchestrator';
 import { OrchestratorInput } from '@/lib/types/ai-types';
-import { GlobalFilters } from '@/lib/types/index';
+import { GlobalFilters } from '@/types';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30; // 30 seconds max
