@@ -96,59 +96,79 @@ export async function POST(req: NextRequest) {
     // Process query through orchestrator
     const result = await orchestrator.process(input);
 
-    // Prepare response
-    const response: any = {
-      success: result.response.success,
-      summary: result.response.summary,
-      analysis: result.response.analysis,
-      rawData: result.response.rawData,
-      suggestions: result.response.suggestions,
-      visualizations: result.response.visualizations,
-      metadata: result.response.metadata,
-      conversationId: result.conversationContext.conversationId,
-      error: result.response.error,
+    // Prepare response with explicit JSON serialization
+    const response = {
+      success: result.response.success || false,
+      summary: result.response.summary || 'No summary available',
+      analysis: result.response.analysis || undefined,
+      rawData: result.response.rawData || [],
+      suggestions: result.response.suggestions || [],
+      visualizations: result.response.visualizations || [],
+      metadata: {
+        queriesExecuted: result.response.metadata?.queriesExecuted || 0,
+        dataSources: result.response.metadata?.dataSources || [],
+        confidence: result.response.metadata?.confidence || 0,
+        processingTime: result.response.metadata?.processingTime || (Date.now() - startTime),
+        cacheHit: result.response.metadata?.cacheHit || false,
+      },
+      conversationId: result.conversationContext?.conversationId || null,
+      error: result.response.error || undefined,
     };
 
     // Include metrics if verbose
-    if (options?.verbose) {
+    if (options?.verbose && result.metrics) {
       response.metrics = result.metrics;
-      response.contextStats = orchestrator.getContextStats(
-        result.conversationContext.conversationId
-      );
+      try {
+        const stats = await orchestrator.getContextStats(
+          result.conversationContext.conversationId
+        );
+        response.contextStats = stats;
+      } catch (statsError) {
+        console.warn('[Chat API] Failed to get context stats:', statsError);
+      }
     }
 
     console.log('[Chat API] Query processed:', {
-      success: result.response.success,
-      workItems: result.response.rawData.length,
-      processingTime: Date.now() - startTime,
-      confidence: result.response.metadata.confidence,
+      success: response.success,
+      workItems: response.rawData.length,
+      processingTime: response.metadata.processingTime,
+      confidence: response.metadata.confidence,
     });
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (error) {
     console.error('[Chat API] Error:', error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
-        summary: 'An error occurred while processing your request. Please try again.',
-        rawData: [],
-        suggestions: [
-          'Show me my active items',
-          'List all projects',
-          'What users are available?',
-        ],
-        metadata: {
-          queriesExecuted: 0,
-          dataSources: [],
-          confidence: 0,
-          processingTime: Date.now() - startTime,
-          cacheHit: false,
-        },
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    const errorResponse = {
+      success: false,
+      error: errorMessage,
+      summary: 'An error occurred while processing your request. Please try again.',
+      rawData: [],
+      suggestions: [
+        'Show me my active items',
+        'List all projects',
+        'What users are available?',
+      ],
+      metadata: {
+        queriesExecuted: 0,
+        dataSources: [],
+        confidence: 0,
+        processingTime: Date.now() - startTime,
+        cacheHit: false,
       },
-      { status: 500 }
-    );
+    };
+
+    return NextResponse.json(errorResponse, {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
 
