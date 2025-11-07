@@ -5,7 +5,7 @@
  * Each phase of the orchestrator uses these interfaces to pass data through the pipeline.
  */
 
-import { WorkItem, GlobalFilters } from './index';
+import { WorkItem, GlobalFilters } from '@/types';
 
 // ============================================================================
 // PHASE 1: INTENT ANALYSIS
