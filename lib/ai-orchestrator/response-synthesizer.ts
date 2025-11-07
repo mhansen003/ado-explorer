@@ -241,7 +241,7 @@ export class ResponseSynthesizer {
       // Would need sprint dates and story points for true burndown
       // For now, just show completion status
       const completedCount = workItems.filter(
-        (w) => w.fields['System.State'] === 'Closed' || w.fields['System.State'] === 'Resolved'
+        (w) => w.state === 'Closed' || w.state === 'Resolved'
       ).length;
       const totalCount = workItems.length;
 
@@ -266,10 +266,21 @@ export class ResponseSynthesizer {
   private aggregateByField(workItems: WorkItem[], fieldName: string): Record<string, number> {
     const counts: Record<string, number> = {};
 
-    workItems.forEach((item) => {
-      if (!item || !item.fields) return;
+    // Map ADO field names to WorkItem properties
+    const fieldMap: Record<string, keyof WorkItem> = {
+      'System.State': 'state',
+      'System.WorkItemType': 'type',
+      'Microsoft.VSTS.Common.Priority': 'priority',
+      'System.AssignedTo': 'assignedTo',
+      'System.CreatedBy': 'createdBy',
+    };
 
-      const value = item.fields[fieldName];
+    const propertyName = fieldMap[fieldName] || fieldName as keyof WorkItem;
+
+    workItems.forEach((item) => {
+      if (!item) return;
+
+      const value = item[propertyName];
       if (value !== undefined && value !== null) {
         const key = String(value);
         counts[key] = (counts[key] || 0) + 1;
@@ -377,8 +388,8 @@ export class ResponseSynthesizer {
     // State distribution
     const states: Record<string, number> = {};
     workItems.forEach((item) => {
-      if (!item || !item.fields) return;
-      const state = item.fields['System.State'];
+      if (!item) return;
+      const state = item.state;
       if (state) {
         states[state] = (states[state] || 0) + 1;
       }
@@ -388,8 +399,8 @@ export class ResponseSynthesizer {
     // Type distribution
     const types: Record<string, number> = {};
     workItems.forEach((item) => {
-      if (!item || !item.fields) return;
-      const type = item.fields['System.WorkItemType'];
+      if (!item) return;
+      const type = item.type;
       if (type) {
         types[type] = (types[type] || 0) + 1;
       }
@@ -399,8 +410,8 @@ export class ResponseSynthesizer {
     // Sprint-specific metrics
     if (intent.scope === 'SPRINT') {
       const storyPoints = workItems
-        .filter((item) => item && item.fields)
-        .map((item) => item.fields['Microsoft.VSTS.Scheduling.StoryPoints'] || 0)
+        .filter((item) => item)
+        .map((item) => item.storyPoints || 0)
         .reduce((sum, points) => sum + points, 0);
 
       metrics.totalStoryPoints = storyPoints;
@@ -408,15 +419,13 @@ export class ResponseSynthesizer {
         .filter(
           (item) =>
             item &&
-            item.fields &&
-            (item.fields['System.State'] === 'Closed' ||
-              item.fields['System.State'] === 'Resolved')
+            (item.state === 'Closed' || item.state === 'Resolved')
         )
-        .map((item) => item.fields['Microsoft.VSTS.Scheduling.StoryPoints'] || 0)
+        .map((item) => item.storyPoints || 0)
         .reduce((sum, points) => sum + points, 0);
 
       metrics.blockedCount = workItems.filter(
-        (item) => item && item.fields && item.fields['System.State'] === 'Blocked'
+        (item) => item && item.state === 'Blocked'
       ).length;
     }
 

@@ -42,9 +42,9 @@ async function test(query: string) {
     if (result.response.rawData.length > 0) {
       console.log('\nSample Items:');
       result.response.rawData.slice(0, 5).forEach((item: any) => {
-        if (item && item.fields) {
+        if (item) {
           console.log(
-            `  - #${item.id}: ${item.fields['System.Title'] || 'No Title'} [${item.fields['System.State'] || 'Unknown'}]`
+            `  - #${item.id}: ${item.title || 'No Title'} [${item.state || 'Unknown'}]`
           );
         }
       });
