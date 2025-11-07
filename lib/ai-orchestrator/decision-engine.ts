@@ -267,6 +267,7 @@ export class DecisionEngine {
       intent.scope,
       intent.issueId?.toString() || '',
       intent.userIdentifier || '',
+      intent.projectIdentifier || '',
       intent.sprintIdentifier || '',
       intent.teamIdentifier || '',
       intent.boardIdentifier || '',

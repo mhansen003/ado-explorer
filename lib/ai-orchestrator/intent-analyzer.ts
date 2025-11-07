@@ -92,6 +92,9 @@ export class IntentAnalyzer {
     if (parsed.issueId) {
       intent.issueId = parseInt(parsed.issueId, 10);
     }
+    if (parsed.projectIdentifier) {
+      intent.projectIdentifier = parsed.projectIdentifier;
+    }
     if (parsed.dateRange) {
       intent.dateRange = parsed.dateRange;
     }

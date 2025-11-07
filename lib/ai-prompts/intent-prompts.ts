@@ -43,6 +43,7 @@ Extract these entities when present:
 - sprintIdentifier: Sprint name or number (e.g., "Sprint 23", "current sprint")
 - userIdentifier: Person's name or email
 - issueId: Work item ID number
+- projectIdentifier: Specific project name (e.g., "Genesis", "Project Alpha", "Next Gen LOS")
 - dateRange: Time boundaries (start, end, or relative like "last week")
 - teamIdentifier: Team name
 - boardIdentifier: Board/area name
@@ -72,6 +73,7 @@ Return ONLY a valid JSON object with this structure:
   "sprintIdentifier": "Sprint 23",
   "userIdentifier": "John Doe",
   "issueId": 12345,
+  "projectIdentifier": "Genesis",
   "dateRange": {
     "start": "2024-01-01",
     "end": "2024-01-31",
@@ -156,6 +158,19 @@ User: "Get bug #54321"
   "originalQuery": "Get bug #54321",
   "issueId": 54321,
   "types": ["Bug"]
+}
+
+User: "Display items from project genesis that have the iteration sprint 49"
+{
+  "type": "COMMAND",
+  "scope": "PROJECT",
+  "entities": ["items", "project genesis", "sprint 49"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "Display items from project genesis that have the iteration sprint 49",
+  "projectIdentifier": "Genesis",
+  "sprintIdentifier": "Sprint 49"
 }
 
 Be precise, confident, and always return valid JSON.`;

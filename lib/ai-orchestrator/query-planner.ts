@@ -130,7 +130,40 @@ export class QueryPlanner {
       };
     }
 
-    // Case 2: User's items
+    // Case 2: Project + Sprint combination
+    if (intent.scope === 'PROJECT' && intent.projectIdentifier && intent.sprintIdentifier) {
+      const projectName = intent.projectIdentifier;
+      const sprintPath = `${projectName}\\${intent.sprintIdentifier}`;
+
+      return {
+        queries: [
+          {
+            id: 'project_sprint_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${projectName}' AND [System.IterationPath] UNDER '${sprintPath}' ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'System.CreatedBy',
+              'Microsoft.VSTS.Common.Priority',
+              'System.ChangedDate',
+              'System.IterationPath',
+            ],
+            purpose: `Get items from project ${projectName} in ${intent.sprintIdentifier}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 3: User's items
     if (intent.scope === 'USER' && intent.userIdentifier && intent.complexity === 'SIMPLE') {
       const stateCondition = intent.states?.length
         ? `AND [System.State] IN (${intent.states.map((s) => `'${s}'`).join(', ')})`
@@ -242,13 +275,20 @@ export class QueryPlanner {
         const userField = isCreatedByQuery ? 'System.CreatedBy' : 'System.AssignedTo';
         conditions.push(`[${userField}] CONTAINS '${intent.userIdentifier}'`);
       } else if (intent.sprintIdentifier) {
+        // Use projectIdentifier if specified, otherwise use default project
+        const projectName = intent.projectIdentifier || this.projectName;
         conditions.push(
-          `[System.IterationPath] UNDER '${this.projectName}\\\\${intent.sprintIdentifier}'`
+          `[System.IterationPath] UNDER '${projectName}\\\\${intent.sprintIdentifier}'`
         );
       } else if (intent.teamIdentifier) {
         conditions.push(
           `[System.AreaPath] UNDER '${this.projectName}\\\\${intent.teamIdentifier}'`
         );
+      }
+
+      // Add project filter if specified
+      if (intent.projectIdentifier) {
+        conditions.push(`[System.TeamProject] = '${intent.projectIdentifier}'`);
       }
 
       if (intent.states?.length) {

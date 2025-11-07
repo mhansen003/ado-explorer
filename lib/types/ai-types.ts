@@ -39,6 +39,7 @@ export interface Intent {
   sprintIdentifier?: string;
   userIdentifier?: string;
   issueId?: number;
+  projectIdentifier?: string; // Specific project name (e.g., "Genesis", "Project Alpha")
   dateRange?: {
     start?: string;
     end?: string;
