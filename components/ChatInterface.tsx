@@ -1243,77 +1243,80 @@ Type **/help** for more info`,
       setMessages(prev => [...prev, loadingMessage]);
 
       try {
-        const response = await fetch('/api/prompt', {
+        // Get current user email for context
+        const currentUser = globalFilters.currentUser || 'unknown@example.com';
+
+        // Call new AI orchestrator endpoint
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            prompt: command,
+            query: command,
+            conversationId: activeConversationId,
+            userId: currentUser,
             filters: globalFilters,
+            options: {
+              skipCache: false,
+              verbose: false,
+            },
           }),
         });
 
         const data = await response.json();
 
-        // Even if there's an error, show conversational answer if available
+        // Handle errors
         if (!response.ok) {
-          if (data.conversationalAnswer) {
-            const errorMessage: Message = {
-              id: Date.now().toString(),
-              type: 'results',
-              content: `⚠️ An error occurred while searching Azure DevOps`,
-              timestamp: new Date(),
-              workItems: [],
-              conversationalAnswer: data.conversationalAnswer,
-              isError: true, // Show in red - needs better prompting
-            };
-            setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            type: 'results',
+            content: `⚠️ An error occurred while processing your request`,
+            timestamp: new Date(),
+            workItems: [],
+            conversationalAnswer: data.summary || data.error || 'An unexpected error occurred',
+            isError: true,
+          };
+          setMessages(prev => [...prev.slice(0, -1), errorMessage]);
 
-            // Save error response to conversation with error flag
-            saveMessageToConversation('assistant', data.conversationalAnswer, {
-              isError: true,
-            });
-            return;
-          }
-          throw new Error(data.error || 'Failed to process prompt');
+          // Save error response to conversation
+          saveMessageToConversation('assistant', data.summary || data.error || 'Error occurred', {
+            isError: true,
+          });
+          return;
         }
 
-        const aiNote = data.aiGenerated ? `\n\n🤖 AI-Generated Query: ${data.generatedQuery}` : '';
-        const searchScope = data.searchScope ? ` (${data.searchScope})` : '';
+        // Update conversation ID if received from orchestrator
+        if (data.conversationId && !activeConversationId) {
+          setActiveConversationId(data.conversationId);
+        }
+
         const filterSummary = buildFilterSummary();
+        const metadataSummary = data.metadata
+          ? `\n📊 Found ${data.rawData.length} items • ${data.metadata.queriesExecuted} queries • ${data.metadata.processingTime}ms • Confidence: ${Math.round(data.metadata.confidence * 100)}%`
+          : '';
 
-        // Detect if this is an error response even though HTTP was OK
-        const isErrorResponse = data.conversationalAnswer && (
-          data.conversationalAnswer.toLowerCase().includes('error') ||
-          data.conversationalAnswer.toLowerCase().includes('issue') ||
-          data.conversationalAnswer.toLowerCase().includes('problem') ||
-          data.conversationalAnswer.toLowerCase().includes('failed') ||
-          data.conversationalAnswer.toLowerCase().includes('status code')
-        ) && (!data.workItems || data.workItems.length === 0);
-
+        // Create result message with orchestrator response
         const resultMessage: Message = {
           id: Date.now().toString(),
           type: 'results',
-          content: `Results for: "${command}"${searchScope}${aiNote}${filterSummary}`,
+          content: `Results for: "${command}"${filterSummary}${metadataSummary}`,
           timestamp: new Date(),
-          workItems: data.workItems || [],
-          conversationalAnswer: data.conversationalAnswer,
-          responseType: data.responseType,
-          suggestions: data.suggestions,
-          isError: isErrorResponse, // Show in red if AI is describing an error
+          workItems: data.rawData || [],
+          conversationalAnswer: data.summary,
+          responseType: data.rawData && data.rawData.length > 0 ? 'TICKETS' : 'ANSWER',
+          suggestions: data.suggestions || [],
+          isError: !data.success,
         };
         setMessages(prev => [...prev.slice(0, -1), resultMessage]);
 
         // Save AI response WITH workItems and suggestions
-        if (data.conversationalAnswer) {
-          saveMessageToConversation('assistant', data.conversationalAnswer, {
-            workItems: data.workItems,
-            suggestions: data.suggestions,
-            responseType: data.responseType,
-            isError: isErrorResponse, // Preserve error state in history
-          });
-        }
+        saveMessageToConversation('assistant', data.summary, {
+          workItems: data.rawData,
+          suggestions: data.suggestions,
+          responseType: resultMessage.responseType,
+          isError: !data.success,
+        });
       } catch (error: any) {
         const errorMessage: Message = {
           id: Date.now().toString(),
