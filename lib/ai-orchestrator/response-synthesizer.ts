@@ -73,8 +73,17 @@ export class ResponseSynthesizer {
       // Try to parse as JSON (should be JSON from synthesis prompt)
       let parsed: any;
       try {
-        parsed = JSON.parse(content);
-      } catch {
+        // Strip markdown code fences if present (```json ... ```)
+        let cleanContent = content.trim();
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.replace(/^```json\s*\n/, '').replace(/\n```\s*$/, '');
+        } else if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.replace(/^```\s*\n/, '').replace(/\n```\s*$/, '');
+        }
+
+        parsed = JSON.parse(cleanContent);
+      } catch (error) {
+        console.warn('[Response Synthesizer] Failed to parse JSON, using plain text:', error);
         // If not JSON, treat as plain text summary
         parsed = { summary: content };
       }
