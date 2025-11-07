@@ -136,22 +136,38 @@ export class QueryPlanner {
         ? `AND [System.State] IN (${intent.states.map((s) => `'${s}'`).join(', ')})`
         : `AND [System.State] <> 'Closed' AND [System.State] <> 'Removed'`;
 
+      // Determine if we're looking for CreatedBy or AssignedTo based on query text
+      const queryLower = intent.originalQuery.toLowerCase();
+      const isCreatedByQuery =
+        queryLower.includes('opened by') ||
+        queryLower.includes('created by') ||
+        queryLower.includes('authored by') ||
+        queryLower.includes('submitted by');
+
+      const userField = isCreatedByQuery ? 'System.CreatedBy' : 'System.AssignedTo';
+      const userFieldDisplay = isCreatedByQuery ? 'created by' : 'assigned to';
+
+      // Use CONTAINS for user search to handle different name formats
+      const userCondition = `[${userField}] CONTAINS '${intent.userIdentifier}'`;
+
       return {
         queries: [
           {
             id: 'user_items',
             type: 'WIQL',
-            query: `SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = '${intent.userIdentifier}' ${stateCondition} ORDER BY [System.ChangedDate] DESC`,
+            query: `SELECT [System.Id] FROM WorkItems WHERE ${userCondition} ${stateCondition} ORDER BY [System.ChangedDate] DESC`,
             fields: [
               'System.Id',
               'System.Title',
               'System.State',
               'System.WorkItemType',
               'System.AssignedTo',
+              'System.CreatedBy',
               'Microsoft.VSTS.Common.Priority',
               'System.ChangedDate',
+              'System.CreatedDate',
             ],
-            purpose: `Get items assigned to ${intent.userIdentifier}`,
+            purpose: `Get items ${userFieldDisplay} ${intent.userIdentifier}`,
             priority: 1,
             optional: false,
           },
@@ -215,7 +231,16 @@ export class QueryPlanner {
       if (intent.issueId) {
         conditions.push(`[System.Id] = ${intent.issueId}`);
       } else if (intent.userIdentifier) {
-        conditions.push(`[System.AssignedTo] = '${intent.userIdentifier}'`);
+        // Check if query is for CreatedBy or AssignedTo
+        const queryLower = intent.originalQuery.toLowerCase();
+        const isCreatedByQuery =
+          queryLower.includes('opened by') ||
+          queryLower.includes('created by') ||
+          queryLower.includes('authored by') ||
+          queryLower.includes('submitted by');
+
+        const userField = isCreatedByQuery ? 'System.CreatedBy' : 'System.AssignedTo';
+        conditions.push(`[${userField}] CONTAINS '${intent.userIdentifier}'`);
       } else if (intent.sprintIdentifier) {
         conditions.push(
           `[System.IterationPath] UNDER '${this.projectName}\\\\${intent.sprintIdentifier}'`
