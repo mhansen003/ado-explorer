@@ -51,7 +51,7 @@ export class QueryPlanner {
       }
 
       // Try simple plan first (no AI needed)
-      const simplePlan = this.trySimplePlan(intent, decision);
+      const simplePlan = this.trySimplePlan(intent, decision, metadata);
       if (simplePlan) {
         return simplePlan;
       }
@@ -99,7 +99,14 @@ export class QueryPlanner {
   /**
    * Try to create a simple plan without AI for common cases
    */
-  private trySimplePlan(intent: Intent, decision: Decision): QueryPlan | null {
+  private trySimplePlan(
+    intent: Intent,
+    decision: Decision,
+    metadata?: {
+      sprints?: any[];
+      users?: string[];
+    }
+  ): QueryPlan | null {
     // Case 1: Single issue lookup
     if (intent.scope === 'ISSUE' && intent.issueId) {
       return {
@@ -130,17 +137,29 @@ export class QueryPlanner {
       };
     }
 
-    // Case 2: Project + Sprint combination
-    if (intent.scope === 'PROJECT' && intent.projectIdentifier && intent.sprintIdentifier) {
-      const projectName = intent.projectIdentifier;
-      const sprintPath = `${projectName}\\${intent.sprintIdentifier}`;
+    // Case 2: Sprint query (with or without explicit project)
+    if ((intent.scope === 'PROJECT' || intent.scope === 'SPRINT') && intent.sprintIdentifier) {
+      const projectName = intent.projectIdentifier || this.projectName;
+
+      // Try to find actual sprint path from metadata
+      let sprintPath = `${projectName}\\${intent.sprintIdentifier}`;
+      if (metadata?.sprints) {
+        const sprintMatch = metadata.sprints.find((s: any) =>
+          s.name?.toLowerCase().includes(intent.sprintIdentifier?.toLowerCase() || '') ||
+          s.path?.toLowerCase().includes(intent.sprintIdentifier?.toLowerCase() || '')
+        );
+        if (sprintMatch && sprintMatch.path) {
+          sprintPath = sprintMatch.path;
+          console.log('[Query Planner] Using actual sprint path from metadata:', sprintPath);
+        }
+      }
 
       return {
         queries: [
           {
-            id: 'project_sprint_items',
+            id: 'sprint_items',
             type: 'WIQL',
-            query: `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '${projectName}' AND [System.IterationPath] UNDER '${sprintPath}' ORDER BY [System.ChangedDate] DESC`,
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER '${sprintPath}' ORDER BY [System.ChangedDate] DESC`,
             fields: [
               'System.Id',
               'System.Title',
@@ -152,7 +171,7 @@ export class QueryPlanner {
               'System.ChangedDate',
               'System.IterationPath',
             ],
-            purpose: `Get items from project ${projectName} in ${intent.sprintIdentifier}`,
+            purpose: `Get items from ${intent.sprintIdentifier}`,
             priority: 1,
             optional: false,
           },

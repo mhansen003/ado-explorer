@@ -26,6 +26,7 @@ import QueryExecutor from './query-executor';
 import ResultEvaluator from './result-evaluator';
 import ResponseSynthesizer from './response-synthesizer';
 import ContextManager from './context-manager';
+import { ADOService } from '../ado-api';
 
 // Default configuration
 const DEFAULT_CONFIG: OrchestratorConfig = {
@@ -65,6 +66,7 @@ export class AIOrchestrator {
   private resultEvaluator: ResultEvaluator;
   private responseSynthesizer: ResponseSynthesizer;
   private contextManager: ContextManager;
+  private adoService: ADOService;
 
   constructor(config?: Partial<OrchestratorConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -80,6 +82,12 @@ export class AIOrchestrator {
     );
     this.responseSynthesizer = new ResponseSynthesizer(this.config.models.synthesis);
     this.contextManager = new ContextManager();
+
+    // Initialize ADO service with environment variables
+    const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION || '';
+    const pat = process.env.ADO_PAT || '';
+    const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
+    this.adoService = new ADOService(organization, pat, project);
   }
 
   /**
@@ -152,10 +160,25 @@ export class AIOrchestrator {
         };
       }
 
+      // Fetch metadata if needed for query planning
+      let metadata: { sprints?: any[]; users?: string[] } | undefined;
+      if (intent.sprintIdentifier || intent.scope === 'SPRINT' || intent.scope === 'PROJECT') {
+        try {
+          // Get project name from intent, filters, or environment
+          const projectName = intent.projectIdentifier || input.filters?.projectName || process.env.NEXT_PUBLIC_ADO_PROJECT;
+          const sprints = await this.adoService.getSprints(projectName);
+          metadata = { sprints };
+          console.log(`[Orchestrator] Fetched ${sprints?.length || 0} sprints for query planning from project: ${projectName}`);
+        } catch (error) {
+          console.warn('[Orchestrator] Failed to fetch sprint metadata:', error);
+          metadata = undefined;
+        }
+      }
+
       // PHASE 3: Plan Queries
       const plan = await this.executePhase(
         'Query Planning',
-        () => this.queryPlanner.plan(intent, decision),
+        () => this.queryPlanner.plan(intent, decision, metadata),
         metrics
       );
 

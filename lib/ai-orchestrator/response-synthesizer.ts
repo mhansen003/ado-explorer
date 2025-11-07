@@ -28,7 +28,7 @@ const openai = new OpenAI({
 export class ResponseSynthesizer {
   private model: string;
 
-  constructor(model: string = 'gpt-4o') {
+  constructor(model: string = 'gpt-4o-mini') {
     this.model = model;
   }
 

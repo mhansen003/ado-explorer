@@ -205,7 +205,7 @@ Output:
       "id": "sprint_items",
       "type": "WIQL",
       "query": "SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER 'Next Gen LOS\\\\Sprint 23' ORDER BY [System.State] ASC",
-      "fields": ["System.Id", "System.Title", "System.State", "System.WorkItemType", "System.AssignedTo", "Microsoft.VSTS.Scheduling.StoryPoints", "System.CreatedDate", "System.ClosedDate"],
+      "fields": ["System.Id", "System.Title", "System.State", "System.WorkItemType", "System.AssignedTo", "Microsoft.VSTS.Scheduling.StoryPoints", "System.CreatedDate", "Microsoft.VSTS.Common.ClosedDate"],
       "purpose": "Get all items in Sprint 23 for analysis",
       "priority": 1,
       "optional": false
