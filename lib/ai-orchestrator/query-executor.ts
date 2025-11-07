@@ -310,11 +310,12 @@ export class QueryExecutor {
 
     // Add filters if present
     if (filters) {
-      if (filters.assignedTo) parts.push(`assigned:${filters.assignedTo}`);
-      if (filters.createdBy) parts.push(`created:${filters.createdBy}`);
-      if (filters.state) parts.push(`state:${filters.state}`);
-      if (filters.workItemType) parts.push(`type:${filters.workItemType}`);
-      if (filters.tags?.length) parts.push(`tags:${filters.tags.join(',')}`);
+      if (filters.ignoreClosed) parts.push('ignoreClosed:true');
+      if (filters.ignoreStates?.length) parts.push(`ignoreStates:${filters.ignoreStates.join(',')}`);
+      if (filters.ignoreCreatedBy?.length) parts.push(`ignoreCreatedBy:${filters.ignoreCreatedBy.join(',')}`);
+      if (filters.onlyMyTickets) parts.push('onlyMyTickets:true');
+      if (filters.ignoreOlderThanDays) parts.push(`ignoreOlderThan:${filters.ignoreOlderThanDays}`);
+      if (filters.currentUser) parts.push(`currentUser:${filters.currentUser}`);
     }
 
     return parts
