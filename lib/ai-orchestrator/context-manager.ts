@@ -16,9 +16,11 @@ const CONTEXT_TTL = 3600; // 1 hour in seconds
 
 export class ContextManager {
   private cache: CacheService;
+  private memoryCache: Map<string, ConversationContext>; // Fallback when Redis unavailable
 
   constructor() {
     this.cache = new CacheService();
+    this.memoryCache = new Map();
   }
 
   /**
@@ -45,8 +47,15 @@ export class ContextManager {
    * Get conversation context by ID
    */
   async getContext(conversationId: string): Promise<ConversationContext | null> {
+    // Try Redis first
     const key = this.getContextKey(conversationId);
-    return await this.cache.get<ConversationContext>(key);
+    const cached = await this.cache.get<ConversationContext>(key);
+    if (cached) {
+      return cached;
+    }
+
+    // Fall back to memory cache
+    return this.memoryCache.get(conversationId) || null;
   }
 
   /**
@@ -219,16 +228,24 @@ export class ContextManager {
    * Delete conversation context
    */
   async deleteContext(conversationId: string): Promise<void> {
+    // Delete from Redis
     const key = this.getContextKey(conversationId);
     await this.cache.delete(key);
+
+    // Delete from memory cache
+    this.memoryCache.delete(conversationId);
   }
 
   /**
-   * Save context to cache
+   * Save context to cache (Redis + memory fallback)
    */
   private async saveContext(context: ConversationContext): Promise<void> {
+    // Try to save to Redis
     const key = this.getContextKey(context.conversationId);
     await this.cache.set(key, context, CONTEXT_TTL);
+
+    // Always save to memory cache as fallback
+    this.memoryCache.set(context.conversationId, context);
   }
 
   /**

@@ -10,10 +10,21 @@ const DEFAULT_TTL = 300; // 5 minutes in seconds
 
 export class CacheService {
   private redis: RedisClientType | null = null;
+  private redisAvailable: boolean = true;
 
-  async getClient(): Promise<RedisClientType> {
+  async getClient(): Promise<RedisClientType | null> {
+    if (!this.redisAvailable) {
+      return null;
+    }
+
     if (!this.redis) {
-      this.redis = await getRedisClient();
+      try {
+        this.redis = await getRedisClient();
+      } catch (error) {
+        console.warn('[Cache Service] Redis unavailable, caching disabled');
+        this.redisAvailable = false;
+        return null;
+      }
     }
     return this.redis;
   }
@@ -24,6 +35,8 @@ export class CacheService {
   async get<T>(key: string): Promise<T | null> {
     try {
       const client = await this.getClient();
+      if (!client) return null;
+
       const value = await client.get(key);
 
       if (!value) {
@@ -43,6 +56,8 @@ export class CacheService {
   async set(key: string, value: any, ttl: number = DEFAULT_TTL): Promise<void> {
     try {
       const client = await this.getClient();
+      if (!client) return;
+
       await client.setEx(key, ttl, JSON.stringify(value));
     } catch (error) {
       console.error('[Cache Service] Error setting cache:', error);
@@ -55,6 +70,7 @@ export class CacheService {
   async delete(keyOrPattern: string): Promise<void> {
     try {
       const client = await this.getClient();
+      if (!client) return;
 
       // Check if it's a pattern (contains *)
       if (keyOrPattern.includes('*')) {
@@ -76,6 +92,8 @@ export class CacheService {
   async exists(key: string): Promise<boolean> {
     try {
       const client = await this.getClient();
+      if (!client) return false;
+
       const result = await client.exists(key);
       return result > 0;
     } catch (error) {
@@ -90,6 +108,8 @@ export class CacheService {
   async ttl(key: string): Promise<number> {
     try {
       const client = await this.getClient();
+      if (!client) return -1;
+
       return await client.ttl(key);
     } catch (error) {
       console.error('[Cache Service] Error getting TTL:', error);
@@ -103,6 +123,8 @@ export class CacheService {
   async clearPattern(pattern: string): Promise<number> {
     try {
       const client = await this.getClient();
+      if (!client) return 0;
+
       const keys = await client.keys(pattern);
 
       if (keys.length === 0) {

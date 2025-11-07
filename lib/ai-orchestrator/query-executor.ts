@@ -13,12 +13,25 @@ import { CacheService } from '../redis/cacheService';
 const CACHE_TTL = 300; // 5 minutes in seconds
 
 export class QueryExecutor {
-  private adoService: ADOService;
   private cache: CacheService;
 
   constructor() {
-    this.adoService = new ADOService();
     this.cache = new CacheService();
+  }
+
+  /**
+   * Get ADO service instance (creates new instance per request with current env vars)
+   */
+  private getADOService(): ADOService {
+    const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
+    const pat = process.env.ADO_PAT;
+    const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
+
+    if (!organization || !pat) {
+      throw new Error('ADO credentials not configured');
+    }
+
+    return new ADOService(organization, pat, project);
   }
 
   /**
@@ -194,15 +207,16 @@ export class QueryExecutor {
     query: PlannedQuery,
     filters?: GlobalFilters
   ): Promise<{ workItems: WorkItem[]; query: string }> {
+    const adoService = this.getADOService();
     let wiqlQuery = query.query as string;
 
     // Apply global filters if present
     if (filters) {
-      wiqlQuery = this.adoService.applyFiltersToQuery(wiqlQuery, filters);
+      wiqlQuery = adoService.applyFiltersToQuery(wiqlQuery, filters);
     }
 
     // Execute WIQL
-    const workItems = await this.adoService.searchWorkItems(wiqlQuery);
+    const workItems = await adoService.searchWorkItems(wiqlQuery);
 
     return {
       workItems,
@@ -214,19 +228,20 @@ export class QueryExecutor {
    * Execute a REST API query
    */
   private async executeREST(query: PlannedQuery): Promise<any> {
+    const adoService = this.getADOService();
     const endpoint = query.query as string;
 
     // Map REST endpoints to ADO service methods
     if (endpoint.includes('/iterations') || endpoint.includes('/sprints')) {
-      return await this.adoService.getSprints();
+      return await adoService.getSprints();
     }
 
     if (endpoint.includes('/teams')) {
-      return await this.adoService.getTeams();
+      return await adoService.getTeams();
     }
 
     if (endpoint.includes('/users')) {
-      return await this.adoService.getUsers();
+      return await adoService.getUsers();
     }
 
     // Generic REST call (fallback)
@@ -237,36 +252,37 @@ export class QueryExecutor {
    * Execute a metadata query
    */
   private async executeMetadata(query: PlannedQuery): Promise<any> {
+    const adoService = this.getADOService();
     const metadataType = query.query as string;
 
     switch (metadataType) {
       case 'users':
       case '/graph/users':
-        return await this.adoService.getUsers();
+        return await adoService.getUsers();
 
       case 'states':
       case '/wit/workitemtypes/states':
-        return await this.adoService.getStates();
+        return await adoService.getStates();
 
       case 'types':
       case '/wit/workitemtypes':
-        return await this.adoService.getTypes();
+        return await adoService.getTypes();
 
       case 'tags':
       case '/wit/tags':
-        return await this.adoService.getTags();
+        return await adoService.getTags();
 
       case 'projects':
       case '/projects':
-        return await this.adoService.getProjects();
+        return await adoService.getProjects();
 
       case 'teams':
       case '/teams':
-        return await this.adoService.getTeams();
+        return await adoService.getTeams();
 
       case 'sprints':
       case '/iterations':
-        return await this.adoService.getSprints();
+        return await adoService.getSprints();
 
       default:
         throw new Error(`Unknown metadata type: ${metadataType}`);
@@ -350,7 +366,8 @@ export class QueryExecutor {
    * Enrich work items with relationships (if needed)
    */
   async enrichWithRelationships(workItems: WorkItem[]): Promise<WorkItem[]> {
-    return await this.adoService.enrichWorkItemsWithRelationships(workItems);
+    const adoService = this.getADOService();
+    return await adoService.enrichWorkItemsWithRelationships(workItems);
   }
 }
 
