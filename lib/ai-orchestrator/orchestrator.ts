@@ -164,8 +164,8 @@ export class AIOrchestrator {
       let metadata: { sprints?: any[]; users?: string[] } | undefined;
       if (intent.sprintIdentifier || intent.scope === 'SPRINT' || intent.scope === 'PROJECT') {
         try {
-          // Get project name from intent, filters, or environment
-          const projectName = intent.projectIdentifier || input.filters?.projectName || process.env.NEXT_PUBLIC_ADO_PROJECT;
+          // Get project name from intent or environment
+          const projectName = intent.projectIdentifier || process.env.NEXT_PUBLIC_ADO_PROJECT;
           const sprints = await this.adoService.getSprints(projectName);
           metadata = { sprints };
           console.log(`[Orchestrator] Fetched ${sprints?.length || 0} sprints for query planning from project: ${projectName}`);
