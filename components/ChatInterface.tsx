@@ -79,6 +79,9 @@ export default function ChatInterface() {
   const [conversationInitialized, setConversationInitialized] = useState(false);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
 
+  // Processing state for loading indicator
+  const [isProcessing, setIsProcessing] = useState(false);
+
   // Persist active conversation ID to localStorage
   useEffect(() => {
     // Only persist after initialization to avoid clearing on mount
@@ -1241,6 +1244,7 @@ Type **/help** for more info`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, loadingMessage]);
+      setIsProcessing(true);
 
       try {
         // Get current user email for context
@@ -1325,6 +1329,8 @@ Type **/help** for more info`,
           timestamp: new Date(),
         };
         setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+      } finally {
+        setIsProcessing(false);
       }
       return;
     }
@@ -2084,10 +2090,23 @@ Just type naturally - I understand questions like:
           <button
             onClick={handleSend}
             className="px-6 py-3 bg-rh-green text-rh-dark rounded-lg font-medium hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-rh-green focus:ring-offset-2 focus:ring-offset-rh-dark"
+            disabled={isProcessing}
           >
             <Send className="w-5 h-5" />
           </button>
         </div>
+
+        {/* AI Processing Indicator */}
+        {isProcessing && (
+          <div className="flex items-center justify-center gap-2 mt-2 text-sm text-rh-text-secondary">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-rh-green rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-rh-green rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-rh-green rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            <span className="animate-pulse">AI is thinking...</span>
+          </div>
+        )}
       </div>
 
         {/* Changelog Modal */}
