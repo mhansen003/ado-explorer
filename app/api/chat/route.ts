@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     const result = await orchestrator.process(input);
 
     // Prepare response with explicit JSON serialization
-    const response = {
+    const response: any = {
       success: result.response.success || false,
       summary: result.response.summary || 'No summary available',
       analysis: result.response.analysis || undefined,
@@ -113,6 +113,8 @@ export async function POST(req: NextRequest) {
       },
       conversationId: result.conversationContext?.conversationId || null,
       error: result.response.error || undefined,
+      metrics: undefined as any,
+      contextStats: undefined as any,
     };
 
     // Include metrics if verbose
