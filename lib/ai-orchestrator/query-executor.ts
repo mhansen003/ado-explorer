@@ -260,7 +260,11 @@ export class QueryExecutor {
     }
 
     if (endpoint.includes('/queries')) {
-      return await adoService.getQueries();
+      console.log('[Query Executor] Fetching queries via getQueries()');
+      const queries = await adoService.getQueries();
+      console.log('[Query Executor] Got queries from ADO:', queries.length);
+      console.log('[Query Executor] First 3 queries:', queries.slice(0, 3));
+      return queries;
     }
 
     if (endpoint.includes('/projects')) {

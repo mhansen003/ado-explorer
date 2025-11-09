@@ -132,11 +132,31 @@ export class ResponseSynthesizer {
     evaluation: Evaluation,
     startTime: number
   ): OrchestratedResponse {
+    console.log('[Response Synthesizer] Synthesizing query list response');
+    console.log('[Response Synthesizer] Results structure:', {
+      resultsCount: results.results.length,
+      resultIds: results.results.map(r => r.queryId),
+      workItemsCount: results.workItems.length,
+    });
+
     // Extract queries from REST result
     const queryResult = results.results.find(r => r.queryId === 'get_queries');
+    console.log('[Response Synthesizer] Query result found:', !!queryResult);
+    console.log('[Response Synthesizer] Query result:', {
+      queryId: queryResult?.queryId,
+      success: queryResult?.success,
+      hasData: !!queryResult?.data,
+      dataType: typeof queryResult?.data,
+      dataIsArray: Array.isArray(queryResult?.data),
+      dataLength: Array.isArray(queryResult?.data) ? queryResult.data.length : 'N/A',
+    });
+
     const queries = queryResult?.data || [];
 
-    console.log('[Response Synthesizer] Found', queries.length, 'saved queries');
+    console.log('[Response Synthesizer] Extracted queries:', queries.length);
+    if (queries.length > 0) {
+      console.log('[Response Synthesizer] First query:', queries[0]);
+    }
 
     if (queries.length === 0) {
       return {
