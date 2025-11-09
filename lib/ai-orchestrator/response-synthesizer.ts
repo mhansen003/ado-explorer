@@ -48,6 +48,11 @@ export class ResponseSynthesizer {
         return this.synthesizeSimpleResponse(intent);
       }
 
+      // Special handling for QUERY scope (saved queries)
+      if (intent.scope === 'QUERY') {
+        return this.synthesizeQueryListResponse(intent, results, evaluation, startTime);
+      }
+
       // Use AI to generate comprehensive response
       const response = await openai.chat.completions.create({
         model: this.model,
@@ -116,6 +121,74 @@ export class ResponseSynthesizer {
       // Fallback response
       return this.createFallbackResponse(intent, results, evaluation);
     }
+  }
+
+  /**
+   * Synthesize response for saved queries list
+   */
+  private synthesizeQueryListResponse(
+    intent: Intent,
+    results: QueryResults,
+    evaluation: Evaluation,
+    startTime: number
+  ): OrchestratedResponse {
+    // Extract queries from REST result
+    const queryResult = results.results.find(r => r.queryId === 'get_queries');
+    const queries = queryResult?.data || [];
+
+    console.log('[Response Synthesizer] Found', queries.length, 'saved queries');
+
+    if (queries.length === 0) {
+      return {
+        success: true,
+        summary: 'No saved queries found in your Azure DevOps project. You can create saved queries in ADO to make frequently-used searches easily accessible.',
+        rawData: [],
+        suggestions: [
+          'How do I create a saved query in ADO?',
+          'Show me work items from the current sprint',
+          'What are the different types of queries I can create?',
+        ],
+        metadata: {
+          queriesExecuted: results.metadata.totalQueries,
+          dataSources: ['Azure DevOps'],
+          confidence: evaluation.confidence,
+          processingTime: Date.now() - startTime,
+          cacheHit: results.metadata.cacheHits > 0,
+        },
+      };
+    }
+
+    // Format queries for display
+    const queryList = queries
+      .slice(0, 20) // Limit to first 20
+      .map((q: any, index: number) => {
+        const name = q.name || 'Unnamed Query';
+        const path = q.path || '';
+        const isPublic = q.isPublic ? '(Public)' : '(Private)';
+        return `${index + 1}. **${name}** ${isPublic}\n   Path: ${path}`;
+      })
+      .join('\n\n');
+
+    const summary = `Found **${queries.length} saved quer${queries.length === 1 ? 'y' : 'ies'}** in your Azure DevOps project:\n\n${queryList}${queries.length > 20 ? '\n\n_...and ' + (queries.length - 20) + ' more queries_' : ''}`;
+
+    return {
+      success: true,
+      summary,
+      rawData: [], // Queries aren't work items
+      suggestions: [
+        'Show me items from a specific saved query',
+        'What is the "My Active Items" query?',
+        'Show me current sprint items',
+        'List all bugs',
+      ],
+      metadata: {
+        queriesExecuted: results.metadata.totalQueries,
+        dataSources: ['Azure DevOps'],
+        confidence: evaluation.confidence,
+        processingTime: Date.now() - startTime,
+        cacheHit: results.metadata.cacheHits > 0,
+      },
+    };
   }
 
   /**
