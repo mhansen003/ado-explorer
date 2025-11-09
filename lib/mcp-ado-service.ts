@@ -19,15 +19,56 @@ export class MCPADOService {
   private client: Anthropic;
   private organization: string;
   private project?: string;
+  private useOpenRouter: boolean;
 
-  constructor(organization: string, project?: string, anthropicApiKey?: string) {
+  constructor(
+    organization: string,
+    project?: string,
+    options?: {
+      apiKey?: string;
+      useOpenRouter?: boolean;
+    }
+  ) {
     this.organization = organization;
     this.project = project;
 
-    // Initialize Anthropic client
+    // Determine if using OpenRouter
+    this.useOpenRouter = options?.useOpenRouter !== undefined
+      ? options.useOpenRouter
+      : !!process.env.OPENROUTER_API_KEY;
+
+    // Get API key from options or environment
+    const apiKey = options?.apiKey ||
+      (this.useOpenRouter ? process.env.OPENROUTER_API_KEY : process.env.ANTHROPIC_API_KEY);
+
+    if (!apiKey) {
+      throw new Error('API key required for MCP service');
+    }
+
+    // Initialize Anthropic client with OpenRouter endpoint if configured
     this.client = new Anthropic({
-      apiKey: anthropicApiKey || process.env.ANTHROPIC_API_KEY,
+      apiKey: apiKey,
+      // OpenRouter uses a different base URL
+      ...(this.useOpenRouter && {
+        baseURL: 'https://openrouter.ai/api/v1',
+        defaultHeaders: {
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://ado-explorer.vercel.app',
+          'X-Title': 'ADO Explorer',
+        },
+      }),
     });
+
+    console.log(`[MCP Service] Initialized with ${this.useOpenRouter ? 'OpenRouter' : 'Anthropic'}`);
+  }
+
+  /**
+   * Get the appropriate model name based on provider
+   */
+  private getModelName(): string {
+    // OpenRouter requires provider prefix, direct Anthropic doesn't
+    return this.useOpenRouter
+      ? 'anthropic/claude-sonnet-4'
+      : 'claude-sonnet-4-20250514';
   }
 
   /**
@@ -45,7 +86,7 @@ export class MCPADOService {
       console.log('[MCP Service] Full-text search:', { searchText, project: targetProject, top });
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: this.getModelName(),
         max_tokens: 4096,
         tools: [
           {
@@ -106,7 +147,7 @@ export class MCPADOService {
       console.log('[MCP Service] Getting projects...');
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: this.getModelName(),
         max_tokens: 2048,
         tools: [
           {
@@ -154,7 +195,7 @@ export class MCPADOService {
       console.log('[MCP Service] Getting teams for project:', targetProject);
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: this.getModelName(),
         max_tokens: 2048,
         tools: [
           {
@@ -216,7 +257,7 @@ export class MCPADOService {
       const toolName = team ? 'work_list_team_iterations' : 'work_list_iterations';
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: this.getModelName(),
         max_tokens: 4096,
         tools: [
           {
@@ -280,7 +321,7 @@ export class MCPADOService {
       console.log('[MCP Service] Getting work items for iteration:', { project, team, iterationId });
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: this.getModelName(),
         max_tokens: 4096,
         tools: [
           {
@@ -337,7 +378,7 @@ export class MCPADOService {
       console.log('[MCP Service] Getting work item:', id);
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: this.getModelName(),
         max_tokens: 2048,
         tools: [
           {

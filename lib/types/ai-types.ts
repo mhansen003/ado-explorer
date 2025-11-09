@@ -14,15 +14,29 @@ import { WorkItem, GlobalFilters } from '@/types';
 export type IntentType = 'QUESTION' | 'COMMAND' | 'ANALYSIS' | 'SUMMARY';
 
 export type IntentScope =
-  | 'SPRINT'
-  | 'USER'
-  | 'PROJECT'
-  | 'ISSUE'
-  | 'DATE_RANGE'
-  | 'TEAM'
-  | 'BOARD'
-  | 'TAG'
-  | 'GLOBAL';
+  // Primary Scopes
+  | 'SPRINT'        // Iteration/Sprint queries
+  | 'USER'          // Assigned To / Created By
+  | 'PROJECT'       // Team Project
+  | 'ISSUE'         // Specific Work Item ID
+  | 'TEAM'          // Team/Area queries
+  | 'BOARD'         // Area Path
+  | 'QUERY'         // Saved ADO queries
+  // Field-Specific Scopes
+  | 'STATE'         // Work Item State (Active, Closed, etc.)
+  | 'TYPE'          // Work Item Type (Bug, Task, User Story, etc.)
+  | 'TAG'           // Tags
+  | 'PRIORITY'      // Priority (P1, P2, P3, P4)
+  | 'TITLE'         // Title search
+  | 'DESCRIPTION'   // Description search
+  | 'DATE_RANGE'    // Time-based queries
+  | 'ASSIGNEE'      // Assigned To specific person
+  | 'CREATOR'       // Created By specific person
+  | 'ITERATION'     // Same as SPRINT but explicit
+  | 'AREA'          // Same as BOARD but explicit
+  | 'RELATION'      // Related work items (parent/child)
+  // Catch-all
+  | 'GLOBAL';       // General or multi-field queries
 
 export type IntentComplexity = 'SIMPLE' | 'MULTI_STEP' | 'ANALYTICAL';
 

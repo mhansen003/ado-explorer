@@ -23,14 +23,30 @@ Your job is to classify the user's intent and extract relevant entities.
    Examples: "Summarize the project", "Give me a sprint overview", "What's our status?"
 
 # SCOPE TYPES:
+## Primary Scopes:
 - SPRINT: Query about a specific sprint or iteration
-- USER: Query about a specific person's work
-- PROJECT: Query about the entire project
+- USER: Query about a specific person's work (general)
+- PROJECT: Query about the entire project or specific project name
 - ISSUE: Query about a specific work item ID
-- DATE_RANGE: Query with time boundaries
 - TEAM: Query about a team or area
 - BOARD: Query about a specific board/area path
+- QUERY: Query about saved ADO queries/search queries
+
+## Field-Specific Scopes:
+- STATE: Query focused on work item state (Active, Closed, New, Resolved, etc.)
+- TYPE: Query focused on work item type (Bug, Task, User Story, Feature, Epic, etc.)
 - TAG: Query about tagged items
+- PRIORITY: Query focused on priority levels (P1, P2, P3, P4, Critical, High, etc.)
+- TITLE: Query searching by title/name
+- DESCRIPTION: Query searching by description content
+- DATE_RANGE: Query with time boundaries
+- ASSIGNEE: Query about who is assigned to work items (use this instead of USER when specifically asking about assignments)
+- CREATOR: Query about who created work items (use this instead of USER when specifically asking about creators)
+- ITERATION: Same as SPRINT but when "iteration" is explicitly mentioned
+- AREA: Same as BOARD but when "area" is explicitly mentioned
+- RELATION: Query about related work items (parent/child, blocks/blocked-by, etc.)
+
+## Catch-all:
 - GLOBAL: General query not tied to specific scope
 
 # COMPLEXITY LEVELS:
@@ -62,7 +78,7 @@ Determine if the query REQUIRES Azure DevOps data to answer:
 Return ONLY a valid JSON object with this structure:
 {
   "type": "COMMAND" | "QUESTION" | "ANALYSIS" | "SUMMARY",
-  "scope": "SPRINT" | "USER" | "PROJECT" | "ISSUE" | "DATE_RANGE" | "TEAM" | "BOARD" | "TAG" | "GLOBAL",
+  "scope": "SPRINT" | "USER" | "PROJECT" | "ISSUE" | "DATE_RANGE" | "TEAM" | "BOARD" | "TAG" | "QUERY" | "GLOBAL",
   "entities": ["list", "of", "key", "entities"],
   "dataRequired": true | false,
   "complexity": "SIMPLE" | "MULTI_STEP" | "ANALYTICAL",
@@ -171,6 +187,142 @@ User: "Display items from project genesis that have the iteration sprint 49"
   "originalQuery": "Display items from project genesis that have the iteration sprint 49",
   "projectIdentifier": "Genesis",
   "sprintIdentifier": "Sprint 49"
+}
+
+User: "show me queries"
+{
+  "type": "COMMAND",
+  "scope": "QUERY",
+  "entities": ["queries", "saved queries"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "show me queries"
+}
+
+User: "sprints for servicing"
+{
+  "type": "COMMAND",
+  "scope": "SPRINT",
+  "entities": ["sprints", "servicing"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "sprints for servicing",
+  "sprintIdentifier": "*servicing*",
+  "projectIdentifier": "Servicing"
+}
+
+User: "show me all active bugs"
+{
+  "type": "COMMAND",
+  "scope": "TYPE",
+  "entities": ["active", "bugs"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "show me all active bugs",
+  "types": ["Bug"],
+  "states": ["Active"]
+}
+
+User: "what high priority items are blocked?"
+{
+  "type": "QUESTION",
+  "scope": "PRIORITY",
+  "entities": ["high priority", "blocked"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "what high priority items are blocked?",
+  "states": ["Blocked"]
+}
+
+User: "find work items with 'security' in the title"
+{
+  "type": "COMMAND",
+  "scope": "TITLE",
+  "entities": ["security", "title", "find"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "find work items with 'security' in the title"
+}
+
+User: "show items assigned to Sarah"
+{
+  "type": "COMMAND",
+  "scope": "ASSIGNEE",
+  "entities": ["assigned", "Sarah"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "show items assigned to Sarah",
+  "userIdentifier": "Sarah"
+}
+
+User: "what did Mark create last week?"
+{
+  "type": "QUESTION",
+  "scope": "CREATOR",
+  "entities": ["Mark", "created", "last week"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "what did Mark create last week?",
+  "userIdentifier": "Mark",
+  "dateRange": {
+    "relative": "last week"
+  }
+}
+
+User: "show me closed user stories"
+{
+  "type": "COMMAND",
+  "scope": "STATE",
+  "entities": ["closed", "user stories"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "show me closed user stories",
+  "states": ["Closed"],
+  "types": ["User Story"]
+}
+
+User: "find items tagged with 'urgent'"
+{
+  "type": "COMMAND",
+  "scope": "TAG",
+  "entities": ["urgent", "tagged"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "find items tagged with 'urgent'",
+  "tags": ["urgent"]
+}
+
+User: "what are the child items of #12345?"
+{
+  "type": "QUESTION",
+  "scope": "RELATION",
+  "entities": ["child items", "12345"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "what are the child items of #12345?",
+  "issueId": 12345
+}
+
+User: "items in the Backend area path"
+{
+  "type": "COMMAND",
+  "scope": "AREA",
+  "entities": ["items", "Backend", "area path"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "items in the Backend area path",
+  "boardIdentifier": "Backend"
 }
 
 Be precise, confident, and always return valid JSON.`;

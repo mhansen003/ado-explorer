@@ -248,6 +248,258 @@ export class QueryPlanner {
       };
     }
 
+    // Case 4: ASSIGNEE-specific queries
+    if (intent.scope === 'ASSIGNEE' && intent.userIdentifier && intent.complexity === 'SIMPLE') {
+      const stateCondition = intent.states?.length
+        ? `AND [System.State] IN (${intent.states.map((s) => `'${s}'`).join(', ')})`
+        : `AND [System.State] <> 'Closed' AND [System.State] <> 'Removed'`;
+
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'assignee_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] CONTAINS '${intent.userIdentifier}' ${stateCondition} ${typeCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'Microsoft.VSTS.Common.Priority',
+              'System.ChangedDate',
+            ],
+            purpose: `Get items assigned to ${intent.userIdentifier}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 5: CREATOR-specific queries
+    if (intent.scope === 'CREATOR' && intent.userIdentifier && intent.complexity === 'SIMPLE') {
+      const stateCondition = intent.states?.length
+        ? `AND [System.State] IN (${intent.states.map((s) => `'${s}'`).join(', ')})`
+        : '';
+
+      const dateCondition = intent.dateRange?.start
+        ? `AND [System.CreatedDate] >= '${intent.dateRange.start}'`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'creator_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.CreatedBy] CONTAINS '${intent.userIdentifier}' ${stateCondition} ${dateCondition} ORDER BY [System.CreatedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.CreatedBy',
+              'System.CreatedDate',
+              'System.AssignedTo',
+            ],
+            purpose: `Get items created by ${intent.userIdentifier}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 6: STATE-specific queries
+    if (intent.scope === 'STATE' && intent.states?.length) {
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'state_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.State] IN (${intent.states.map((s) => `'${s}'`).join(', ')}) ${typeCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'System.ChangedDate',
+            ],
+            purpose: `Get items in state: ${intent.states.join(', ')}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 7: TYPE-specific queries
+    if (intent.scope === 'TYPE' && intent.types?.length) {
+      const stateCondition = intent.states?.length
+        ? `AND [System.State] IN (${intent.states.map((s) => `'${s}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'type_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')}) ${stateCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'System.ChangedDate',
+            ],
+            purpose: `Get items of type: ${intent.types.join(', ')}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 8: TAG queries
+    if (intent.scope === 'TAG' && intent.tags?.length) {
+      const tagCondition = intent.tags.map(tag => `[System.Tags] CONTAINS '${tag}'`).join(' OR ');
+
+      return {
+        queries: [
+          {
+            id: 'tag_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE ${tagCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.Tags',
+              'System.AssignedTo',
+              'System.ChangedDate',
+            ],
+            purpose: `Get items with tags: ${intent.tags.join(', ')}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 9: TITLE search queries
+    if (intent.scope === 'TITLE' && intent.entities?.length) {
+      const searchTerm = intent.entities.join(' ');
+
+      return {
+        queries: [
+          {
+            id: 'title_search',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.Title] CONTAINS '${searchTerm}' ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'System.ChangedDate',
+            ],
+            purpose: `Search titles for: ${searchTerm}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 10: QUERY scope (saved queries)
+    if (intent.scope === 'QUERY') {
+      // This should use REST API to get saved queries, not WIQL
+      return {
+        queries: [
+          {
+            id: 'get_queries',
+            type: 'REST',
+            query: '/queries',
+            purpose: 'Get list of saved queries',
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Saved queries retrieved',
+        estimatedDuration: 1000,
+      };
+    }
+
+    // Case 11: AREA/BOARD queries
+    if ((intent.scope === 'AREA' || intent.scope === 'BOARD') && intent.boardIdentifier) {
+      const areaPath = intent.boardIdentifier.includes('\\')
+        ? intent.boardIdentifier
+        : `${this.projectName}\\${intent.boardIdentifier}`;
+
+      return {
+        queries: [
+          {
+            id: 'area_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.AreaPath] UNDER '${areaPath}' ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AreaPath',
+              'System.AssignedTo',
+              'System.ChangedDate',
+            ],
+            purpose: `Get items in area: ${intent.boardIdentifier}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 12: ITERATION queries (alias for SPRINT)
+    if (intent.scope === 'ITERATION' && intent.sprintIdentifier) {
+      // Reuse sprint logic
+      intent.scope = 'SPRINT';
+      return this.trySimplePlan(intent, decision, metadata);
+    }
+
     // No simple plan available
     return null;
   }
@@ -341,6 +593,37 @@ export class QueryPlanner {
         conditions.push(
           `[System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
         );
+      }
+
+      if (intent.tags?.length) {
+        const tagConditions = intent.tags.map(tag => `[System.Tags] CONTAINS '${tag}'`);
+        conditions.push(`(${tagConditions.join(' OR ')})`);
+      }
+
+      // Handle field-specific scopes
+      if (intent.scope === 'ASSIGNEE' && intent.userIdentifier) {
+        conditions.push(`[System.AssignedTo] CONTAINS '${intent.userIdentifier}'`);
+      }
+
+      if (intent.scope === 'CREATOR' && intent.userIdentifier) {
+        conditions.push(`[System.CreatedBy] CONTAINS '${intent.userIdentifier}'`);
+      }
+
+      if (intent.scope === 'AREA' && intent.boardIdentifier) {
+        const areaPath = intent.boardIdentifier.includes('\\')
+          ? intent.boardIdentifier
+          : `${this.projectName}\\\\${intent.boardIdentifier}`;
+        conditions.push(`[System.AreaPath] UNDER '${areaPath}'`);
+      }
+
+      if (intent.scope === 'TITLE' && intent.entities?.length) {
+        const searchTerm = intent.entities.join(' ');
+        conditions.push(`[System.Title] CONTAINS '${searchTerm}'`);
+      }
+
+      if (intent.scope === 'DESCRIPTION' && intent.entities?.length) {
+        const searchTerm = intent.entities.join(' ');
+        conditions.push(`[System.Description] CONTAINS '${searchTerm}'`);
       }
 
       if (conditions.length > 0) {

@@ -28,6 +28,7 @@ export class ADOServiceHybrid {
     options?: {
       useMCP?: boolean;
       anthropicApiKey?: string;
+      useOpenRouter?: boolean;
     }
   ) {
     this.organization = organization;
@@ -36,20 +37,27 @@ export class ADOServiceHybrid {
     // Always create REST service as fallback
     this.restService = new ADOService(organization, personalAccessToken, project);
 
-    // Create MCP service if enabled and Anthropic API key available
+    // Create MCP service if enabled and API key available (Anthropic or OpenRouter)
     const anthropicApiKey = options?.anthropicApiKey || process.env.ANTHROPIC_API_KEY;
-    this.useMCP = options?.useMCP !== false && !!anthropicApiKey && anthropicApiKey !== 'your-anthropic-api-key-here';
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    const useOpenRouter = !!openRouterApiKey || options?.useOpenRouter;
+    const apiKey = useOpenRouter ? openRouterApiKey : anthropicApiKey;
+
+    this.useMCP = options?.useMCP !== false && !!apiKey && apiKey !== 'your-anthropic-api-key-here';
 
     if (this.useMCP) {
       try {
-        this.mcpService = new MCPADOService(organization, project, anthropicApiKey);
-        console.log('[Hybrid Service] ✅ MCP service initialized, will use MCP with REST fallback');
+        this.mcpService = new MCPADOService(organization, project, {
+          apiKey,
+          useOpenRouter,
+        });
+        console.log(`[Hybrid Service] ✅ MCP service initialized with ${useOpenRouter ? 'OpenRouter' : 'Anthropic'}, will use MCP with REST fallback`);
       } catch (error) {
         console.warn('[Hybrid Service] ⚠️ Failed to initialize MCP service, using REST API only:', error);
         this.useMCP = false;
       }
     } else {
-      console.log('[Hybrid Service] ℹ️ MCP disabled or no Anthropic API key, using REST API only');
+      console.log('[Hybrid Service] ℹ️ MCP disabled or no API key, using REST API only');
     }
   }
 
