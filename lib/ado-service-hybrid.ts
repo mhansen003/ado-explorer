@@ -16,7 +16,7 @@ import { WorkItem, GlobalFilters, Comment } from '@/types';
 
 export class ADOServiceHybrid {
   private restService: ADOService;
-  private mcpService: MCPADOService;
+  private mcpService?: MCPADOService; // Optional - only available when Anthropic API key is set
   private useMCP: boolean;
   private organization: string;
   private project?: string;
@@ -219,16 +219,16 @@ export class ADOServiceHybrid {
    * Get work item states
    * Strategy: Use REST API only
    */
-  async getStates(project?: string, type?: string): Promise<any[]> {
-    return this.restService.getStates(project, type);
+  async getStates(): Promise<string[]> {
+    return this.restService.getStates();
   }
 
   /**
    * Get work item types
    * Strategy: Use REST API only
    */
-  async getTypes(project?: string): Promise<any[]> {
-    return this.restService.getTypes(project);
+  async getTypes(): Promise<string[]> {
+    return this.restService.getTypes();
   }
 
   /**
@@ -243,23 +243,23 @@ export class ADOServiceHybrid {
    * Get saved queries
    * Strategy: Use REST API for now (MCP support exists but complex)
    */
-  async getQueries(project?: string): Promise<any> {
-    return this.restService.getQueries(project);
+  async getQueries(): Promise<{ id: string; name: string; path: string; wiql?: string }[]> {
+    return this.restService.getQueries();
   }
 
   /**
    * Run a saved query
    * Strategy: Use REST API for now
    */
-  async runQuery(project: string, queryId: string): Promise<WorkItem[]> {
-    return this.restService.runQuery(project, queryId);
+  async runQuery(queryId: string): Promise<{ workItems: WorkItem[]; queryName: string; queryPath: string }> {
+    return this.restService.runQuery(queryId);
   }
 
   /**
    * Get comments for a work item
    * Strategy: Use REST API (MCP support exists but same result)
    */
-  async getComments(workItemId: string): Promise<Comment[]> {
+  async getComments(workItemId: number): Promise<Comment[]> {
     return this.restService.getComments(workItemId);
   }
 
@@ -267,7 +267,7 @@ export class ADOServiceHybrid {
    * Get related work items
    * Strategy: Use REST API only (MCP doesn't handle $expand relations well)
    */
-  async getRelatedWorkItems(workItemId: string): Promise<WorkItem[]> {
+  async getRelatedWorkItems(workItemId: number): Promise<WorkItem[]> {
     return this.restService.getRelatedWorkItems(workItemId);
   }
 
