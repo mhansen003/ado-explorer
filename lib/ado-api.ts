@@ -1000,29 +1000,47 @@ export class ADOService {
         },
       });
 
-      console.log('[ADO getQueries] API response:', response.data);
+      console.log('[ADO getQueries] API response:', JSON.stringify(response.data, null, 2));
 
-      const queries: { id: string; name: string; path: string; wiql?: string }[] = [];
+      const queries: { id: string; name: string; path: string; wiql?: string; isPublic?: boolean }[] = [];
 
       // Recursive function to extract queries from folder structure
       const extractQueries = (items: any[], parentPath: string = '') => {
-        if (!items) return;
+        if (!items) {
+          console.log('[ADO getQueries] No items to process at path:', parentPath);
+          return;
+        }
+
+        console.log(`[ADO getQueries] Processing ${items.length} items at path: ${parentPath || 'root'}`);
 
         items.forEach((item: any) => {
-          if (item.isFolder) {
+          console.log('[ADO getQueries] Item:', {
+            name: item.name,
+            isFolder: item.isFolder,
+            hasChildren: item.hasChildren,
+            childrenCount: item.children?.length,
+            isPublic: item.isPublic,
+            hasWiql: !!item.wiql,
+          });
+
+          if (item.isFolder || item.hasChildren) {
             // Recursively process folder contents
             const folderPath = parentPath ? `${parentPath}/${item.name}` : item.name;
-            if (item.children) {
+            if (item.children && item.children.length > 0) {
               extractQueries(item.children, folderPath);
+            } else if (item.hasChildren) {
+              console.log('[ADO getQueries] Folder has children but children array is empty:', item.name);
             }
-          } else if (item.isPublic !== false && item.wiql) {
-            // Only include public/shared queries that have WIQL
-            // This filters out folders and link queries
+          } else {
+            // Include all queries (public and private)
+            // Only filter out actual folders (already handled above)
+            console.log('[ADO getQueries] Adding query:', item.name);
             queries.push({
               id: item.id,
               name: item.name,
               path: parentPath ? `${parentPath}/${item.name}` : item.name,
-              wiql: item.wiql,
+              wiql: item.wiql || '',
+              isPublic: item.isPublic,
             });
           }
         });
@@ -1030,7 +1048,14 @@ export class ADOService {
 
       // Start extraction from root
       if (response.data.value) {
+        console.log('[ADO getQueries] Starting extraction from', response.data.value.length, 'root items');
         extractQueries(response.data.value);
+      } else if (response.data) {
+        console.log('[ADO getQueries] No value array, checking direct data');
+        // Sometimes the response is the data directly
+        if (Array.isArray(response.data)) {
+          extractQueries(response.data);
+        }
       }
 
       console.log('[ADO getQueries] Found', queries.length, 'queries');
