@@ -26,6 +26,7 @@ import QueryExecutor from './query-executor';
 import ResultEvaluator from './result-evaluator';
 import ResponseSynthesizer from './response-synthesizer';
 import ContextManager from './context-manager';
+import MetadataPreloader from './metadata-preloader';
 import { ADOService } from '../ado-api';
 
 // Default configuration
@@ -66,6 +67,7 @@ export class AIOrchestrator {
   private resultEvaluator: ResultEvaluator;
   private responseSynthesizer: ResponseSynthesizer;
   private contextManager: ContextManager;
+  private metadataPreloader: MetadataPreloader;
   private adoService: ADOService;
 
   constructor(config?: Partial<OrchestratorConfig>) {
@@ -82,6 +84,7 @@ export class AIOrchestrator {
     );
     this.responseSynthesizer = new ResponseSynthesizer(this.config.models.synthesis);
     this.contextManager = new ContextManager();
+    this.metadataPreloader = new MetadataPreloader();
 
     // Initialize ADO service with environment variables
     const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION || '';
@@ -160,18 +163,36 @@ export class AIOrchestrator {
         };
       }
 
-      // Fetch metadata if needed for query planning
+      // Fetch metadata if needed for query planning (using preloaded cache)
       let metadata: { sprints?: any[]; users?: string[] } | undefined;
-      if (intent.sprintIdentifier || intent.scope === 'SPRINT' || intent.scope === 'PROJECT') {
+      if (intent.sprintIdentifier || intent.scope === 'SPRINT' || intent.scope === 'PROJECT' || intent.scope === 'ITERATION') {
         try {
-          // Get project name from intent or environment
-          const projectName = intent.projectIdentifier || process.env.NEXT_PUBLIC_ADO_PROJECT;
-          const sprints = await this.adoService.getSprints(projectName);
+          // Use preloaded metadata (fast, cached)
+          const sprints = await this.metadataPreloader.getSprints();
           metadata = { sprints };
-          console.log(`[Orchestrator] Fetched ${sprints?.length || 0} sprints for query planning from project: ${projectName}`);
+          console.log(`[Orchestrator] ✅ Using cached sprints (${sprints?.length || 0} total) for query planning`);
         } catch (error) {
-          console.warn('[Orchestrator] Failed to fetch sprint metadata:', error);
-          metadata = undefined;
+          console.warn('[Orchestrator] ⚠️  Failed to get cached sprint metadata, falling back to direct API:', error);
+          // Fallback to direct API if cache fails
+          try {
+            const projectName = intent.projectIdentifier || process.env.NEXT_PUBLIC_ADO_PROJECT;
+            const sprints = await this.adoService.getSprints(projectName);
+            metadata = { sprints };
+          } catch (fallbackError) {
+            console.error('[Orchestrator] ❌ Fallback API call also failed:', fallbackError);
+            metadata = undefined;
+          }
+        }
+      }
+
+      // Also get users metadata for USER/ASSIGNEE/CREATOR scopes
+      if (intent.scope === 'USER' || intent.scope === 'ASSIGNEE' || intent.scope === 'CREATOR') {
+        try {
+          const users = await this.metadataPreloader.getUsers();
+          metadata = { ...metadata, users: users.map(u => u.displayName || u.uniqueName) };
+          console.log(`[Orchestrator] ✅ Using cached users (${users?.length || 0} total) for query planning`);
+        } catch (error) {
+          console.warn('[Orchestrator] ⚠️  Failed to get cached user metadata:', error);
         }
       }
 

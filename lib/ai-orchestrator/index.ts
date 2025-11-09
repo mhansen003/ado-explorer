@@ -12,6 +12,7 @@ export { QueryExecutor } from './query-executor';
 export { ResultEvaluator } from './result-evaluator';
 export { ResponseSynthesizer } from './response-synthesizer';
 export { ContextManager } from './context-manager';
+export { MetadataPreloader } from './metadata-preloader';
 
 // Re-export types for convenience
 export type {

@@ -259,6 +259,14 @@ export class QueryExecutor {
       return await adoService.getUsers();
     }
 
+    if (endpoint.includes('/queries')) {
+      return await adoService.getQueries();
+    }
+
+    if (endpoint.includes('/projects')) {
+      return await adoService.getProjects();
+    }
+
     // Generic REST call (fallback)
     throw new Error(`REST endpoint not mapped: ${endpoint}`);
   }
