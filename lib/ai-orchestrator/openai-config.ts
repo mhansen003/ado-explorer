@@ -22,9 +22,17 @@ export function getOpenAIClient(): OpenAI {
   // Check environment at runtime
   const useOpenRouter = !!process.env.OPENROUTER_API_KEY;
 
+  // Determine the site URL for HTTP-Referer header
+  // Priority: Custom domain > Vercel URL > localhost
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    'https://ado.cmgfinancial.ai';  // Production domain as final fallback
+
   console.log(`[OpenAI Config] Initializing client - Using ${useOpenRouter ? 'OpenRouter' : 'OpenAI'}`);
   console.log(`[OpenAI Config] OPENROUTER_API_KEY present: ${!!process.env.OPENROUTER_API_KEY}`);
   console.log(`[OpenAI Config] OPENAI_API_KEY present: ${!!process.env.OPENAI_API_KEY}`);
+  console.log(`[OpenAI Config] Site URL (HTTP-Referer): ${siteUrl}`);
 
   cachedClient = new OpenAI({
     apiKey: useOpenRouter
@@ -34,7 +42,7 @@ export function getOpenAIClient(): OpenAI {
       ? 'https://openrouter.ai/api/v1'
       : 'https://api.openai.com/v1',
     defaultHeaders: useOpenRouter ? {
-      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      'HTTP-Referer': siteUrl,
       'X-Title': 'ADO Explorer',
     } : undefined,
   });
