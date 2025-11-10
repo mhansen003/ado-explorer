@@ -64,6 +64,7 @@ export class ResponseSynthesizer {
         ],
         temperature: 0.4,
         max_tokens: 3000,
+        response_format: { type: 'json_object' },
       });
 
       const content = response.choices[0].message.content;

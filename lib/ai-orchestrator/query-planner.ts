@@ -410,7 +410,12 @@ export class QueryPlanner {
 
     // Case 9: TITLE search queries
     if (intent.scope === 'TITLE' && intent.entities?.length) {
-      const searchTerm = intent.entities.join(' ');
+      // Filter out common stop words that aren't part of the search term
+      const stopWords = ['title', 'titled', 'tickets', 'ticket', 'items', 'item', 'find', 'search', 'show', 'with', 'in', 'the'];
+      const searchTerms = intent.entities.filter(entity =>
+        !stopWords.includes(entity.toLowerCase())
+      );
+      const searchTerm = searchTerms.length > 0 ? searchTerms.join(' ') : intent.entities.join(' ');
 
       return {
         queries: [

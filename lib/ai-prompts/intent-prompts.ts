@@ -255,11 +255,33 @@ User: "find work items with 'security' in the title"
 {
   "type": "COMMAND",
   "scope": "TITLE",
-  "entities": ["security", "title", "find"],
+  "entities": ["security"],
   "dataRequired": true,
   "complexity": "SIMPLE",
   "confidence": 0.9,
   "originalQuery": "find work items with 'security' in the title"
+}
+
+User: "borrower income tickets"
+{
+  "type": "COMMAND",
+  "scope": "TITLE",
+  "entities": ["borrower", "income"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.85,
+  "originalQuery": "borrower income tickets"
+}
+
+User: "tickets titled borrower income"
+{
+  "type": "COMMAND",
+  "scope": "TITLE",
+  "entities": ["borrower", "income"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "tickets titled borrower income"
 }
 
 User: "show items assigned to Sarah"
