@@ -5,16 +5,12 @@
  * Plans optimal queries to fetch data from Azure DevOps using MCP server.
  */
 
-import OpenAI from 'openai';
 import { Intent, Decision, QueryPlan, PlannedQuery } from '../types/ai-types';
 import {
   QUERY_PLANNING_SYSTEM_PROMPT,
   buildQueryPlanningPrompt,
 } from '../ai-prompts/planning-prompts';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai, MODEL_NAMES } from './openai-config';
 
 const PROJECT_NAME = process.env.NEXT_PUBLIC_ADO_PROJECT || 'Next Gen LOS';
 
@@ -22,8 +18,8 @@ export class QueryPlanner {
   private model: string;
   private projectName: string;
 
-  constructor(model: string = 'gpt-4o', projectName?: string) {
-    this.model = model;
+  constructor(model?: string, projectName?: string) {
+    this.model = model || MODEL_NAMES.planning;
     this.projectName = projectName || PROJECT_NAME;
   }
 

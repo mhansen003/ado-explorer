@@ -5,7 +5,6 @@
  * Generates comprehensive responses with analysis, visualizations, and suggestions.
  */
 
-import OpenAI from 'openai';
 import {
   Intent,
   Evaluation,
@@ -20,16 +19,13 @@ import {
   buildSynthesisPrompt,
 } from '../ai-prompts/synthesis-prompts';
 import { WorkItem } from '@/types';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai, MODEL_NAMES } from './openai-config';
 
 export class ResponseSynthesizer {
   private model: string;
 
-  constructor(model: string = 'gpt-4o-mini') {
-    this.model = model;
+  constructor(model?: string) {
+    this.model = model || MODEL_NAMES.synthesis;
   }
 
   /**

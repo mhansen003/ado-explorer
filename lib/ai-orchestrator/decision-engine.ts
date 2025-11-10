@@ -5,22 +5,18 @@
  * Decides whether ADO data is needed and what queries/analysis to perform.
  */
 
-import OpenAI from 'openai';
 import { Intent, Decision, ConversationContext, QueryType } from '../types/ai-types';
 import {
   DECISION_ENGINE_SYSTEM_PROMPT,
   buildDecisionPrompt,
 } from '../ai-prompts/decision-prompts';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai, MODEL_NAMES } from './openai-config';
 
 export class DecisionEngine {
   private model: string;
 
-  constructor(model: string = 'gpt-4o-mini') {
-    this.model = model;
+  constructor(model?: string) {
+    this.model = model || MODEL_NAMES.decision;
   }
 
   /**

@@ -5,7 +5,6 @@
  * Analyzes user queries and classifies them into actionable intents.
  */
 
-import OpenAI from 'openai';
 import {
   Intent,
   IntentType,
@@ -16,16 +15,13 @@ import {
   INTENT_ANALYSIS_SYSTEM_PROMPT,
   buildIntentAnalysisPrompt,
 } from '../ai-prompts/intent-prompts';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai, MODEL_NAMES } from './openai-config';
 
 export class IntentAnalyzer {
   private model: string;
 
-  constructor(model: string = 'gpt-4o-mini') {
-    this.model = model;
+  constructor(model?: string) {
+    this.model = model || MODEL_NAMES.intent;
   }
 
   /**

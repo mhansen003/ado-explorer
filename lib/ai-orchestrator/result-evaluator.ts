@@ -6,23 +6,19 @@
  * Includes retry logic for insufficient results.
  */
 
-import OpenAI from 'openai';
 import { Intent, QueryResults, Evaluation } from '../types/ai-types';
 import {
   RESULT_EVALUATION_SYSTEM_PROMPT,
   buildEvaluationPrompt,
 } from '../ai-prompts/evaluation-prompts';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai, MODEL_NAMES } from './openai-config';
 
 export class ResultEvaluator {
   private model: string;
   private maxRetries: number;
 
-  constructor(model: string = 'gpt-4o', maxRetries: number = 2) {
-    this.model = model;
+  constructor(model?: string, maxRetries: number = 2) {
+    this.model = model || MODEL_NAMES.evaluation;
     this.maxRetries = maxRetries;
   }
 
