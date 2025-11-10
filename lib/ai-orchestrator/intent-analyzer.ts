@@ -31,7 +31,15 @@ export class IntentAnalyzer {
   /**
    * Analyze a user query and extract intent
    */
-  async analyze(userQuery: string): Promise<Intent> {
+  async analyze(
+    userQuery: string,
+    recentEntities?: {
+      projects?: string[];
+      users?: string[];
+      sprints?: string[];
+      teams?: string[];
+    }
+  ): Promise<Intent> {
     try {
       const response = await openai.chat.completions.create({
         model: this.model,
@@ -42,7 +50,7 @@ export class IntentAnalyzer {
           },
           {
             role: 'user',
-            content: buildIntentAnalysisPrompt(userQuery),
+            content: buildIntentAnalysisPrompt(userQuery, recentEntities),
           },
         ],
         temperature: 0.0, // Zero temperature for maximum consistency in classification

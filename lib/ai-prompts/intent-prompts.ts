@@ -340,10 +340,41 @@ User: "items in the Backend area path"
 
 Be precise, confident, and always return valid JSON.`;
 
-export function buildIntentAnalysisPrompt(userQuery: string): string {
+export function buildIntentAnalysisPrompt(
+  userQuery: string,
+  recentEntities?: {
+    projects?: string[];
+    users?: string[];
+    sprints?: string[];
+    teams?: string[];
+  }
+): string {
+  let contextHint = '';
+
+  if (recentEntities) {
+    const hints: string[] = [];
+
+    if (recentEntities.projects && recentEntities.projects.length > 0) {
+      hints.push(`Recently mentioned projects: ${recentEntities.projects.join(', ')}`);
+    }
+    if (recentEntities.users && recentEntities.users.length > 0) {
+      hints.push(`Recently mentioned users: ${recentEntities.users.join(', ')}`);
+    }
+    if (recentEntities.sprints && recentEntities.sprints.length > 0) {
+      hints.push(`Recently mentioned sprints: ${recentEntities.sprints.join(', ')}`);
+    }
+    if (recentEntities.teams && recentEntities.teams.length > 0) {
+      hints.push(`Recently mentioned teams: ${recentEntities.teams.join(', ')}`);
+    }
+
+    if (hints.length > 0) {
+      contextHint = `\n\n**CONVERSATION CONTEXT (use as hints for ambiguous references):**\n${hints.join('\n')}\n\nIMPORTANT: If the user query contains a name that matches a recently mentioned entity (e.g., "CSA" matching project "CSA"), strongly prefer that entity type in your classification.`;
+    }
+  }
+
   return `Analyze this user query and classify the intent:
 
-User Query: "${userQuery}"
+User Query: "${userQuery}"${contextHint}
 
 Return ONLY the JSON object with the intent classification. Do not include any other text or explanation.`;
 }

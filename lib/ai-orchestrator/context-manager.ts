@@ -167,6 +167,67 @@ export class ContextManager {
   }
 
   /**
+   * Extract recently mentioned entities from conversation history
+   */
+  getRecentEntities(context: ConversationContext, maxTurns: number = 3): {
+    projects: string[];
+    users: string[];
+    sprints: string[];
+    teams: string[];
+  } {
+    const recentTurns = this.getRecentTurns(context, maxTurns);
+    const entities = {
+      projects: [] as string[],
+      users: [] as string[],
+      sprints: [] as string[],
+      teams: [] as string[],
+    };
+
+    for (const turn of recentTurns) {
+      // Extract from intent
+      if (turn.intent.projectIdentifier) {
+        entities.projects.push(turn.intent.projectIdentifier);
+      }
+      if (turn.intent.userIdentifier) {
+        entities.users.push(turn.intent.userIdentifier);
+      }
+      if (turn.intent.sprintIdentifier) {
+        entities.sprints.push(turn.intent.sprintIdentifier);
+      }
+      if (turn.intent.teamIdentifier) {
+        entities.teams.push(turn.intent.teamIdentifier);
+      }
+
+      // Extract from work items (project names)
+      if (turn.workItems) {
+        for (const item of turn.workItems.slice(0, 10)) { // Sample first 10
+          if (item.project && !entities.projects.includes(item.project)) {
+            entities.projects.push(item.project);
+          }
+        }
+      }
+
+      // Extract from response metadata (list of projects)
+      if (turn.response.metadata?.projects) {
+        const projects = turn.response.metadata.projects as Array<{name: string}>;
+        for (const proj of projects.slice(0, 10)) {
+          if (proj.name && !entities.projects.includes(proj.name)) {
+            entities.projects.push(proj.name);
+          }
+        }
+      }
+    }
+
+    // Deduplicate and return most recent
+    return {
+      projects: [...new Set(entities.projects)].slice(-10),
+      users: [...new Set(entities.users)].slice(-10),
+      sprints: [...new Set(entities.sprints)].slice(-10),
+      teams: [...new Set(entities.teams)].slice(-10),
+    };
+  }
+
+  /**
    * Get summary of conversation for AI context
    */
   getConversationSummary(context: ConversationContext): string {

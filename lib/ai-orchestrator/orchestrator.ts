@@ -116,10 +116,14 @@ export class AIOrchestrator {
         return await this.processSlashCommand(input, context, metrics);
       }
 
-      // PHASE 1: Analyze Intent
+      // Extract recent entities for context-aware intent analysis
+      const recentEntities = this.contextManager.getRecentEntities(context, 3);
+      console.log('[Orchestrator] Recent entities:', recentEntities);
+
+      // PHASE 1: Analyze Intent (with conversation context)
       const intent = await this.executePhase(
         'Intent Analysis',
-        () => this.intentAnalyzer.analyze(input.query),
+        () => this.intentAnalyzer.analyze(input.query, recentEntities),
         metrics
       );
 
