@@ -35,6 +35,13 @@ export type IntentScope =
   | 'ITERATION'     // Same as SPRINT but explicit
   | 'AREA'          // Same as BOARD but explicit
   | 'RELATION'      // Related work items (parent/child)
+  // NEW - Developer & Team Scopes (Phase 1)
+  | 'BLOCKED'       // Blocked items
+  | 'TIME_RELATIVE' // Relative time queries (today, this week, etc.)
+  | 'EFFORT'        // Story points/effort estimates
+  | 'UNASSIGNED'    // Items without assignee
+  | 'SEVERITY'      // Bug severity
+  | 'RECENT_ACTIVITY' // Recently modified items
   // Catch-all
   | 'GLOBAL';       // General or multi-field queries
 
