@@ -46,6 +46,14 @@ Your job is to classify the user's intent and extract relevant entities.
 - AREA: Same as BOARD but when "area" is explicitly mentioned
 - RELATION: Query about related work items (parent/child, blocks/blocked-by, etc.)
 
+## NEW - Developer & Team Scopes:
+- BLOCKED: Query about blocked items (use when "blocked" is mentioned)
+- TIME_RELATIVE: Query with relative time (today, this week, last week, recently, stale, overdue)
+- EFFORT: Query about story points or effort estimates (estimated, unestimated, points)
+- RECENT_ACTIVITY: Query about recently modified items (latest, recent changes)
+- UNASSIGNED: Query about items without an assignee
+- SEVERITY: Query about bug severity (critical, sev1, sev2, severity)
+
 ## Catch-all:
 - GLOBAL: General query not tied to specific scope
 
@@ -473,6 +481,117 @@ User: "what's the total number of items in Sprint 23?"
   "originalQuery": "what's the total number of items in Sprint 23?",
   "sprintIdentifier": "Sprint 23",
   "expectsCount": true
+}
+
+User: "show me blocked items"
+{
+  "type": "COMMAND",
+  "scope": "BLOCKED",
+  "entities": ["blocked", "items"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "show me blocked items",
+  "states": ["Blocked"]
+}
+
+User: "items updated this week"
+{
+  "type": "COMMAND",
+  "scope": "TIME_RELATIVE",
+  "entities": ["items", "updated", "this week"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "items updated this week",
+  "timeRelative": "this week"
+}
+
+User: "show me items updated today"
+{
+  "type": "COMMAND",
+  "scope": "TIME_RELATIVE",
+  "entities": ["items", "updated", "today"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "show me items updated today",
+  "timeRelative": "today"
+}
+
+User: "unestimated user stories"
+{
+  "type": "COMMAND",
+  "scope": "EFFORT",
+  "entities": ["unestimated", "user stories"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "unestimated user stories",
+  "types": ["User Story"],
+  "hasEffort": false
+}
+
+User: "stories with story points"
+{
+  "type": "COMMAND",
+  "scope": "EFFORT",
+  "entities": ["stories", "story points"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "stories with story points",
+  "types": ["User Story"],
+  "hasEffort": true
+}
+
+User: "unassigned bugs"
+{
+  "type": "COMMAND",
+  "scope": "UNASSIGNED",
+  "entities": ["unassigned", "bugs"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "unassigned bugs",
+  "types": ["Bug"]
+}
+
+User: "critical severity bugs"
+{
+  "type": "COMMAND",
+  "scope": "SEVERITY",
+  "entities": ["critical", "severity", "bugs"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "critical severity bugs",
+  "types": ["Bug"],
+  "severity": ["1 - Critical", "Critical"]
+}
+
+User: "recently modified items"
+{
+  "type": "COMMAND",
+  "scope": "RECENT_ACTIVITY",
+  "entities": ["recently", "modified", "items"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.9,
+  "originalQuery": "recently modified items"
+}
+
+User: "stale items not updated in 30 days"
+{
+  "type": "COMMAND",
+  "scope": "TIME_RELATIVE",
+  "entities": ["stale", "items", "not updated", "30 days"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.85,
+  "originalQuery": "stale items not updated in 30 days",
+  "timeRelative": "stale",
+  "staleDays": 30
 }
 
 Be precise, confident, and always return valid JSON.`;

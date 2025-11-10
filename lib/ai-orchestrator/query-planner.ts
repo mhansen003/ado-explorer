@@ -501,6 +501,222 @@ export class QueryPlanner {
       return this.trySimplePlan(intent, decision, metadata);
     }
 
+    // Case 13: BLOCKED items
+    if (intent.scope === 'BLOCKED') {
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'blocked_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.State] = 'Blocked' ${typeCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'System.ChangedDate',
+              'Microsoft.VSTS.Common.Priority',
+            ],
+            purpose: 'Get blocked items',
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 14: TIME_RELATIVE queries
+    if (intent.scope === 'TIME_RELATIVE' && (intent as any).timeRelative) {
+      const timeRelative = (intent as any).timeRelative.toLowerCase();
+      let dateCondition = '';
+
+      if (timeRelative === 'today') {
+        dateCondition = `[System.ChangedDate] >= @Today`;
+      } else if (timeRelative === 'yesterday') {
+        dateCondition = `[System.ChangedDate] >= @Today-1 AND [System.ChangedDate] < @Today`;
+      } else if (timeRelative === 'this week') {
+        dateCondition = `[System.ChangedDate] >= @Today-7`;
+      } else if (timeRelative === 'last week') {
+        dateCondition = `[System.ChangedDate] >= @Today-14 AND [System.ChangedDate] < @Today-7`;
+      } else if (timeRelative === 'this month') {
+        dateCondition = `[System.ChangedDate] >= @Today-30`;
+      } else if (timeRelative === 'stale') {
+        const staleDays = (intent as any).staleDays || 30;
+        dateCondition = `[System.ChangedDate] < @Today-${staleDays}`;
+      }
+
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'time_relative_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE ${dateCondition} ${typeCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'System.ChangedDate',
+            ],
+            purpose: `Get items ${timeRelative}`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 15: EFFORT (story points) queries
+    if (intent.scope === 'EFFORT') {
+      const hasEffort = (intent as any).hasEffort;
+      const effortCondition = hasEffort === false
+        ? `([Microsoft.VSTS.Scheduling.StoryPoints] = '' OR [Microsoft.VSTS.Scheduling.StoryPoints] = NULL)`
+        : `[Microsoft.VSTS.Scheduling.StoryPoints] <> ''`;
+
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'effort_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE ${effortCondition} ${typeCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'Microsoft.VSTS.Scheduling.StoryPoints',
+            ],
+            purpose: hasEffort === false ? 'Get unestimated items' : 'Get estimated items',
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 16: UNASSIGNED items
+    if (intent.scope === 'UNASSIGNED') {
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'unassigned_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = '' ${typeCondition} ORDER BY [System.CreatedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.CreatedBy',
+              'System.CreatedDate',
+            ],
+            purpose: 'Get unassigned items',
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 17: SEVERITY queries
+    if (intent.scope === 'SEVERITY' && (intent as any).severity) {
+      const severities = (intent as any).severity;
+      const severityCondition = Array.isArray(severities)
+        ? `[Microsoft.VSTS.Common.Severity] IN (${severities.map((s: string) => `'${s}'`).join(', ')})`
+        : `[Microsoft.VSTS.Common.Severity] CONTAINS '${severities}'`;
+
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : `AND [System.WorkItemType] = 'Bug'`;
+
+      return {
+        queries: [
+          {
+            id: 'severity_items',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE ${severityCondition} ${typeCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'Microsoft.VSTS.Common.Severity',
+              'System.ChangedDate',
+            ],
+            purpose: `Get bugs by severity`,
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
+    // Case 18: RECENT_ACTIVITY queries
+    if (intent.scope === 'RECENT_ACTIVITY') {
+      const typeCondition = intent.types?.length
+        ? `AND [System.WorkItemType] IN (${intent.types.map((t) => `'${t}'`).join(', ')})`
+        : '';
+
+      return {
+        queries: [
+          {
+            id: 'recent_activity',
+            type: 'WIQL',
+            query: `SELECT [System.Id] FROM WorkItems WHERE [System.ChangedDate] >= @Today-7 ${typeCondition} ORDER BY [System.ChangedDate] DESC`,
+            fields: [
+              'System.Id',
+              'System.Title',
+              'System.State',
+              'System.WorkItemType',
+              'System.AssignedTo',
+              'System.ChangedDate',
+            ],
+            purpose: 'Get recently modified items (last 7 days)',
+            priority: 1,
+            optional: false,
+          },
+        ],
+        validationRules: [],
+        successCriteria: 'Query executes successfully',
+        estimatedDuration: 1500,
+      };
+    }
+
     // No simple plan available
     return null;
   }
