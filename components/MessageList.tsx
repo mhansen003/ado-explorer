@@ -293,27 +293,6 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                 </div>
               )}
 
-              {/* AI Suggestions */}
-              {message.suggestions && message.suggestions.length > 0 && (
-                <div className="mb-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Bot className="w-4 h-4 text-purple-400" />
-                    <span className="text-sm font-medium text-purple-400">Suggested Follow-ups</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {message.suggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => onSuggestionClick?.(suggestion)}
-                        className="px-3 py-1.5 text-xs bg-purple-500/20 border border-purple-500/40 text-purple-300 rounded-lg hover:bg-purple-500/30 hover:border-purple-400 transition-all font-medium"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Chart Visualization */}
               {message.chartData && (
                 <WorkItemChart chartData={message.chartData} workItems={message.workItems} />
@@ -514,6 +493,27 @@ export default function MessageList({ messages, onListItemClick, onSuggestionCli
                         }
                       })()}
                     </>
+                  )}
+
+                  {/* AI Suggestions - Moved below grid for better visibility */}
+                  {message.suggestions && message.suggestions.length > 0 && (
+                    <div className="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Bot className="w-4 h-4 text-cyan-400" />
+                        <span className="text-sm font-semibold text-cyan-400">💡 Try These Next</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {message.suggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            onClick={() => onSuggestionClick?.(suggestion)}
+                            className="px-3 py-2 text-sm bg-cyan-500/20 border border-cyan-500/40 text-cyan-200 rounded-lg hover:bg-cyan-500/30 hover:border-cyan-300 transition-all font-medium hover:scale-105"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : message.listItems && message.listItems.length > 0 ? (

@@ -375,7 +375,7 @@ export default function WorkItemDetailModal({ workItem, onClose, breadcrumbTrail
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={handleClose}>
-      <div className="bg-rh-card border border-rh-border rounded-xl max-w-5xl w-full h-[90vh] flex flex-col overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-rh-card border border-rh-border rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-rh-border">
           <div className="flex items-center gap-3">

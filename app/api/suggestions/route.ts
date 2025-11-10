@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       tags: Array.from(new Set(workItems.flatMap(item => item.tags || []))).slice(0, 5),
     };
 
-    const prompt = `You are an Azure DevOps query assistant. Based on this search and results, suggest 3-4 follow-up queries that would be useful.
+    const prompt = `You are an Azure DevOps query assistant helping users explore their work items. Based on the search results, suggest 3-4 CLEAR and ACTIONABLE follow-up queries.
 
 Original Query: "${query}"
 
@@ -42,15 +42,27 @@ Results Summary:
 - Projects: ${workItemSummary.projects.join(', ')}
 ${workItemSummary.tags.length > 0 ? `- Tags: ${workItemSummary.tags.join(', ')}` : ''}
 
-Generate 3-4 natural language follow-up queries that:
-1. Drill down into specific aspects (e.g., filter by state, assignee, priority)
-2. Explore related areas (e.g., similar tags, related projects)
-3. Provide different perspectives (e.g., "show high priority items", "items assigned to X")
+Generate 3-4 follow-up queries that are:
+1. DIRECTLY RELATED to what the user just searched for
+2. CLEAR and easy to understand (no vague or cryptic wording)
+3. USEFUL for exploring different aspects of the results
+4. SPECIFIC to the actual data (use real assignees, types, states from the results)
 
-Return ONLY a JSON array of strings, each being a complete natural language query.
-Example: ["show me only the bugs", "filter by high priority items", "show items assigned to John"]
+Good suggestions:
+- "Show only Active bugs" (if results contain bugs)
+- "Filter by high priority items" (if results have multiple priorities)
+- "Show items assigned to [actual assignee name]" (use real name from results)
+- "View closed items from this sprint" (if query was about a sprint)
 
-Keep queries short (5-8 words) and actionable.`;
+Bad suggestions (AVOID):
+- Vague queries like "Show related items" or "View more"
+- Unrelated queries that don't match the user's intent
+- Generic queries that don't use the actual data
+
+Return ONLY a JSON array of strings. Each string should be a complete, clear query.
+Example: ["show only the active bugs", "filter by priority 1 items", "show items assigned to John Smith"]
+
+Keep queries natural and conversational (6-10 words max).`;
 
     const openaiResponse = await callOpenAIWithRetry(
       'https://api.openai.com/v1/chat/completions',
