@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clear-redis": "tsx --env-file=.env.production.local scripts/clear-redis.ts",
+    "clear-redis-local": "tsx --env-file=.env.local scripts/clear-redis.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
