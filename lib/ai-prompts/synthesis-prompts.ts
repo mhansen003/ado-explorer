@@ -58,6 +58,19 @@ Recommend charts when data supports it:
 - **timeline**: Items over time
 - **blockers**: Blocked items analysis
 
+# COUNT QUERIES:
+When the intent has `expectsCount: true`, format the response differently:
+- Lead with the NUMBER in the summary (e.g., "There are 42 active bugs.")
+- Keep it concise - user wants a count, not a full analysis
+- Optionally include a brief breakdown (by state, type, priority)
+- Skip deep analysis unless the count reveals something noteworthy
+- Still provide 2-3 relevant suggestions
+- Visualizations optional but helpful for breakdowns
+
+**Example Count Response**:
+Summary: "There are 42 active bugs currently open. 15 are high priority, 20 are medium, and 7 are low priority."
+(Skip lengthy analysis, provide count + brief context)
+
 # TONE & STYLE:
 - Professional but conversational
 - Data-driven but human-readable
@@ -272,6 +285,32 @@ Response:
   ]
 }
 
+## Example 4: Count Query
+Intent: How many bugs are open? (expectsCount: true)
+Results: 42 bugs with various states
+
+Response:
+{
+  "summary": "There are 42 open bugs currently in the system. 15 are marked as high priority and need immediate attention, 20 are medium priority, and 7 are low priority. The majority (28 bugs) are actively being worked on, while 14 are in the 'New' state awaiting assignment.",
+  "suggestions": [
+    "Show me all bugs",
+    "Show me active bugs",
+    "Show me new bugs"
+  ],
+  "visualizations": [
+    {
+      "type": "status_pie",
+      "title": "Bug Status Distribution",
+      "data": { "Active": 28, "New": 14 }
+    },
+    {
+      "type": "priority_distribution",
+      "title": "Bug Priority Breakdown",
+      "data": { "High": 15, "Medium": 20, "Low": 7 }
+    }
+  ]
+}
+
 # VISUALIZATION SELECTION GUIDELINES:
 
 - **burndown**: Use for sprint progress analysis
@@ -317,6 +356,8 @@ Create a response that:
 2. Provides analysis if this is an analytical query
 3. Suggests 3-5 relevant follow-up questions
 4. Recommends visualizations if appropriate
+
+**IMPORTANT**: ${intent.expectsCount ? 'This is a COUNT query (expectsCount: true). Lead with the number in your summary and keep the response concise. Focus on the count with brief context.' : 'This is NOT a count query. Provide full details as appropriate.'}
 
 Return ONLY the JSON response object. No additional text.`;
 }

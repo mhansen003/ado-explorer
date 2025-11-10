@@ -79,6 +79,13 @@ Determine if the query REQUIRES Azure DevOps data to answer:
 
 **IMPORTANT**: If the query is clearly NOT about Azure DevOps work items, sprints, users, or projects, set dataRequired to FALSE.
 
+# COUNT QUERIES:
+Detect when the user wants a COUNT/NUMBER instead of a full list:
+- Keywords: "how many", "count", "number of", "total"
+- Examples: "How many bugs are open?", "Count active tickets", "What's the total number of items?"
+- Set `expectsCount: true` when detected
+- Still execute the query normally, but format response as a count
+
 # OUTPUT FORMAT:
 Return ONLY a valid JSON object with this structure:
 {
@@ -89,6 +96,7 @@ Return ONLY a valid JSON object with this structure:
   "complexity": "SIMPLE" | "MULTI_STEP" | "ANALYTICAL",
   "confidence": 0.0-1.0,
   "originalQuery": "the user's query",
+  "expectsCount": true | false,  // Set to true when user wants a count/number
 
   // Optional fields based on entities found:
   "sprintIdentifier": "Sprint 23",
@@ -400,7 +408,49 @@ User: "show me items in the current sprint"
   "complexity": "SIMPLE",
   "confidence": 0.85,
   "originalQuery": "show me items in the current sprint",
-  "sprintIdentifier": "current"
+  "sprintIdentifier": "current",
+  "expectsCount": false
+}
+
+User: "how many bugs are open?"
+{
+  "type": "QUESTION",
+  "scope": "TYPE",
+  "entities": ["how many", "bugs", "open"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "how many bugs are open?",
+  "types": ["Bug"],
+  "states": ["Active", "New"],
+  "expectsCount": true
+}
+
+User: "count John's active tickets"
+{
+  "type": "COMMAND",
+  "scope": "USER",
+  "entities": ["count", "John", "active", "tickets"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "count John's active tickets",
+  "userIdentifier": "John",
+  "states": ["Active"],
+  "expectsCount": true
+}
+
+User: "what's the total number of items in Sprint 23?"
+{
+  "type": "QUESTION",
+  "scope": "SPRINT",
+  "entities": ["total", "number", "items", "Sprint 23"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "what's the total number of items in Sprint 23?",
+  "sprintIdentifier": "Sprint 23",
+  "expectsCount": true
 }
 
 Be precise, confident, and always return valid JSON.`;
