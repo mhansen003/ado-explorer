@@ -159,9 +159,10 @@ Just ask me anything about your Azure DevOps organization in plain English!`,
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.slice(6));
+            try {
+              const data = JSON.parse(line.slice(6));
 
-            if (data.type === 'token') {
+              if (data.type === 'token') {
               setStreamingContent(prev => prev + data.content);
             } else if (data.type === 'verifying') {
               // Quality check started
@@ -209,6 +210,42 @@ Just ask me anything about your Azure DevOps organization in plain English!`,
               setIsStreaming(false);
               setStreamingContent('');
               setStreamingSuggestions([]);
+              setIsVerifying(false);
+
+              // Add error message to chat
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: 'error-' + Date.now(),
+                  role: 'assistant',
+                  content: `⚠️ **Error:** ${data.error || 'An unexpected error occurred'}`,
+                  timestamp: Date.now(),
+                },
+              ]);
+            }
+            } catch (jsonError) {
+              // Handle JSON parsing errors - API might return non-JSON error messages
+              console.error('Failed to parse streaming data:', line, jsonError);
+
+              // Extract error message if it looks like plain text
+              const errorText = line.slice(6).trim();
+              if (errorText && errorText.length > 0 && !errorText.startsWith('{')) {
+                // This is a plain text error message
+                setIsStreaming(false);
+                setStreamingContent('');
+                setStreamingSuggestions([]);
+                setIsVerifying(false);
+
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    id: 'error-' + Date.now(),
+                    role: 'assistant',
+                    content: `⚠️ **Error:** ${errorText}`,
+                    timestamp: Date.now(),
+                  },
+                ]);
+              }
             }
           }
         }

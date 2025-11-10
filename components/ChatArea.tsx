@@ -173,20 +173,31 @@ export default function ChatArea({
 
       {/* Streaming Message */}
       {isStreaming && (
-        <div className="flex gap-4">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-rh-green/20">
+        <div className="flex gap-4 animate-fade-in">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-rh-green/20 animate-pulse">
             <Bot className="w-5 h-5 text-rh-green" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-medium text-rh-text">Assistant</span>
+              <span className="text-sm font-medium text-rh-text">AI Assistant</span>
               {isVerifying ? (
-                <span className="text-xs text-orange-400 flex items-center gap-1">
-                  <span className="inline-block w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
-                  verifying response before sending...
+                <span className="text-xs text-cyan-400 font-medium flex items-center gap-1.5 bg-cyan-400/10 px-2 py-1 rounded-full border border-cyan-400/20">
+                  <span className="flex gap-0.5">
+                    <span className="inline-block w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="inline-block w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="inline-block w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </span>
+                  AI is thinking...
                 </span>
               ) : (
-                <span className="text-xs text-rh-text-muted">typing...</span>
+                <span className="text-xs text-rh-green font-medium flex items-center gap-1.5 bg-rh-green/10 px-2 py-1 rounded-full border border-rh-green/20">
+                  <span className="flex gap-0.5">
+                    <span className="inline-block w-1.5 h-1.5 bg-rh-green rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="inline-block w-1.5 h-1.5 bg-rh-green rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="inline-block w-1.5 h-1.5 bg-rh-green rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </span>
+                  typing...
+                </span>
               )}
             </div>
             <div className="rounded-lg p-4 bg-rh-dark border border-rh-border">
