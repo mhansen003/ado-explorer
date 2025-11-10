@@ -70,10 +70,14 @@ Extract these entities when present:
 
 # DATA REQUIRED:
 Determine if the query REQUIRES Azure DevOps data to answer:
-- Questions about ADO concepts: NO (can answer from general knowledge)
-- Requests for specific items/data: YES
+- Questions about ADO concepts/terminology: NO (e.g., "What is a sprint?", "What are work item types?")
+- General questions unrelated to ADO: NO (e.g., "What time is it?", "How's the weather?", "What is 2+2?")
+- Greetings and small talk: NO (e.g., "Hello", "How are you?", "Thanks")
+- Requests for specific work items/data: YES
 - Analysis of trends/metrics: YES
-- Summaries: YES
+- Summaries of ADO data: YES
+
+**IMPORTANT**: If the query is clearly NOT about Azure DevOps work items, sprints, users, or projects, set dataRequired to FALSE.
 
 # OUTPUT FORMAT:
 Return ONLY a valid JSON object with this structure:
@@ -352,6 +356,51 @@ User: "items in the Backend area path"
   "confidence": 0.95,
   "originalQuery": "items in the Backend area path",
   "boardIdentifier": "Backend"
+}
+
+User: "what time is it?"
+{
+  "type": "QUESTION",
+  "scope": "GLOBAL",
+  "entities": ["time"],
+  "dataRequired": false,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "what time is it?"
+}
+
+User: "hello"
+{
+  "type": "QUESTION",
+  "scope": "GLOBAL",
+  "entities": ["greeting"],
+  "dataRequired": false,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "hello"
+}
+
+User: "what is 2 + 2?"
+{
+  "type": "QUESTION",
+  "scope": "GLOBAL",
+  "entities": ["math", "calculation"],
+  "dataRequired": false,
+  "complexity": "SIMPLE",
+  "confidence": 1.0,
+  "originalQuery": "what is 2 + 2?"
+}
+
+User: "show me items in the current sprint"
+{
+  "type": "COMMAND",
+  "scope": "SPRINT",
+  "entities": ["current sprint", "items"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.85,
+  "originalQuery": "show me items in the current sprint",
+  "sprintIdentifier": "current"
 }
 
 Be precise, confident, and always return valid JSON.`;
