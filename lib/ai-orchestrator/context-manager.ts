@@ -207,9 +207,10 @@ export class ContextManager {
         }
       }
 
-      // Extract from response metadata (list of projects)
-      if (turn.response.metadata?.projects) {
-        const projects = turn.response.metadata.projects as Array<{name: string}>;
+      // Extract from response metadata (list of projects, if available)
+      const metadata = turn.response.metadata as any;
+      if (metadata?.projects && Array.isArray(metadata.projects)) {
+        const projects = metadata.projects as Array<{name: string}>;
         for (const proj of projects.slice(0, 10)) {
           if (proj.name && !entities.projects.includes(proj.name)) {
             entities.projects.push(proj.name);
