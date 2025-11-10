@@ -289,6 +289,22 @@ User: "tell me about tickets opened by ericka"
   "userIdentifier": "ericka"
 }
 
+User: "how many has she closed this year?" [CONTEXT: Last mentioned user was "Ericka A"]
+{
+  "type": "QUESTION",
+  "scope": "CREATOR",
+  "entities": ["closed", "this year", "she"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "how many has she closed this year?",
+  "userIdentifier": "Ericka A",
+  "states": ["Closed"],
+  "dateRange": {
+    "relative": "this year"
+  }
+}
+
 User: "show me closed user stories"
 {
   "type": "COMMAND",
@@ -347,6 +363,7 @@ export function buildIntentAnalysisPrompt(
     users?: string[];
     sprints?: string[];
     teams?: string[];
+    lastMentionedUser?: string;
   }
 ): string {
   let contextHint = '';
@@ -367,8 +384,13 @@ export function buildIntentAnalysisPrompt(
       hints.push(`Recently mentioned teams: ${recentEntities.teams.join(', ')}`);
     }
 
+    // Add pronoun resolution hint
+    if (recentEntities.lastMentionedUser) {
+      hints.push(`**PRONOUN RESOLUTION:** If the query uses pronouns like "she", "he", "they", "her", "his", "their", treat as referring to: ${recentEntities.lastMentionedUser}`);
+    }
+
     if (hints.length > 0) {
-      contextHint = `\n\n**CONVERSATION CONTEXT (use as hints for ambiguous references):**\n${hints.join('\n')}\n\nIMPORTANT: If the user query contains a name that matches a recently mentioned entity (e.g., "CSA" matching project "CSA"), strongly prefer that entity type in your classification.`;
+      contextHint = `\n\n**CONVERSATION CONTEXT (use as hints for ambiguous references):**\n${hints.join('\n')}\n\nIMPORTANT: If the user query contains a name that matches a recently mentioned entity (e.g., "CSA" matching project "CSA"), strongly prefer that entity type in your classification. If the query uses pronouns (she/he/they), resolve them to the last mentioned user.`;
     }
   }
 

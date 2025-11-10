@@ -169,11 +169,12 @@ export class ContextManager {
   /**
    * Extract recently mentioned entities from conversation history
    */
-  getRecentEntities(context: ConversationContext, maxTurns: number = 3): {
+  getRecentEntities(context: ConversationContext, maxTurns: number = 5): {
     projects: string[];
     users: string[];
     sprints: string[];
     teams: string[];
+    lastMentionedUser?: string;
   } {
     const recentTurns = this.getRecentTurns(context, maxTurns);
     const entities = {
@@ -181,6 +182,7 @@ export class ContextManager {
       users: [] as string[],
       sprints: [] as string[],
       teams: [] as string[],
+      lastMentionedUser: undefined as string | undefined,
     };
 
     for (const turn of recentTurns) {
@@ -190,6 +192,8 @@ export class ContextManager {
       }
       if (turn.intent.userIdentifier) {
         entities.users.push(turn.intent.userIdentifier);
+        // Track the most recently mentioned user for pronoun resolution
+        entities.lastMentionedUser = turn.intent.userIdentifier;
       }
       if (turn.intent.sprintIdentifier) {
         entities.sprints.push(turn.intent.sprintIdentifier);
@@ -225,6 +229,7 @@ export class ContextManager {
       users: [...new Set(entities.users)].slice(-10),
       sprints: [...new Set(entities.sprints)].slice(-10),
       teams: [...new Set(entities.teams)].slice(-10),
+      lastMentionedUser: entities.lastMentionedUser,
     };
   }
 

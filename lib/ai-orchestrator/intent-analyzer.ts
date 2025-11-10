@@ -38,6 +38,7 @@ export class IntentAnalyzer {
       users?: string[];
       sprints?: string[];
       teams?: string[];
+      lastMentionedUser?: string;
     }
   ): Promise<Intent> {
     try {
