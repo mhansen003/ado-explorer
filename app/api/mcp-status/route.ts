@@ -20,7 +20,14 @@ export async function GET(request: NextRequest) {
     // Check environment configuration
     const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your-anthropic-api-key-here';
     const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY !== 'your-openrouter-key-here';
+    const hasOpenAIKey = !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-key-here';
     const hasMCPKey = hasAnthropicKey || hasOpenRouterKey;
+
+    // Determine which service is being used for AI Orchestrator
+    const aiOrchestratorService = hasOpenRouterKey ? 'OpenRouter' : hasOpenAIKey ? 'OpenAI' : 'None';
+    const aiOrchestratorBaseURL = hasOpenRouterKey
+      ? 'https://openrouter.ai/api/v1'
+      : 'https://api.openai.com/v1';
 
     if (!organization || !pat) {
       return NextResponse.json({
@@ -68,6 +75,20 @@ export async function GET(request: NextRequest) {
           'Automatic fallback to REST API on errors',
         ] : [],
       },
+      aiOrchestrator: {
+        service: aiOrchestratorService,
+        baseURL: aiOrchestratorBaseURL,
+        models: {
+          intent: hasOpenRouterKey ? 'openai/gpt-4o-mini' : 'gpt-4o-mini',
+          decision: hasOpenRouterKey ? 'openai/gpt-4o-mini' : 'gpt-4o-mini',
+          planning: hasOpenRouterKey ? 'openai/gpt-4o' : 'gpt-4o',
+          evaluation: hasOpenRouterKey ? 'openai/gpt-4o' : 'gpt-4o',
+          synthesis: hasOpenRouterKey ? 'openai/gpt-4o' : 'gpt-4o',
+        },
+        description: hasOpenRouterKey
+          ? 'All AI orchestrator calls (intent analysis, query planning, response synthesis) route through OpenRouter'
+          : 'All AI orchestrator calls route directly to OpenAI',
+      },
       rest: {
         enabled: true,
         available: serviceStatus.restAvailable,
@@ -83,6 +104,7 @@ export async function GET(request: NextRequest) {
         project: project || 'All projects',
         hasAnthropicKey,
         hasOpenRouterKey,
+        hasOpenAIKey,
         hasMCPKey,
       },
       recommendations: [] as Array<{ level: string; message: string }>,

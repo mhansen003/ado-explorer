@@ -84,10 +84,18 @@ export async function POST(req: NextRequest) {
       },
     };
 
+    // Log AI service configuration
+    const aiService = process.env.OPENROUTER_API_KEY ? 'OpenRouter' : 'OpenAI';
+    const aiBaseURL = process.env.OPENROUTER_API_KEY
+      ? 'https://openrouter.ai/api/v1'
+      : 'https://api.openai.com/v1';
+
     console.log('[Chat API] Processing query:', {
       query: input.query,
       userId: input.userId,
       conversationId: input.conversationId,
+      aiService,
+      aiBaseURL,
     });
 
     // Initialize orchestrator
