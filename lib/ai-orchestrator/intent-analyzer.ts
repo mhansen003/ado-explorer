@@ -45,7 +45,7 @@ export class IntentAnalyzer {
             content: buildIntentAnalysisPrompt(userQuery),
           },
         ],
-        temperature: 0.3, // Low temperature for consistent classification
+        temperature: 0.0, // Zero temperature for maximum consistency in classification
         max_tokens: 1000,
         response_format: { type: 'json_object' },
       });

@@ -76,7 +76,7 @@ export class QueryPlanner {
             content: buildQueryPlanningPrompt(intent, context),
           },
         ],
-        temperature: 0.3,
+        temperature: 0.0, // Zero temperature for deterministic query planning
         max_tokens: 2000,
         response_format: { type: 'json_object' },
       });

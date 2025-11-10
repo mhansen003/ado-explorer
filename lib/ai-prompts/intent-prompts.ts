@@ -50,7 +50,8 @@ Your job is to classify the user's intent and extract relevant entities.
 - GLOBAL: General query not tied to specific scope
 
 # COMPLEXITY LEVELS:
-- SIMPLE: Single, straightforward query (e.g., "Show John's tickets")
+- SIMPLE: Single, straightforward query (e.g., "Show John's tickets", "tickets created by Sarah", "tell me about items opened by Mark")
+  * IMPORTANT: Queries asking about items created/opened/authored by a user are ALWAYS SIMPLE, regardless of phrasing like "tell me about"
 - MULTI_STEP: Requires multiple queries or data sources (e.g., "Compare two sprints")
 - ANALYTICAL: Requires calculations, metrics, or deep analysis (e.g., "Why are we behind?")
 
@@ -274,6 +275,18 @@ User: "what did Mark create last week?"
   "dateRange": {
     "relative": "last week"
   }
+}
+
+User: "tell me about tickets opened by ericka"
+{
+  "type": "COMMAND",
+  "scope": "CREATOR",
+  "entities": ["tickets", "opened by", "ericka"],
+  "dataRequired": true,
+  "complexity": "SIMPLE",
+  "confidence": 0.95,
+  "originalQuery": "tell me about tickets opened by ericka",
+  "userIdentifier": "ericka"
 }
 
 User: "show me closed user stories"
