@@ -160,9 +160,9 @@ export class ResponseSynthesizer {
         summary: 'No saved queries found in your Azure DevOps project. You can create saved queries in ADO to make frequently-used searches easily accessible.',
         rawData: [],
         suggestions: [
-          'How do I create a saved query in ADO?',
-          'Show me work items from the current sprint',
-          'What are the different types of queries I can create?',
+          'Show me all active bugs',
+          'Show me closed items',
+          'Show me all user stories',
         ],
         metadata: {
           queriesExecuted: results.metadata.totalQueries,
@@ -192,10 +192,9 @@ export class ResponseSynthesizer {
       summary,
       rawData: [], // Queries aren't work items
       suggestions: [
-        'Show me items from a specific saved query',
-        'What is the "My Active Items" query?',
-        'Show me current sprint items',
-        'List all bugs',
+        'Show me all active bugs',
+        'Show me closed items',
+        'Show me all tasks',
       ],
       metadata: {
         queriesExecuted: results.metadata.totalQueries,
@@ -236,9 +235,9 @@ export class ResponseSynthesizer {
         summary: answer,
         rawData: [],
         suggestions: [
-          'Show me my active work items',
-          'What sprints are available?',
-          'List all projects',
+          'Show me all active bugs',
+          'Show me closed items',
+          'Show me all tasks',
         ],
         metadata: {
           queriesExecuted: 0,
@@ -254,9 +253,9 @@ export class ResponseSynthesizer {
         summary: 'I can help you explore Azure DevOps data. Try asking about specific work items, sprints, users, or projects.',
         rawData: [],
         suggestions: [
-          'Show me my assigned items',
-          'List all users',
-          'What are the available work item types?',
+          'Show me all active bugs',
+          'Show me closed items',
+          'Show me all user stories',
         ],
         metadata: {
           queriesExecuted: 0,
@@ -421,29 +420,53 @@ export class ResponseSynthesizer {
   private generateDefaultSuggestions(intent: Intent): string[] {
     const suggestions: string[] = [];
 
-    if (intent.scope === 'USER') {
+    if (intent.scope === 'USER' && intent.userIdentifier) {
       suggestions.push(
-        'Show high priority items',
-        'What bugs are assigned?',
-        'Show items by state'
+        `Show me ${intent.userIdentifier}'s bug items`,
+        `Show me items assigned to ${intent.userIdentifier}`,
+        `Show me all active tasks`
       );
-    } else if (intent.scope === 'SPRINT') {
+    } else if (intent.scope === 'CREATOR' && intent.userIdentifier) {
       suggestions.push(
-        'Show blocked items',
-        'What is the velocity?',
-        'Who has the most items?'
+        `Show me items assigned to ${intent.userIdentifier}`,
+        `Show me all active bugs`,
+        `Show me closed items`
       );
-    } else if (intent.scope === 'PROJECT') {
+    } else if (intent.scope === 'ASSIGNEE' && intent.userIdentifier) {
       suggestions.push(
-        'Show all bugs',
-        'List active sprints',
-        'Show team breakdown'
+        `Show me items created by ${intent.userIdentifier}`,
+        `Show me all active bugs`,
+        `Show me all tasks`
+      );
+    } else if (intent.scope === 'SPRINT' && intent.sprintIdentifier) {
+      suggestions.push(
+        `Show me active items in ${intent.sprintIdentifier}`,
+        `Show me closed items in ${intent.sprintIdentifier}`,
+        `Show me all bugs in ${intent.sprintIdentifier}`
+      );
+    } else if (intent.scope === 'PROJECT' && intent.projectIdentifier) {
+      suggestions.push(
+        `Show me all bugs for ${intent.projectIdentifier}`,
+        `Show me active items for ${intent.projectIdentifier}`,
+        `Show me all user stories`
+      );
+    } else if (intent.scope === 'STATE' && intent.states) {
+      suggestions.push(
+        'Show me all bugs',
+        'Show me all tasks',
+        'Show me all user stories'
+      );
+    } else if (intent.scope === 'TYPE' && intent.types) {
+      suggestions.push(
+        'Show me active items',
+        'Show me closed items',
+        'Show me all bugs'
       );
     } else {
       suggestions.push(
-        'Show my active items',
-        'List all sprints',
-        'What users are available?'
+        'Show me all active bugs',
+        'Show me closed items',
+        'Show me all user stories'
       );
     }
 

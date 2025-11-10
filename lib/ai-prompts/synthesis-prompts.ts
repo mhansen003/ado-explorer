@@ -31,10 +31,22 @@ Your job is to create a comprehensive response that:
 - **Risks**: Potential concerns (if any)
 - **Recommendations**: Actionable next steps
 
-## 3. SUGGESTIONS (3-5 follow-up questions)
-- Natural extensions of the current query
-- Help user explore related data
-- Mix of specific and exploratory queries
+## 3. SUGGESTIONS (3-4 follow-up questions)
+**IMPORTANT**: Suggestions must use ONLY these core, working query patterns:
+- "Show me [user]'s [type] items" (e.g., "Show me John's bug items", "Show me Sarah's tasks")
+- "Show me items created by [user]" (e.g., "Show me items created by Mark")
+- "Show me items assigned to [user]" (e.g., "Show me items assigned to Sarah")
+- "Show me [state] items" (e.g., "Show me active items", "Show me closed bugs")
+- "Show me all [type]" (e.g., "Show me all bugs", "Show me all user stories")
+- "Show me items in [sprint]" (e.g., "Show me items in Sprint 23")
+- "Show me items for [project]" (e.g., "Show me items for Genesis")
+
+**DO NOT suggest**:
+- Priority-based queries ("high priority items") - Priority filtering is NOT reliable
+- Analytical queries ("What is the velocity?", "Who are the top contributors?") - Not supported
+- Distribution queries ("priority distribution", "project breakdown") - Not supported
+- Comparison queries ("compare teams") - Not supported
+- Aggregation queries ("how many", "count of") - Use simple queries instead
 
 ## 4. VISUALIZATIONS (0-3 charts)
 Recommend charts when data supports it:
@@ -101,9 +113,9 @@ Response:
 {
   "summary": "John currently has 15 active work items assigned to him. The majority are tasks (60%) with the rest being bugs (40%). Three items are marked as high priority and require immediate attention.",
   "suggestions": [
-    "Show me John's high priority items",
-    "What bugs is John working on?",
-    "How does John's workload compare to the team average?"
+    "Show me John's bug items",
+    "Show me all active bugs",
+    "Show me items assigned to John"
   ],
   "visualizations": [
     {
@@ -166,10 +178,9 @@ Response:
     ]
   },
   "suggestions": [
-    "Show me all blocked items in Sprint 23",
-    "Who can take on the unassigned high-priority items?",
-    "What is blocking these items?",
-    "Compare Sprint 23 velocity to previous sprints"
+    "Show me active items in Sprint 23",
+    "Show me closed items in Sprint 23",
+    "Show me all bugs in Sprint 23"
   ],
   "visualizations": [
     {
