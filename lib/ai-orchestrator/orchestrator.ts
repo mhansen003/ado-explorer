@@ -27,7 +27,7 @@ import ResultEvaluator from './result-evaluator';
 import ResponseSynthesizer from './response-synthesizer';
 import ContextManager from './context-manager';
 import MetadataPreloader from './metadata-preloader';
-import { ADOService } from '../ado-api';
+import { ADOServiceHybrid } from '../ado-service-hybrid';
 
 // Default configuration
 const DEFAULT_CONFIG: OrchestratorConfig = {
@@ -68,16 +68,25 @@ export class AIOrchestrator {
   private responseSynthesizer: ResponseSynthesizer;
   private contextManager: ContextManager;
   private metadataPreloader: MetadataPreloader;
-  private adoService: ADOService;
+  private adoService: ADOServiceHybrid;
 
   constructor(config?: Partial<OrchestratorConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
-    // Initialize all phase processors
+    // Initialize ADO service FIRST (Hybrid with MCP + REST fallback)
+    const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION || '';
+    const pat = process.env.ADO_PAT || '';
+    const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
+    this.adoService = new ADOServiceHybrid(organization, pat, project, {
+      useMCP: true, // Enable MCP with automatic REST fallback
+      useOpenRouter: !!process.env.OPENROUTER_API_KEY, // Use OpenRouter if key is available
+    });
+
+    // Initialize all phase processors (QueryExecutor needs adoService)
     this.intentAnalyzer = new IntentAnalyzer(this.config.models.intent);
     this.decisionEngine = new DecisionEngine(this.config.models.decision);
     this.queryPlanner = new QueryPlanner(this.config.models.planning);
-    this.queryExecutor = new QueryExecutor();
+    this.queryExecutor = new QueryExecutor(this.adoService); // ✅ Inject hybrid service
     this.resultEvaluator = new ResultEvaluator(
       this.config.models.evaluation,
       this.config.retry.maxAttempts
@@ -85,12 +94,6 @@ export class AIOrchestrator {
     this.responseSynthesizer = new ResponseSynthesizer(this.config.models.synthesis);
     this.contextManager = new ContextManager();
     this.metadataPreloader = new MetadataPreloader();
-
-    // Initialize ADO service with environment variables
-    const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION || '';
-    const pat = process.env.ADO_PAT || '';
-    const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
-    this.adoService = new ADOService(organization, pat, project);
   }
 
   /**

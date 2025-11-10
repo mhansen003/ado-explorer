@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ADOService } from '@/lib/ado-api';
+import { ADOServiceHybrid } from '@/lib/ado-service-hybrid';
 import { GlobalFilters } from '@/types';
 import { callOpenAIWithRetry, isRateLimitError, formatRateLimitError } from '@/lib/openai-utils';
 import {
@@ -120,7 +120,10 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
       // Determine project to use
       let targetProject = project;
       if (!targetProject) {
-        const tempService = new ADOService(organization, pat);
+        const tempService = new ADOServiceHybrid(organization, pat, undefined, {
+          useMCP: true,
+          useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+        });
         const projects = await tempService.getProjects();
         if (projects.length > 0) {
           targetProject = projects[0].name;
@@ -130,7 +133,10 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
       if (targetProject) {
         sprintProjectName = targetProject;
         try {
-          const adoService = new ADOService(organization, pat, targetProject);
+          const adoService = new ADOServiceHybrid(organization, pat, targetProject, {
+            useMCP: true,
+            useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+          });
           availableSprints = await adoService.getSprints();
           sprintContext = buildSprintContext(targetProject, availableSprints);
           console.log('[ADO Prompt API] Sprint context built:', sprintContext);
@@ -199,7 +205,10 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
     // If no project specified, get the first available project
     let targetProject = project;
     if (!targetProject) {
-      const tempService = new ADOService(organization, pat);
+      const tempService = new ADOServiceHybrid(organization, pat, undefined, {
+        useMCP: true,
+        useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+      });
       const projects = await tempService.getProjects();
       if (projects.length === 0) {
         throw new Error('No projects found in the organization');
@@ -208,8 +217,11 @@ Respond with ONLY "SEARCH" or "ANALYTICS".`,
       console.log('[ADO Prompt API] No project specified, using first project:', targetProject);
     }
 
-    // Apply global filters to the AI-generated WIQL query
-    const adoService = new ADOService(organization, pat, targetProject);
+    // Apply global filters to the AI-generated WIQL query (using Hybrid service with MCP + REST fallback)
+    const adoService = new ADOServiceHybrid(organization, pat, targetProject, {
+      useMCP: true,
+      useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+    });
     const filteredQuery = adoService.applyFiltersToQuery(wiqlQuery, filters);
     console.log('[ADO Prompt API] WIQL with filters:', filteredQuery);
 

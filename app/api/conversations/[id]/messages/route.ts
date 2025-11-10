@@ -14,7 +14,7 @@ import { detectCollectionQuery, fetchCollectionData, formatCollectionContext } f
 import { generateSuggestions } from '@/lib/suggestion-generator';
 import { validateResponse, quickValidate } from '@/lib/quality-check';
 import { analyzeQuery, generateIntelligentSummary, QueryAnalysis } from '@/lib/intelligent-query-processor';
-import { ADOService } from '@/lib/ado-api';
+import { ADOServiceHybrid } from '@/lib/ado-service-hybrid';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -39,8 +39,11 @@ async function fetchWorkItemsFromCriteria(searchCriteria: QueryAnalysis['searchC
   }
 
   try {
-    // Create ADO service instance
-    const adoService = new ADOService(organization, pat, project);
+    // Create ADO service instance (Hybrid with MCP + REST fallback)
+    const adoService = new ADOServiceHybrid(organization, pat, project, {
+      useMCP: true,
+      useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+    });
 
     // Build WIQL query from search criteria
     let conditions: string[] = [];

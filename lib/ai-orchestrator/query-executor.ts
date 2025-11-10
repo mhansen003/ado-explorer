@@ -7,31 +7,18 @@
 
 import { QueryPlan, PlannedQuery, QueryResults, QueryResult } from '../types/ai-types';
 import { WorkItem, GlobalFilters } from '@/types';
-import { ADOService } from '../ado-api';
+import { ADOServiceHybrid } from '../ado-service-hybrid';
 import { CacheService } from '../redis/cacheService';
 
 const CACHE_TTL = 300; // 5 minutes in seconds
 
 export class QueryExecutor {
   private cache: CacheService;
+  private adoService: ADOServiceHybrid;
 
-  constructor() {
+  constructor(adoService: ADOServiceHybrid) {
     this.cache = new CacheService();
-  }
-
-  /**
-   * Get ADO service instance (creates new instance per request with current env vars)
-   */
-  private getADOService(): ADOService {
-    const organization = process.env.NEXT_PUBLIC_ADO_ORGANIZATION;
-    const pat = process.env.ADO_PAT;
-    const project = process.env.NEXT_PUBLIC_ADO_PROJECT;
-
-    if (!organization || !pat) {
-      throw new Error('ADO credentials not configured');
-    }
-
-    return new ADOService(organization, pat, project);
+    this.adoService = adoService;
   }
 
   /**
@@ -207,7 +194,7 @@ export class QueryExecutor {
     query: PlannedQuery,
     filters?: GlobalFilters
   ): Promise<{ workItems: WorkItem[]; query: string }> {
-    const adoService = this.getADOService();
+    const adoService = this.adoService;
     let wiqlQuery = query.query as string;
 
     // Apply global filters if present
@@ -243,7 +230,7 @@ export class QueryExecutor {
    * Execute a REST API query
    */
   private async executeREST(query: PlannedQuery): Promise<any> {
-    const adoService = this.getADOService();
+    const adoService = this.adoService;
     const endpoint = query.query as string;
 
     // Map REST endpoints to ADO service methods
@@ -279,7 +266,7 @@ export class QueryExecutor {
    * Execute a metadata query
    */
   private async executeMetadata(query: PlannedQuery): Promise<any> {
-    const adoService = this.getADOService();
+    const adoService = this.adoService;
     const metadataType = query.query as string;
 
     switch (metadataType) {
@@ -394,7 +381,7 @@ export class QueryExecutor {
    * Enrich work items with relationships (if needed)
    */
   async enrichWithRelationships(workItems: WorkItem[]): Promise<WorkItem[]> {
-    const adoService = this.getADOService();
+    const adoService = this.adoService;
     return await adoService.enrichWorkItemsWithRelationships(workItems);
   }
 }

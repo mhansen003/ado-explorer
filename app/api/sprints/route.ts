@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ADOService } from '@/lib/ado-api';
+import { ADOServiceHybrid } from '@/lib/ado-service-hybrid';
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,12 +32,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const adoService = new ADOService(organization, pat, projectName);
+    const adoService = new ADOServiceHybrid(organization, pat, projectName, {
+      useMCP: true, // Enable MCP for better sprint queries with timeFrame
+      useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+    });
 
-    // Fetch all sprints for the team
+    // Fetch all sprints for the team (MCP provides better timeFrame data!)
     const sprints = await adoService.getSprints(projectName, teamName);
 
-    // Also get current sprint separately
+    // Also get current sprint separately (MCP automatically detects "current" timeFrame)
     const currentSprint = await adoService.getCurrentSprint(projectName, teamName);
 
     return NextResponse.json({

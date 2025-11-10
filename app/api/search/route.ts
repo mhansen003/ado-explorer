@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ADOService } from '@/lib/ado-api';
+import { ADOServiceHybrid } from '@/lib/ado-service-hybrid';
 import { GlobalFilters } from '@/types';
 
 export async function POST(request: NextRequest) {
@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
     // If no project specified, get the first available project
     let targetProject = project;
     if (!targetProject) {
-      const tempService = new ADOService(organization, pat);
+      const tempService = new ADOServiceHybrid(organization, pat, undefined, {
+        useMCP: true,
+        useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+      });
       const projects = await tempService.getProjects();
       if (projects.length === 0) {
         throw new Error('No projects found in the organization');
@@ -42,8 +45,11 @@ export async function POST(request: NextRequest) {
       console.log('[ADO API] No project specified, using first project:', targetProject);
     }
 
-    // Create ADO service instance with project
-    const adoService = new ADOService(organization, pat, targetProject);
+    // Create ADO service instance with project (Hybrid with MCP + REST fallback)
+    const adoService = new ADOServiceHybrid(organization, pat, targetProject, {
+      useMCP: true,
+      useOpenRouter: !!process.env.OPENROUTER_API_KEY,
+    });
 
     // Parse command and parameter
     const parts = command.trim().split(' ');
