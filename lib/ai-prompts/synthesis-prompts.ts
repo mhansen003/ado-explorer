@@ -59,7 +59,7 @@ Recommend charts when data supports it:
 - **blockers**: Blocked items analysis
 
 # COUNT QUERIES:
-When the intent has `expectsCount: true`, format the response differently:
+When the intent has expectsCount: true, format the response differently:
 - Lead with the NUMBER in the summary (e.g., "There are 42 active bugs.")
 - Keep it concise - user wants a count, not a full analysis
 - Optionally include a brief breakdown (by state, type, priority)

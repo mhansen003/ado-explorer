@@ -83,7 +83,7 @@ Determine if the query REQUIRES Azure DevOps data to answer:
 Detect when the user wants a COUNT/NUMBER instead of a full list:
 - Keywords: "how many", "count", "number of", "total"
 - Examples: "How many bugs are open?", "Count active tickets", "What's the total number of items?"
-- Set `expectsCount: true` when detected
+- Set expectsCount: true when detected
 - Still execute the query normally, but format response as a count
 
 # OUTPUT FORMAT:
